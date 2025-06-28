@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +52,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 // A simple mock for available times. In a real app, this would be more complex.
@@ -170,6 +171,12 @@ export default function DoctorDashboardPage() {
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState('');
 
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponValue, setCouponValue] = useState('');
+  const [couponDiscountType, setCouponDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
 
@@ -212,7 +219,7 @@ export default function DoctorDashboardPage() {
         }
     });
 
-    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime());
     past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return { upcomingAppointments: upcoming, pastAppointments: past };
@@ -406,6 +413,44 @@ export default function DoctorDashboardPage() {
   const handleDeleteExpense = (expenseId: string) => {
     setExpenses(expenses.filter(e => e.id !== expenseId));
   };
+  
+  const handleOpenCouponDialog = (coupon: Coupon | null) => {
+    setEditingCoupon(coupon);
+    setCouponCode(coupon ? coupon.code : '');
+    setCouponValue(coupon ? String(coupon.value) : '');
+    setCouponDiscountType(coupon ? coupon.discountType : 'percentage');
+    setIsCouponDialogOpen(true);
+  };
+
+  const handleSaveCoupon = () => {
+    if (!doctorData || !couponCode || !couponValue) return;
+    const newCoupon: Coupon = {
+      id: editingCoupon ? editingCoupon.id : Date.now(),
+      code: couponCode.toUpperCase(),
+      discountType: couponDiscountType,
+      value: parseFloat(couponValue),
+    };
+
+    let updatedCoupons;
+    if (editingCoupon) {
+      updatedCoupons = doctorData.coupons.map(c => c.id === editingCoupon.id ? newCoupon : c);
+    } else {
+      updatedCoupons = [...doctorData.coupons, newCoupon];
+    }
+    setDoctorData({ ...doctorData, coupons: updatedCoupons });
+    setIsCouponDialogOpen(false);
+    toast({
+        title: editingCoupon ? "Cupón actualizado" : "Cupón creado",
+        description: `El cupón ${newCoupon.code} ha sido guardado.`,
+    });
+  };
+
+  const handleDeleteCoupon = (couponId: number) => {
+    if (!doctorData) return;
+    const updatedCoupons = doctorData.coupons.filter(c => c.id !== couponId);
+    setDoctorData({ ...doctorData, coupons: updatedCoupons });
+  };
+
 
   const handleUpdateAttendance = (appointmentId: string, attendance: 'Atendido' | 'No Asistió') => {
     setAppointments(prev =>
@@ -808,6 +853,48 @@ export default function DoctorDashboardPage() {
                 </CardContent>
                </Card>
             )
+        case 'coupons':
+            return (
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle>
+                        <CardDescription>Crea y gestiona cupones para tus pacientes.</CardDescription>
+                    </div>
+                    <Button onClick={() => handleOpenCouponDialog(null)}><PlusCircle className="mr-2"/> Agregar Cupón</Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Código</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                                <TableHead className="text-center">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {doctorData.coupons.map(coupon => (
+                                <TableRow key={coupon.id}>
+                                    <TableCell className="font-medium">{coupon.code}</TableCell>
+                                    <TableCell className="capitalize">{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Fijo'}</TableCell>
+                                    <TableCell className="text-right">{coupon.discountType === 'percentage' ? `${coupon.value}%` : `$${coupon.value.toFixed(2)}`}</TableCell>
+                                    <TableCell className="text-center space-x-2">
+                                        <Button variant="outline" size="icon" onClick={() => handleOpenCouponDialog(coupon)}><Pencil className="h-4 w-4" /></Button>
+                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteCoupon(coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                             {doctorData.coupons.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center h-24">No has creado ningún cupón.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+               </Card>
+            )
         default:
             return null;
     }
@@ -914,6 +1001,50 @@ export default function DoctorDashboardPage() {
                             <Button type="button" variant="outline">Cancelar</Button>
                          </DialogClose>
                         <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingCoupon ? "Editar Cupón" : "Agregar Nuevo Cupón"}</DialogTitle>
+                        <DialogDescription>
+                           Crea un nuevo cupón de descuento para tus pacientes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="couponCode" className="text-right">Código</Label>
+                            <Input id="couponCode" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="couponValue" className="text-right">Valor</Label>
+                            <Input id="couponValue" type="number" value={couponValue} onChange={e => setCouponValue(e.target.value)} className="col-span-3" />
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                             <Label className="text-right">Tipo</Label>
+                             <RadioGroup
+                                value={couponDiscountType}
+                                onValueChange={(value: any) => setCouponDiscountType(value)}
+                                className="col-span-3 flex items-center space-x-4"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="percentage" id="percentage" />
+                                  <Label htmlFor="percentage" className="font-normal flex items-center gap-1"><Percent className="h-4 w-4"/>Porcentaje (%)</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="fixed" id="fixed" />
+                                  <Label htmlFor="fixed" className="font-normal flex items-center gap-1"><DollarSign className="h-4 w-4"/>Monto Fijo ($)</Label>
+                                </div>
+                              </RadioGroup>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                         <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancelar</Button>
+                         </DialogClose>
+                        <Button type="button" onClick={handleSaveCoupon}>Guardar Cupón</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

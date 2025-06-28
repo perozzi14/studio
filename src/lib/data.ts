@@ -24,6 +24,13 @@ export type Service = {
   price: number;
 };
 
+export type Coupon = {
+  id: number;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  value: number; 
+};
+
 export type Doctor = {
   id: number;
   name: string;
@@ -38,6 +45,7 @@ export type Doctor = {
   aiHint: string;
   services: Service[];
   bankDetails: BankDetail[];
+  coupons: Coupon[];
 };
 
 export const doctors: Doctor[] = [
@@ -73,6 +81,10 @@ export const doctors: Doctor[] = [
         accountHolder: "Ana Rodriguez",
         idNumber: "V-12.345.678"
       }
+    ],
+    coupons: [
+      { id: 1, code: "VERANO20", discountType: "percentage", value: 20 },
+      { id: 2, code: "SUMA10", discountType: "fixed", value: 10 },
     ]
   },
   { 
@@ -98,7 +110,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0102-0002-0002-0002-0002",
       accountHolder: "Carlos Sanchez",
       idNumber: "V-10.987.654"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 3, 
@@ -122,7 +135,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0108-0003-0003-0003-0003",
       accountHolder: "Sofia Gomez",
       idNumber: "V-14.567.890"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 4, 
@@ -146,7 +160,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0172-0004-0004-0004-0004",
       accountHolder: "Luis Fernandez",
       idNumber: "V-11.222.333"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 5, 
@@ -170,7 +185,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0105-0005-0005-0005-0005",
       accountHolder: "Maria Hernandez",
       idNumber: "V-9.876.543"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 6, 
@@ -194,7 +210,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0134-0006-0006-0006-0006",
       accountHolder: "Javier Torres",
       idNumber: "V-13.131.313"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 7, 
@@ -218,7 +235,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0102-0007-0007-0007-0007",
       accountHolder: "Laura Martínez",
       idNumber: "V-15.432.109"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 8, 
@@ -242,7 +260,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0108-0008-0008-0008-0008",
       accountHolder: "Ricardo Vargas",
       idNumber: "V-12.876.543"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 9, 
@@ -267,7 +286,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0105-0009-0009-0009-0009",
       accountHolder: "Valentina Diaz",
       idNumber: "V-16.123.456"
-    }]
+    }],
+    coupons: []
   },
   { 
     id: 10, 
@@ -291,7 +311,8 @@ export const doctors: Doctor[] = [
       accountNumber: "0134-0010-0010-0010-0010",
       accountHolder: "Andres Castillo",
       idNumber: "V-14.987.654"
-    }]
+    }],
+    coupons: []
   },
 ];
 

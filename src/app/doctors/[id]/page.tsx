@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/header";
-import { doctors, type Doctor, type Service, type BankDetail } from "@/lib/data";
+import { doctors, type Doctor, type Service, type BankDetail, type Coupon } from "@/lib/data";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck } from "lucide-react";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DoctorProfilePage() {
   const params = useParams();
   const id = params.id ? parseInt(params.id as string, 10) : null;
   const doctor = doctors.find((d) => d.id === id);
+  const { toast } = useToast();
 
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -30,9 +32,18 @@ export default function DoctorProfilePage() {
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'Pendiente' | 'Pagado'>('Pendiente');
   
-  const totalPrice = useMemo(() => {
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+
+  const subtotal = useMemo(() => {
     return selectedServices.reduce((total, service) => total + service.price, 0);
   }, [selectedServices]);
+
+  const finalPrice = useMemo(() => {
+    const priceAfterDiscount = subtotal - discountAmount;
+    return priceAfterDiscount < 0 ? 0 : priceAfterDiscount;
+  }, [subtotal, discountAmount]);
 
   const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
 
@@ -43,6 +54,43 @@ export default function DoctorProfilePage() {
         : [...prev, service]
     );
   };
+  
+  const handleApplyCoupon = () => {
+    if (!doctor || !couponInput) return;
+    const coupon = doctor.coupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
+
+    if (coupon) {
+      let discount = 0;
+      if (coupon.discountType === 'percentage') {
+        discount = (subtotal * coupon.value) / 100;
+      } else {
+        discount = coupon.value;
+      }
+      
+      // Ensure discount doesn't exceed subtotal
+      const finalDiscount = Math.min(discount, subtotal);
+
+      setDiscountAmount(finalDiscount);
+      setAppliedCoupon(coupon);
+      toast({
+        title: "¡Cupón aplicado!",
+        description: `Se ha aplicado un descuento de ${coupon.discountType === 'percentage' ? `${coupon.value}%` : `$${coupon.value}`}.`
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Cupón no válido",
+        description: "El código de cupón ingresado no es válido o ha expirado."
+      });
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponInput("");
+  };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -78,6 +126,7 @@ export default function DoctorProfilePage() {
     setSelectedBankDetail(null);
     setPaymentProof(null);
     setPaymentStatus('Pendiente');
+    handleRemoveCoupon();
   };
 
   if (!doctor) {
@@ -169,10 +218,40 @@ export default function DoctorProfilePage() {
                   </div>
                 ))}
               </div>
-              <Separator />
-              <div className="flex justify-between items-center text-xl font-bold p-4 bg-muted/50 rounded-lg">
-                <span>Total a Pagar:</span>
-                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+              
+              <div className="space-y-2">
+                 <Label>¿Tienes un cupón de descuento?</Label>
+                 <div className="flex gap-2">
+                    <Input
+                      placeholder="CÓDIGO"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      disabled={!!appliedCoupon}
+                    />
+                    {appliedCoupon ? (
+                      <Button variant="outline" onClick={handleRemoveCoupon}>Quitar</Button>
+                    ) : (
+                      <Button onClick={handleApplyCoupon} disabled={!couponInput || subtotal === 0}>Aplicar</Button>
+                    )}
+                 </div>
+              </div>
+
+              <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg space-y-3">
+                <div className="w-full flex justify-between items-center">
+                    <span>Subtotal:</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                </div>
+                {appliedCoupon && (
+                    <div className="w-full flex justify-between items-center text-green-600">
+                        <div className="flex items-center gap-1.5"><Tag className="h-4 w-4"/> Cupón ({appliedCoupon.code})</div>
+                        <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                )}
+                 <Separator/>
+                <div className="w-full flex justify-between items-center text-xl font-bold">
+                    <span>Total a Pagar:</span>
+                    <span className="text-primary">${finalPrice.toFixed(2)}</span>
+                </div>
               </div>
               <div className="flex gap-4">
                  <Button variant="outline" onClick={() => setStep('selectDateTime')} className="w-full">
@@ -260,7 +339,7 @@ export default function DoctorProfilePage() {
 
               <div className="flex justify-between items-center text-xl font-bold p-4 bg-muted/50 rounded-lg">
                 <span>Total a Pagar:</span>
-                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+                <span className="text-primary">${finalPrice.toFixed(2)}</span>
               </div>
               <div className="flex gap-4">
                  <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full">
@@ -299,7 +378,7 @@ export default function DoctorProfilePage() {
                     <Separator/>
                      <div className="flex justify-between items-center font-bold">
                         <span>Total Pagado:</span>
-                        <span>${totalPrice.toFixed(2)}</span>
+                        <span>${finalPrice.toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -312,6 +391,9 @@ export default function DoctorProfilePage() {
                          <ClipboardCheck className="h-5 w-5"/>
                         <p><strong>Estado:</strong> {paymentStatus}</p>
                     </div>
+                     {appliedCoupon && (
+                      <p className="text-sm text-green-600">Cupón '{appliedCoupon.code}' aplicado (-${discountAmount.toFixed(2)}).</p>
+                    )}
                     {paymentMethod === 'transferencia' && (
                         <p className="text-sm text-muted-foreground">El comprobante ha sido enviado y está pendiente de revisión por el doctor.</p>
                     )}
