@@ -17,6 +17,8 @@ import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSig
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAppointments } from "@/lib/appointments";
+import { useAuth } from "@/lib/auth";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
@@ -44,6 +46,8 @@ export default function DoctorProfilePage() {
   const id = params.id ? parseInt(params.id as string, 10) : null;
   const doctor = doctors.find((d) => d.id === id);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { addAppointment } = useAppointments();
 
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -52,7 +56,6 @@ export default function DoctorProfilePage() {
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia' | null>(null);
   const [selectedBankDetail, setSelectedBankDetail] = useState<BankDetail | null>(null);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'Pendiente' | 'Pagado'>('Pendiente');
   
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
@@ -147,10 +150,39 @@ export default function DoctorProfilePage() {
   };
 
   const handlePaymentSubmit = () => {
-    if (paymentMethod === 'efectivo' || (paymentMethod === 'transferencia' && selectedBankDetail && paymentProof)) {
-      setPaymentStatus('Pendiente');
-      setStep('confirmation');
+    if (!doctor || !selectedDate || !selectedTime || !paymentMethod) return;
+
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Debes iniciar sesión",
+        description: "Para reservar una cita, por favor inicia sesión o crea una cuenta.",
+      });
+      return;
     }
+    
+    if (paymentMethod === 'transferencia' && !paymentProof) {
+      toast({
+        variant: "destructive",
+        title: "Comprobante Requerido",
+        description: "Por favor, sube el comprobante de pago para continuar.",
+      });
+      return;
+    }
+
+    addAppointment({
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      date: selectedDate.toISOString().split('T')[0],
+      time: selectedTime,
+      services: selectedServices,
+      totalPrice: finalPrice,
+      paymentMethod: paymentMethod,
+      paymentStatus: 'Pendiente',
+      paymentProof: paymentProof ? URL.createObjectURL(paymentProof) : null,
+    });
+
+    setStep('confirmation');
   };
 
   const resetBookingFlow = () => {
@@ -161,7 +193,6 @@ export default function DoctorProfilePage() {
     setPaymentMethod(null);
     setSelectedBankDetail(null);
     setPaymentProof(null);
-    setPaymentStatus('Pendiente');
     handleRemoveCoupon();
   };
 
@@ -436,7 +467,7 @@ export default function DoctorProfilePage() {
                     </div>
                     <div className="flex items-center gap-2 text-amber-600 font-semibold">
                          <ClipboardCheck className="h-5 w-5"/>
-                        <p><strong>Estado:</strong> {paymentStatus}</p>
+                        <p><strong>Estado:</strong> Pendiente</p>
                     </div>
                      {appliedCoupon && (
                       <p className="text-sm text-green-600">Cupón '{appliedCoupon.code}' aplicado (-${discountAmount.toFixed(2)}).</p>

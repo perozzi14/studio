@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
@@ -9,10 +9,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock } from 'lucide-react';
+import { useAppointments } from '@/lib/appointments';
+import type { Appointment } from '@/lib/data';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+
+function AppointmentCard({ appointment, isPast = false }: { appointment: Appointment, isPast?: boolean }) {
+  return (
+    <div className="border rounded-lg p-4 flex flex-col sm:flex-row gap-4 hover:shadow-md transition-shadow">
+      <div className="flex-1 space-y-2">
+        <p className="font-bold text-lg">{appointment.doctorName}</p>
+        <p className="text-sm text-muted-foreground">{appointment.services.map(s => s.name).join(', ')}</p>
+        <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
+          <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+          <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
+        </div>
+      </div>
+      <Separator orientation="vertical" className="h-auto hidden sm:block mx-2" />
+       <Separator orientation="horizontal" className="w-full block sm:hidden my-2" />
+      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
+         <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
+         {isPast ? (
+            <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={appointment.attendance === 'Atendido' ? 'bg-green-600 text-white' : ''}>
+                {appointment.attendance}
+            </Badge>
+         ) : (
+            <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={appointment.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : ''}>
+                {appointment.paymentStatus}
+            </Badge>
+         )}
+      </div>
+    </div>
+  );
+}
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { appointments } = useAppointments();
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +58,32 @@ export default function DashboardPage() {
       router.push('/doctor/dashboard');
     }
   }, [user, router]);
+
+  const { upcomingAppointments, pastAppointments } = useMemo(() => {
+    if (!user?.email) return { upcomingAppointments: [], pastAppointments: [] };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const userAppointments = appointments.filter(a => a.patientId === user.email);
+
+    const upcoming: Appointment[] = [];
+    const past: Appointment[] = [];
+
+    userAppointments.forEach(appt => {
+        const apptDate = new Date(appt.date + 'T00:00:00');
+        if (apptDate >= today) {
+            upcoming.push(appt);
+        } else {
+            past.push(appt);
+        }
+    });
+
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime());
+    past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return { upcomingAppointments, pastAppointments };
+  }, [user, appointments]);
 
   if (!user || user.role !== 'patient') {
     return (
@@ -71,16 +132,26 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Próximas Citas</CardTitle>
-                  <CardDescription>No tienes próximas citas agendadas.</CardDescription>
+                  {upcomingAppointments.length === 0 && (
+                     <CardDescription>No tienes próximas citas agendadas.</CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
-                    <CalendarPlus className="h-12 w-12" />
-                    <p>¿Listo para tu próxima consulta?</p>
-                    <Button asChild>
-                      <Link href="/find-a-doctor">Reservar una Cita</Link>
-                    </Button>
-                  </div>
+                  {upcomingAppointments.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingAppointments.map(appt => (
+                        <AppointmentCard key={appt.id} appointment={appt} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
+                      <CalendarPlus className="h-12 w-12" />
+                      <p>¿Listo para tu próxima consulta?</p>
+                      <Button asChild>
+                        <Link href="/find-a-doctor">Reservar una Cita</Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -90,10 +161,18 @@ export default function DashboardPage() {
                   <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
-                    <ClipboardList className="h-12 w-12" />
-                    <p>Tu historial médico aparecerá aquí después de tu primera cita.</p>
-                  </div>
+                   {pastAppointments.length > 0 ? (
+                    <div className="space-y-4">
+                      {pastAppointments.map(appt => (
+                        <AppointmentCard key={appt.id} appointment={appt} isPast />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
+                      <ClipboardList className="h-12 w-12" />
+                      <p>Tu historial médico aparecerá aquí después de tu primera cita.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
