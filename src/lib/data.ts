@@ -56,41 +56,12 @@ export type Schedule = {
   sunday: DaySchedule;
 };
 
-export type PaymentReport = {
-  id: string;
-  date: string; // YYYY-MM-DD
-  referenceNumber: string;
-  amount: number;
-  status: 'Pendiente' | 'Verificado' | 'Rechazado';
-  proofUrl: string;
-  notes?: string; 
-};
-
-export type SupportTicketMessage = {
-    from: 'doctor' | 'admin';
-    message: string;
-    date: string;
-};
-
-export type SupportTicket = {
-  id: string;
-  subject: string;
-  status: 'Abierto' | 'Cerrado';
-  messages: SupportTicketMessage[];
-  createdAt: string; // YYYY-MM-DD
-};
-
-
 export type Doctor = {
   id: number;
   name: string;
-  email: string;
-  whatsapp: string;
   specialty: string;
   city: string;
-  sector: string;
   address: string;
-  description: string;
   rating: number;
   reviewCount: number;
   profileImage: string;
@@ -101,11 +72,6 @@ export type Doctor = {
   coupons: Coupon[];
   schedule: Schedule;
   slotDuration: 30 | 60;
-  status: 'active' | 'inactive';
-  paymentReports: PaymentReport[];
-  supportTickets: SupportTicket[];
-  sellerId: number | null;
-  lastPaymentDate: string; // YYYY-MM-DD
 };
 
 export type Seller = {
@@ -138,21 +104,15 @@ export const sellers: Seller[] = [
 export const doctors: Doctor[] = [
   { 
     id: 1, 
-    name: "Dr. Ana Rodriguez",
-    email: "ana.rodriguez@suma.com",
-    whatsapp: "+584121234567",
+    name: "Dr. Ana Rodriguez", 
     specialty: "Cardiología", 
-    city: "Caracas",
-    sector: "Chacao",
+    city: "Caracas", 
     address: "Av. Francisco de Miranda, Centro Lido, Piso 5",
-    description: "Cardióloga con más de 15 años de experiencia en prevención y tratamiento de enfermedades cardiovasculares. Comprometida con el bienestar de mis pacientes.",
     rating: 4.9, 
     reviewCount: 120, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "woman doctor",
-    sellerId: 1,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
       { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
@@ -179,7 +139,6 @@ export const doctors: Doctor[] = [
       { id: 2, code: "SUMA10", discountType: "fixed", value: 10 },
     ],
     slotDuration: 30,
-    status: 'active',
     schedule: {
         monday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
         tuesday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
@@ -188,51 +147,19 @@ export const doctors: Doctor[] = [
         friday: { active: true, slots: [{ start: "09:00", end: "15:00" }] },
         saturday: { active: false, slots: [] },
         sunday: { active: false, slots: [] },
-    },
-    paymentReports: [
-        { id: 'pay-1', date: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0], referenceNumber: 'REF-123-LAST', amount: 50, status: 'Verificado', proofUrl: 'https://placehold.co/400x200.png' },
-        { id: 'pay-2', date: new Date().toISOString().split('T')[0], referenceNumber: 'REF-456-THIS', amount: 50, status: 'Pendiente', proofUrl: 'https://placehold.co/400x200.png' },
-    ],
-    supportTickets: [
-        { 
-            id: 'tic-1', 
-            subject: 'Problema con la carga de horarios', 
-            status: 'Cerrado', 
-            createdAt: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0],
-            messages: [
-                { from: 'doctor', message: 'No puedo guardar los cambios en mi horario del viernes.', date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString() },
-                { from: 'admin', message: 'Hola Dr. Ana, hemos revisado el problema y ya debería estar solucionado. Por favor, intente de nuevo.', date: new Date(new Date().setDate(new Date().getDate() - 9)).toISOString() },
-                { from: 'doctor', message: '¡Perfecto, ya funciona! Gracias.', date: new Date(new Date().setDate(new Date().getDate() - 9)).toISOString() }
-            ]
-        },
-        { 
-            id: 'tic-2', 
-            subject: 'Consulta sobre facturación', 
-            status: 'Abierto', 
-            createdAt: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
-            messages: [
-                { from: 'doctor', message: 'Quisiera saber cuándo se emite la factura del mes.', date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString() },
-            ]
-        }
-    ]
+    }
   },
   { 
     id: 2, 
     name: "Dr. Carlos Sanchez", 
-    email: "carlos.sanchez@suma.com",
-    whatsapp: "+584122345678",
     specialty: "Dermatología", 
     city: "Maracaibo", 
-    sector: "Tierra Negra",
-    address: "Calle 72 con Av. 3H, Edificio Profesional, Consultorio 2A",
-    description: "Especialista en dermatología clínica y estética. Dedicado a la salud de la piel con tratamientos de vanguardia y atención personalizada.",
+    address: "Calle 72 con Av. 3H, Edificio Profesional",
     rating: 4.8, 
     reviewCount: 98, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "man doctor",
-    sellerId: null,
-    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
       { id: 202, name: "Crioterapia (verrugas)", price: 60 },
@@ -247,28 +174,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 3, 
     name: "Dr. Sofia Gomez", 
-    email: "sofia.gomez@suma.com",
-    whatsapp: "+584123456789",
     specialty: "Neurología", 
     city: "Valencia", 
-    sector: "El Viñedo",
-    address: "Av. Monseñor Adams, Centro Médico El Viñedo, Local 10",
-    description: "Neuróloga apasionada por el diagnóstico y tratamiento de trastornos del sistema nervioso. Mi objetivo es mejorar la calidad de vida de mis pacientes.",
+    address: "Av. Monseñor Adams, Centro Médico El Viñedo",
     rating: 4.9, 
     reviewCount: 150, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor smile",
-    sellerId: 1,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
       { id: 302, name: "Electroencefalograma (EEG)", price: 120 },
@@ -282,28 +200,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 4, 
     name: "Dr. Luis Fernandez", 
-    email: "luis.fernandez@suma.com",
-    whatsapp: "+584124567890",
     specialty: "Pediatría", 
     city: "Caracas", 
-    sector: "Las Mercedes",
-    address: "Calle París, Torre Orinoco, Planta Baja",
-    description: "Pediatra dedicado al cuidado integral de niños y adolescentes. Creo en una medicina preventiva y cercana a las familias.",
+    address: "Calle París, Torre Orinoco, Las Mercedes",
     rating: 5.0, 
     reviewCount: 210, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor",
-    sellerId: null,
-    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString().split('T')[0],
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
       { id: 402, name: "Vacunación", price: 25 },
@@ -317,28 +226,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'inactive',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 5, 
     name: "Dr. Maria Hernandez", 
-    email: "maria.hernandez@suma.com",
-    whatsapp: "+584125678901",
     specialty: "Oncología", 
     city: "Maracaibo", 
-    sector: "La Lago",
-    address: "Av. El Milagro, Hospital Coromoto, Anexo de Oncología",
-    description: "Oncóloga con enfoque en el tratamiento multidisciplinario del cáncer, ofreciendo apoyo y las mejores terapias disponibles a mis pacientes.",
+    address: "Av. El Milagro, Hospital Coromoto",
     rating: 4.7, 
     reviewCount: 75, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor",
-    sellerId: null,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 501, name: "Consulta Oncológica", price: 70 },
       { id: 502, name: "Quimioterapia (por sesión)", price: 200 },
@@ -352,28 +252,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 6, 
     name: "Dr. Javier Torres", 
-    email: "javier.torres@suma.com",
-    whatsapp: "+584126789012",
     specialty: "Ortopedia", 
     city: "Caracas", 
-    sector: "San Bernardino",
-    address: "Av. Panteón, Clínica Caracas, Consultorio 3B",
-    description: "Traumatólogo y Ortopedista especializado en lesiones deportivas y cirugía artroscópica. Mi misión es devolver el movimiento sin dolor.",
+    address: "Av. Panteón, Clínica Caracas, San Bernardino",
     rating: 4.8, 
     reviewCount: 112, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor portrait",
-    sellerId: 1,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
       { id: 602, name: "Infiltración", price: 75 },
@@ -387,28 +278,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 7, 
     name: "Dr. Laura Martínez", 
-    email: "laura.martinez@suma.com",
-    whatsapp: "+584127890123",
     specialty: "Cardiología", 
     city: "Valencia", 
-    sector: "Prebo",
-    address: "Av. 104, Centro Policlínico Valencia, Torre C",
-    description: "Me especializo en el diagnóstico no invasivo de enfermedades cardíacas, utilizando tecnología de punta para una evaluación precisa.",
+    address: "Av. 104, Centro Policlínico Valencia, Prebo",
     rating: 4.9, 
     reviewCount: 135, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor professional",
-    sellerId: null,
-    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0],
     services: [
       { id: 701, name: "Consulta Cardiológica", price: 50 },
       { id: 702, name: "Prueba de Esfuerzo", price: 110 },
@@ -422,28 +304,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
-    status: 'inactive',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 8, 
     name: "Dr. Ricardo Vargas", 
-    email: "ricardo.vargas@suma.com",
-    whatsapp: "+584128901234",
     specialty: "Dermatología", 
     city: "Caracas", 
-    sector: "Altamira",
-    address: "Av. San Juan Bosco, Policlínica Metropolitana",
-    description: "Dermatólogo con amplia experiencia en acné, rosácea y cáncer de piel. Ofrezco soluciones efectivas para todo tipo de pieles.",
+    address: "Av. San Juan Bosco, Policlínica Metropolitana, Altamira",
     rating: 4.7, 
     reviewCount: 88, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor smile",
-    sellerId: null,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 801, name: "Consulta Dermatológica", price: 45 },
       { id: 802, name: "Peeling Químico", price: 90 },
@@ -457,28 +330,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 9, 
     name: "Dr. Valentina Diaz", 
-    email: "valentina.diaz@suma.com",
-    whatsapp: "+584129012345",
     specialty: "Ginecología", 
     city: "Maracaibo", 
-    sector: "Indio Mara",
-    address: "Av. 5 de Julio, Centro Médico de Occidente, Piso 2",
-    description: "Ginecóloga-Obstetra dedicada a la salud integral de la mujer en todas sus etapas, desde la adolescencia hasta la menopausia.",
+    address: "Av. 5 de Julio, Centro Médico de Occidente, Indio Mara",
     rating: 4.9, 
     reviewCount: 180, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor woman",
-    sellerId: 1,
-    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 901, name: "Consulta Ginecológica", price: 50 },
       { id: 902, name: "Citología", price: 35 },
@@ -493,28 +357,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 10, 
     name: "Dr. Andres Castillo", 
-    email: "andres.castillo@suma.com",
-    whatsapp: "+584120123456",
     specialty: "Neumonología", 
     city: "Valencia", 
-    sector: "La Trigaleña",
     address: "Av. Principal La Trigaleña, Instituto Docente de Urología",
-    description: "Neumonólogo experto en asma, EPOC y trastornos del sueño. Mi enfoque es mejorar la función respiratoria y la calidad de vida.",
     rating: 4.8, 
     reviewCount: 95, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor young",
-    sellerId: null,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 1001, name: "Consulta Neumonológica", price: 55 },
       { id: 1002, name: "Espirometría", price: 70 },
@@ -528,28 +383,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 11, 
     name: "Dra. Isabella Conti", 
-    email: "isabella.conti@suma.com",
-    whatsapp: "+584121112233",
     specialty: "Medicina Estética", 
     city: "Caracas", 
-    sector: "Las Mercedes",
     address: "Av. Principal de Las Mercedes, Torre Emperatriz, Piso 10",
-    description: "Especialista en rejuvenecimiento facial y corporal. Mi enfoque es realzar la belleza natural con procedimientos mínimamente invasivos y seguros.",
     rating: 4.9, 
     reviewCount: 85, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "aesthetic doctor",
-    sellerId: 1,
-    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 1101, name: "Aplicación de Toxina Botulínica", price: 150 },
       { id: 1102, name: "Relleno con Ácido Hialurónico", price: 250 },
@@ -564,28 +410,19 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
   { 
     id: 12, 
     name: "Dr. Ricardo Salas", 
-    email: "ricardo.salas@suma.com",
-    whatsapp: "+584124445566",
     specialty: "Medicina Estética", 
     city: "Valencia", 
-    sector: "La Trigaleña",
-    address: "C.C. La Trigaleña Plaza, Nivel Mezzanina",
-    description: "Médico estético dedicado a la armonización facial y tratamientos láser. Utilizo la última tecnología para obtener resultados naturales y duraderos.",
+    address: "C.C. La Trigaleña Plaza, Nivel Mezzanina, La Trigaleña",
     rating: 4.8, 
     reviewCount: 70, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male aesthetic doctor",
-    sellerId: null,
-    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 1201, name: "Consulta de Medicina Estética", price: 60 },
       { id: 1202, name: "Depilación Láser (por zona)", price: 80 },
@@ -600,10 +437,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
-    status: 'active',
     schedule: defaultSchedule,
-    paymentReports: [],
-    supportTickets: [],
   },
 ];
 
@@ -612,21 +446,19 @@ export type Patient = {
     id: string;
     name: string;
     email: string;
-    cedula: string;
-    phone: string;
     age: number | null;
     gender: 'masculino' | 'femenino' | 'otro' | null;
 };
 
 export const mockPatients: Patient[] = [
-    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", cedula: "V-18.123.456", phone: "0414-123-4567", age: 34, gender: 'femenino' },
-    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", cedula: "V-12.345.678", phone: "0412-234-5678", age: 45, gender: 'masculino' },
-    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", cedula: "V-20.456.789", phone: "0416-345-6789", age: 29, gender: 'femenino' },
-    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", cedula: "V-9.876.543", phone: "0424-456-7890", age: 52, gender: 'masculino' },
-    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", cedula: "V-15.654.321", phone: "0414-567-8901", age: 41, gender: 'femenino' },
-    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", cedula: "V-11.789.012", phone: "0412-678-9012", age: 60, gender: 'masculino' },
-    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", cedula: "V-25.890.123", phone: "0416-789-0123", age: 25, gender: 'femenino' },
-    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", cedula: "V-14.901.234", phone: "0424-890-1234", age: 38, gender: 'masculino' },
+    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino' },
+    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino' },
+    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino' },
+    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino' },
+    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", age: 41, gender: 'femenino' },
+    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino' },
+    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", age: 25, gender: 'femenino' },
+    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", age: 38, gender: 'masculino' },
 ];
 
 
