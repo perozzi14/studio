@@ -100,6 +100,7 @@ export type Doctor = {
   coupons: Coupon[];
   schedule: Schedule;
   slotDuration: 30 | 60;
+  status: 'active' | 'inactive';
   paymentReports: PaymentReport[];
   supportTickets: SupportTicket[];
 };
@@ -157,6 +158,7 @@ export const doctors: Doctor[] = [
       { id: 2, code: "SUMA10", discountType: "fixed", value: 10 },
     ],
     slotDuration: 30,
+    status: 'active',
     schedule: {
         monday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
         tuesday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
@@ -222,6 +224,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -254,6 +257,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -286,6 +290,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
+    status: 'inactive',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -318,6 +323,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -350,6 +356,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -382,6 +389,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
+    status: 'inactive',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -414,6 +422,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -447,6 +456,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 30,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],
@@ -479,6 +489,7 @@ export const doctors: Doctor[] = [
     }],
     coupons: [],
     slotDuration: 60,
+    status: 'active',
     schedule: defaultSchedule,
     paymentReports: [],
     supportTickets: [],

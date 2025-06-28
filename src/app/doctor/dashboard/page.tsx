@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties, cities, locations, type PaymentReport, type SupportTicket } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload, Phone, LifeBuoy, ReceiptText, Send } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload, Phone, LifeBuoy, ReceiptText, Send, XCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,7 +56,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from '@/components/ui/calendar';
@@ -288,7 +288,7 @@ export default function DoctorDashboardPage() {
             break;
         case 'week':
             startDate = startOfWeek(now, { locale: es });
-            endDate = endOfWeek(now, { locale: es });
+            endDate = endOfDay(startOfWeek(now, { locale: es }));
             break;
         case 'year':
             startDate = startOfYear(now);
@@ -1490,137 +1490,161 @@ const handleReplyToTicket = (ticketId: string) => {
             )
         case 'support':
             return (
-                <Tabs defaultValue="payments">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="payments"><ReceiptText className="mr-2" /> Reportar Pagos</TabsTrigger>
-                        <TabsTrigger value="support"><LifeBuoy className="mr-2" /> Soporte Técnico</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="payments" className="mt-6">
-                        <Card>
-                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    <CardTitle>Historial de Pagos Reportados</CardTitle>
-                                    <CardDescription>Aquí puedes ver el estado de tus pagos mensuales.</CardDescription>
-                                </div>
-                                <Button onClick={() => setIsReportPaymentOpen(true)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Reportar Nuevo Pago</Button>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Desktop Table */}
-                                <Table className="hidden md:table">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Fecha</TableHead>
-                                            <TableHead>Referencia</TableHead>
-                                            <TableHead className="text-right">Monto</TableHead>
-                                            <TableHead className="text-center">Estado</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {paymentReports.map(report => (
-                                            <TableRow key={report.id}>
-                                                <TableCell>{format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                <TableCell className="font-mono">{report.referenceNumber}</TableCell>
-                                                <TableCell className="text-right">${report.amount.toFixed(2)}</TableCell>
-                                                <TableCell className="text-center">
+                <div className="space-y-6">
+                     <Card>
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                                <CardTitle>Estado de la Cuenta</CardTitle>
+                                <Badge variant={doctorData.status === 'active' ? 'default' : 'destructive'} className={cn(
+                                    "text-base",
+                                    doctorData.status === 'active' ? 'bg-green-600 text-white' : ''
+                                )}>
+                                    {doctorData.status === 'active' 
+                                        ? <CheckCircle className="mr-2 h-4 w-4" /> 
+                                        : <XCircle className="mr-2 h-4 w-4" />}
+                                    {doctorData.status === 'active' ? 'Activo' : 'Inactivo'}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <p className="text-muted-foreground text-sm">
+                                Este es el estado actual de tu membresía en la plataforma SUMA. Si tu estado es inactivo, por favor reporta tu pago para reactivar tu cuenta.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Tabs defaultValue="payments">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="payments"><ReceiptText className="mr-2" /> Reportar Pagos</TabsTrigger>
+                            <TabsTrigger value="support"><LifeBuoy className="mr-2" /> Soporte Técnico</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="payments" className="mt-6">
+                            <Card>
+                                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <CardTitle>Historial de Pagos Reportados</CardTitle>
+                                        <CardDescription>Aquí puedes ver el estado de tus pagos mensuales.</CardDescription>
+                                    </div>
+                                    <Button onClick={() => setIsReportPaymentOpen(true)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Reportar Nuevo Pago</Button>
+                                </CardHeader>
+                                <CardContent>
+                                    {/* Desktop Table */}
+                                    <Table className="hidden md:table">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Fecha</TableHead>
+                                                <TableHead>Referencia</TableHead>
+                                                <TableHead className="text-right">Monto</TableHead>
+                                                <TableHead className="text-center">Estado</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {paymentReports.map(report => (
+                                                <TableRow key={report.id}>
+                                                    <TableCell>{format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                    <TableCell className="font-mono">{report.referenceNumber}</TableCell>
+                                                    <TableCell className="text-right">${report.amount.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Badge variant={report.status === 'Verificado' ? 'default' : report.status === 'Rechazado' ? 'destructive' : 'secondary'} className={cn(report.status === 'Verificado' && 'bg-green-600 text-white')}>
+                                                            {report.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {paymentReports.length === 0 && (
+                                                <TableRow><TableCell colSpan={4} className="h-24 text-center">No has reportado pagos.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                    {/* Mobile Cards */}
+                                    <div className="space-y-4 md:hidden">
+                                        {paymentReports.length > 0 ? paymentReports.map(report => (
+                                            <div key={report.id} className="p-4 border rounded-lg space-y-3">
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <div>
+                                                        <p className="font-semibold">Ref: <span className="font-mono">{report.referenceNumber}</span></p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}
+                                                        </p>
+                                                    </div>
+                                                    <p className="font-bold text-lg">${report.amount.toFixed(2)}</p>
+                                                </div>
+                                                <Separator />
+                                                <div className="flex justify-between items-center">
+                                                    <p className="font-semibold text-sm">Estado:</p>
                                                     <Badge variant={report.status === 'Verificado' ? 'default' : report.status === 'Rechazado' ? 'destructive' : 'secondary'} className={cn(report.status === 'Verificado' && 'bg-green-600 text-white')}>
                                                         {report.status}
                                                     </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {paymentReports.length === 0 && (
-                                            <TableRow><TableCell colSpan={4} className="h-24 text-center">No has reportado pagos.</TableCell></TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                                {/* Mobile Cards */}
-                                <div className="space-y-4 md:hidden">
-                                    {paymentReports.length > 0 ? paymentReports.map(report => (
-                                        <div key={report.id} className="p-4 border rounded-lg space-y-3">
-                                            <div className="flex justify-between items-start gap-4">
-                                                <div>
-                                                    <p className="font-semibold">Ref: <span className="font-mono">{report.referenceNumber}</span></p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}
-                                                    </p>
                                                 </div>
-                                                <p className="font-bold text-lg">${report.amount.toFixed(2)}</p>
                                             </div>
-                                            <Separator />
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-sm">Estado:</p>
-                                                <Badge variant={report.status === 'Verificado' ? 'default' : report.status === 'Rechazado' ? 'destructive' : 'secondary'} className={cn(report.status === 'Verificado' && 'bg-green-600 text-white')}>
-                                                    {report.status}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    )) : (
-                                        <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No has reportado pagos.</div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="support" className="mt-6">
-                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Mis Tickets de Soporte</CardTitle>
-                                    <CardDescription>Comunícate con el equipo de SUMA para cualquier duda o problema.</CardDescription>
-                                </div>
-                                <Button onClick={() => setIsNewTicketOpen(true)}><PlusCircle className="mr-2"/> Crear Nuevo Ticket</Button>
-                            </CardHeader>
-                            <CardContent>
-                                {supportTickets.length > 0 ? (
-                                    <Accordion type="single" collapsible className="w-full">
-                                        {supportTickets.map(ticket => (
-                                            <AccordionItem value={ticket.id} key={ticket.id}>
-                                                <AccordionTrigger>
-                                                    <div className="flex-1 flex justify-between items-center pr-4">
-                                                        <div className="text-left">
-                                                            <p className="font-semibold">{ticket.subject}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Creado: {format(new Date(ticket.createdAt + 'T00:00:00'), "d MMM, yyyy", { locale: es })}
-                                                            </p>
-                                                        </div>
-                                                        <Badge variant={ticket.status === 'Abierto' ? 'destructive' : 'default'}>{ticket.status}</Badge>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="p-2 space-y-4">
-                                                   <div className="max-h-60 overflow-y-auto space-y-4 p-4 border rounded-md bg-muted/50">
-                                                        {ticket.messages.map((msg, index) => (
-                                                          <div key={index} className={cn("flex items-end gap-2", msg.from === 'doctor' ? "justify-end" : "justify-start")}>
-                                                            {msg.from === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>S</AvatarFallback></Avatar>}
-                                                            <div className={cn("max-w-xs md:max-w-md rounded-lg px-3 py-2", msg.from === 'doctor' ? "bg-primary text-primary-foreground" : "bg-background")}>
-                                                                <p className="text-sm">{msg.message}</p>
-                                                                <p className="text-xs opacity-70 mt-1 text-right">{format(new Date(msg.date), "d MMM, HH:mm", { locale: es })}</p>
+                                        )) : (
+                                            <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No has reportado pagos.</div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="support" className="mt-6">
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle>Mis Tickets de Soporte</CardTitle>
+                                        <CardDescription>Comunícate con el equipo de SUMA para cualquier duda o problema.</CardDescription>
+                                    </div>
+                                    <Button onClick={() => setIsNewTicketOpen(true)}><PlusCircle className="mr-2"/> Crear Nuevo Ticket</Button>
+                                </CardHeader>
+                                <CardContent>
+                                    {supportTickets.length > 0 ? (
+                                        <Accordion type="single" collapsible className="w-full">
+                                            {supportTickets.map(ticket => (
+                                                <AccordionItem value={ticket.id} key={ticket.id}>
+                                                    <AccordionTrigger>
+                                                        <div className="flex-1 flex justify-between items-center pr-4">
+                                                            <div className="text-left">
+                                                                <p className="font-semibold">{ticket.subject}</p>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Creado: {format(new Date(ticket.createdAt + 'T00:00:00'), "d MMM, yyyy", { locale: es })}
+                                                                </p>
                                                             </div>
-                                                            {msg.from === 'doctor' && <Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar>}
+                                                            <Badge variant={ticket.status === 'Abierto' ? 'destructive' : 'default'}>{ticket.status}</Badge>
+                                                        </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="p-2 space-y-4">
+                                                       <div className="max-h-60 overflow-y-auto space-y-4 p-4 border rounded-md bg-muted/50">
+                                                            {ticket.messages.map((msg, index) => (
+                                                              <div key={index} className={cn("flex items-end gap-2", msg.from === 'doctor' ? "justify-end" : "justify-start")}>
+                                                                {msg.from === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>S</AvatarFallback></Avatar>}
+                                                                <div className={cn("max-w-xs md:max-w-md rounded-lg px-3 py-2", msg.from === 'doctor' ? "bg-primary text-primary-foreground" : "bg-background")}>
+                                                                    <p className="text-sm">{msg.message}</p>
+                                                                    <p className="text-xs opacity-70 mt-1 text-right">{format(new Date(msg.date), "d MMM, HH:mm", { locale: es })}</p>
+                                                                </div>
+                                                                {msg.from === 'doctor' && <Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar>}
+                                                              </div>
+                                                            ))}
+                                                       </div>
+                                                       {ticket.status === 'Abierto' && (
+                                                          <div className="flex items-start gap-2 pt-4 border-t">
+                                                              <Input
+                                                                placeholder="Escribe tu respuesta..."
+                                                                value={ticketReply}
+                                                                onChange={(e) => setTicketReply(e.target.value)}
+                                                                onKeyPress={(e) => e.key === 'Enter' && handleReplyToTicket(ticket.id)}
+                                                              />
+                                                              <Button onClick={() => handleReplyToTicket(ticket.id)}><Send className="h-4 w-4" /></Button>
                                                           </div>
-                                                        ))}
-                                                   </div>
-                                                   {ticket.status === 'Abierto' && (
-                                                      <div className="flex items-start gap-2 pt-4 border-t">
-                                                          <Input
-                                                            placeholder="Escribe tu respuesta..."
-                                                            value={ticketReply}
-                                                            onChange={(e) => setTicketReply(e.target.value)}
-                                                            onKeyPress={(e) => e.key === 'Enter' && handleReplyToTicket(ticket.id)}
-                                                          />
-                                                          <Button onClick={() => handleReplyToTicket(ticket.id)}><Send className="h-4 w-4" /></Button>
-                                                      </div>
-                                                   )}
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                                                       )}
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            ))}
+                                        </Accordion>
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+                </div>
             )
         default:
             return null;
