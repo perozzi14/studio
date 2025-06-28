@@ -82,7 +82,7 @@ export default function FindDoctorPage() {
               <div className="space-y-2">
                 <label className="font-medium text-sm">Ubicación</label>
                 <Input 
-                  placeholder="ej., Ciudad de México" 
+                  placeholder="ej., Caracas" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />

@@ -20,7 +20,7 @@ const findDoctorsTool = ai.defineTool(
     description: 'Obtiene una lista de doctores, opcionalmente filtrando por especialidad y/o ubicación.',
     inputSchema: z.object({
       specialty: z.string().optional().describe('La especialidad por la que filtrar, ej., Cardiología'),
-      location: z.string().optional().describe('La ubicación por la que filtrar, ej., Ciudad de México'),
+      location: z.string().optional().describe('La ubicación por la que filtrar, ej., Caracas'),
     }),
     outputSchema: z.array(z.object({
         name: z.string(),
