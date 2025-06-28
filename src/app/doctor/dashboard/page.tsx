@@ -1256,15 +1256,16 @@ export default function DoctorDashboardPage() {
         case 'coupons':
             return (
                <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle>
                         <CardDescription>Crea y gestiona cupones para tus pacientes.</CardDescription>
                     </div>
-                    <Button onClick={() => handleOpenCouponDialog(null)}><PlusCircle className="mr-2"/> Agregar Cupón</Button>
+                    <Button onClick={() => handleOpenCouponDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cupón</Button>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                    {/* Desktop Table */}
+                    <Table className="hidden md:table">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Código</TableHead>
@@ -1279,9 +1280,11 @@ export default function DoctorDashboardPage() {
                                     <TableCell className="font-medium">{coupon.code}</TableCell>
                                     <TableCell className="capitalize">{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Fijo'}</TableCell>
                                     <TableCell className="text-right">{coupon.discountType === 'percentage' ? `${coupon.value}%` : `$${coupon.value.toFixed(2)}`}</TableCell>
-                                    <TableCell className="text-center space-x-2">
-                                        <Button variant="outline" size="icon" onClick={() => handleOpenCouponDialog(coupon)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteCoupon(coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    <TableCell className="text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenCouponDialog(coupon)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteCoupon(coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -1292,6 +1295,33 @@ export default function DoctorDashboardPage() {
                             )}
                         </TableBody>
                     </Table>
+                    {/* Mobile Cards */}
+                    <div className="space-y-4 md:hidden">
+                        {doctorData.coupons.length > 0 ? doctorData.coupons.map(coupon => (
+                            <div key={coupon.id} className="p-4 border rounded-lg space-y-4">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div>
+                                        <p className="font-semibold text-lg font-mono tracking-wider">{coupon.code}</p>
+                                        <p className="text-sm text-muted-foreground capitalize">{coupon.discountType === 'percentage' ? 'Monto Fijo' : 'Porcentaje'}</p>
+                                    </div>
+                                    <p className="font-bold text-xl text-primary">
+                                        {coupon.discountType === 'percentage' ? `${coupon.value}%` : `$${coupon.value.toFixed(2)}`}
+                                    </p>
+                                </div>
+                                <Separator />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenCouponDialog(coupon)}>
+                                        <Pencil className="mr-2 h-4 w-4" /> Editar
+                                    </Button>
+                                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteCoupon(coupon.id)}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Borrar
+                                    </Button>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-center text-muted-foreground py-8">No has creado ningún cupón.</p>
+                        )}
+                    </div>
                 </CardContent>
                </Card>
             )
@@ -1596,3 +1626,5 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
+    
