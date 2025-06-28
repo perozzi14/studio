@@ -1,18 +1,21 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, mockSellerPayments, type Doctor, type SellerPayment } from '@/lib/data';
+import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,14 +26,68 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import Image from 'next/image';
 
 const MONTHLY_DOCTOR_FEE = 50;
 const SELLER_COMMISSION_RATE = 0.20;
 const COMMISSION_PER_DOCTOR = MONTHLY_DOCTOR_FEE * SELLER_COMMISSION_RATE;
 
 
+function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
+    const { toast } = useToast();
+    const getIcon = () => {
+        switch(material.type) {
+            case 'image': return <ImageIcon className="h-4 w-4" />;
+            case 'video': return <Video className="h-4 w-4" />;
+            case 'file': return <FileText className="h-4 w-4" />;
+            case 'url': return <LinkIcon className="h-4 w-4" />;
+            default: return <FileText className="h-4 w-4" />;
+        }
+    };
+    
+    const handleCopy = () => {
+      navigator.clipboard.writeText(material.url);
+      toast({ title: "Enlace copiado al portapapeles." });
+    };
+
+    return (
+        <Card>
+            <CardContent className="p-0">
+                <div className="aspect-video relative">
+                    <Image src={material.thumbnailUrl} alt={material.title} fill className="object-cover rounded-t-lg" data-ai-hint="marketing material" />
+                </div>
+                <div className="p-4 space-y-2">
+                    <Badge variant="secondary" className="capitalize w-fit">{material.type}</Badge>
+                    <CardTitle className="text-lg">{material.title}</CardTitle>
+                    <CardDescription className="text-xs">{material.description}</CardDescription>
+                </div>
+            </CardContent>
+            <CardFooter className="flex gap-2">
+                <Button variant="outline" className="w-full" onClick={handleCopy}>
+                    <Copy className="mr-2 h-4 w-4" /> Copiar Enlace
+                </Button>
+                <Button className="w-full" asChild>
+                    <a href={material.url} target="_blank" rel="noopener noreferrer">
+                       <Download className="mr-2 h-4 w-4" /> Descargar
+                    </a>
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export default function SellerDashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'referrals';
@@ -86,6 +143,14 @@ export default function SellerDashboardPage() {
       description: "El enlace de referido ha sido copiado al portapapeles.",
     });
   };
+  
+   const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    toast({
+      title: "Ticket Enviado",
+      description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA.",
+    });
+  };
 
   if (isLoading || !user || user.role !== 'seller') {
     return (
@@ -115,15 +180,17 @@ export default function SellerDashboardPage() {
             <p className="text-muted-foreground mb-8">Bienvenida de nuevo, {user.name}. Aquí puedes gestionar tus médicos y finanzas.</p>
 
              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                     <TabsTrigger value="referrals">Mis Referidos</TabsTrigger>
                     <TabsTrigger value="finances">Finanzas</TabsTrigger>
+                    <TabsTrigger value="marketing">Marketing</TabsTrigger>
+                    <TabsTrigger value="support">Soporte</TabsTrigger>
                 </TabsList>
                 <TabsContent value="referrals" className="mt-6">
                     <div className="space-y-8">
                          <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Link className="text-primary"/> Tu Enlace de Referido</CardTitle>
+                                <CardTitle className="flex items-center gap-2"><LinkIcon className="text-primary"/> Tu Enlace de Referido</CardTitle>
                                 <CardDescription>Comparte este enlace con los médicos para que se registren bajo tu código.</CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col sm:flex-row items-stretch gap-2">
@@ -324,6 +391,118 @@ export default function SellerDashboardPage() {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+                <TabsContent value="marketing" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Material de Marketing</CardTitle>
+                            <CardDescription>Recursos proporcionados por SUMA para ayudarte a promocionar la plataforma.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {mockMarketingMaterials.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {mockMarketingMaterials.map(material => (
+                                        <MarketingMaterialCard key={material.id} material={material} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-center text-muted-foreground py-12">No hay materiales de marketing disponibles en este momento.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="support" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div>
+                                    <CardTitle>Soporte Técnico</CardTitle>
+                                    <CardDescription>Gestiona tus tickets de soporte con el equipo de SUMA.</CardDescription>
+                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full sm:w-auto">
+                                            <MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Abrir un Ticket de Soporte</DialogTitle>
+                                            <DialogDescription>
+                                                Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <form onSubmit={handleCreateTicket}>
+                                            <div className="grid gap-4 py-4">
+                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                    <Label htmlFor="subject" className="text-right">Asunto</Label>
+                                                    <Input id="subject" placeholder="ej., Problema con un referido" className="col-span-3" required />
+                                                </div>
+                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                    <Label htmlFor="description" className="text-right">Descripción</Label>
+                                                    <Textarea id="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required />
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button type="button" variant="secondary">Cancelar</Button>
+                                                </DialogClose>
+                                                <DialogClose asChild>
+                                                    <Button type="submit">Enviar Ticket</Button>
+                                                </DialogClose>
+                                            </DialogFooter>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Table className="hidden md:table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Asunto</TableHead>
+                                        <TableHead>Última Respuesta</TableHead>
+                                        <TableHead className="text-center">Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {mockSupportTickets.length > 0 ? mockSupportTickets.map(ticket => (
+                                        <TableRow key={ticket.id}>
+                                            <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
+                                            <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                            <TableCell>{ticket.lastReply}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                    {ticket.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                            <div className="space-y-4 md:hidden">
+                                {mockSupportTickets.length > 0 ? mockSupportTickets.map(ticket => (
+                                    <div key={ticket.id} className="p-4 border rounded-lg space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <p className="font-semibold">{ticket.subject}</p>
+                                            <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                {ticket.status}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Abierto: {format(new Date(ticket.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p>
+                                        <p className="text-sm">Última respuesta: {ticket.lastReply}</p>
+                                    </div>
+                                )) : (
+                                    <p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>

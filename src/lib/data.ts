@@ -83,6 +83,8 @@ export type Seller = {
   id: number;
   name: string;
   email: string;
+  phone: string;
+  profileImage: string;
   referralCode: string;
 };
 
@@ -101,6 +103,8 @@ export const sellers: Seller[] = [
     id: 1,
     name: "Vendedora Principal",
     email: "vendedora@venta.com",
+    phone: "0412-9876543",
+    profileImage: "https://placehold.co/400x400.png",
     referralCode: "VENDE123",
   }
 ];
@@ -556,4 +560,73 @@ export const mockSellerPayments: SellerPayment[] = [
         { id: 2, name: "Dr. Carlos Sanchez" },
     ]
   }
+];
+
+export type MarketingMaterial = {
+    id: number;
+    type: 'image' | 'video' | 'file' | 'url';
+    title: string;
+    description: string;
+    url: string;
+    thumbnailUrl: string;
+};
+
+export const mockMarketingMaterials: MarketingMaterial[] = [
+    {
+        id: 1,
+        type: 'image',
+        title: 'Banner para Redes Sociales',
+        description: 'Banner promocional para usar en Instagram, Facebook y otras redes.',
+        url: 'https://placehold.co/1080x1080.png',
+        thumbnailUrl: 'https://placehold.co/600x400.png',
+    },
+    {
+        id: 2,
+        type: 'video',
+        title: 'Video Explicativo de SUMA',
+        description: 'Video corto que explica los beneficios de la plataforma para los médicos.',
+        url: 'https://placehold.co/1920x1080.png',
+        thumbnailUrl: 'https://placehold.co/600x400.png',
+    },
+    {
+        id: 3,
+        type: 'file',
+        title: 'Folleto Informativo (PDF)',
+        description: 'Documento PDF con toda la información clave para presentar a los médicos.',
+        url: '#',
+        thumbnailUrl: 'https://placehold.co/600x400.png',
+    },
+    {
+        id: 4,
+        type: 'url',
+        title: 'Artículo de Blog: Beneficios de la Telemedicina',
+        description: 'Enlace a un artículo relevante que puedes compartir con los doctores.',
+        url: '#',
+        thumbnailUrl: 'https://placehold.co/600x400.png',
+    }
+];
+
+export type SupportTicket = {
+    id: string;
+    subject: string;
+    status: 'abierto' | 'cerrado';
+    date: string;
+    lastReply: string;
+}
+
+export const mockSupportTickets: SupportTicket[] = [
+    {
+        id: 'ticket-1',
+        subject: 'Problema con la comisión de un referido',
+        status: 'abierto',
+        date: '2024-05-20',
+        lastReply: 'Hace 2 horas',
+    },
+    {
+        id: 'ticket-2',
+        subject: 'Cómo actualizar los datos de un médico',
+        status: 'cerrado',
+        date: '2024-05-15',
+        lastReply: 'Hace 5 días',
+    },
 ];

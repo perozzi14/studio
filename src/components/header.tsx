@@ -150,6 +150,14 @@ export function Header() {
                     </DropdownMenuItem>
                   </>
                 )}
+                {user.role === 'seller' && (
+                   <DropdownMenuItem asChild>
+                      <Link href="/seller/profile">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Mi Perfil</span>
+                      </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -271,6 +279,13 @@ export function Header() {
                               </Link>
                             </SheetClose>
                           </>
+                       )}
+                       {user.role === 'seller' && (
+                          <SheetClose asChild>
+                            <Link href="/seller/profile" className="flex items-center text-lg font-medium hover:text-primary">
+                              <User className="mr-2 h-5 w-5" /> Mi Perfil
+                            </Link>
+                          </SheetClose>
                        )}
                        <Button onClick={() => { logout(); }} className="w-full">
                          <LogOut className="mr-2 h-4 w-4" /> Cerrar Sesión

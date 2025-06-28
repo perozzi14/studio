@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         age: null, 
         gender: null,
         cedula: null,
-        phone: null,
-        profileImage: 'https://placehold.co/100x100.png', // Generic avatar for seller
+        phone: sellerInfo?.phone || null,
+        profileImage: sellerInfo?.profileImage || 'https://placehold.co/100x100.png',
         favoriteDoctorIds: [],
         referralCode: sellerInfo?.referralCode
       };
