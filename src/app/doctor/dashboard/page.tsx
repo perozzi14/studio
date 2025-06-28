@@ -385,6 +385,8 @@ export default function DoctorDashboardPage() {
     const updatedData = {
         ...doctorData,
         name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        whatsapp: formData.get('whatsapp') as string,
         address: formData.get('address') as string,
         description: formData.get('description') as string,
     };
@@ -399,7 +401,7 @@ export default function DoctorDashboardPage() {
 
     toast({
         title: "¡Perfil Actualizado!",
-        description: "Tu información pública ha sido guardada.",
+        description: "Tu información de contacto ha sido guardada.",
     });
   };
   
@@ -940,7 +942,7 @@ export default function DoctorDashboardPage() {
                     <CardDescription>Actualiza tu información pública. Estos datos serán visibles para los pacientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleProfileUpdate} className="space-y-6 max-w-lg">
+                    <form onSubmit={handleProfileUpdate} className="space-y-6 max-w-2xl">
                         <div className="space-y-4">
                             <div>
                                 <Label>Foto de Perfil</Label>
@@ -966,6 +968,16 @@ export default function DoctorDashboardPage() {
                         <div className="space-y-2">
                            <Label htmlFor="name">Nombre Completo</Label>
                            <Input id="name" name="name" defaultValue={doctorData.name} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Correo Electrónico de Contacto</Label>
+                                <Input id="email" name="email" type="email" defaultValue={doctorData.email} required/>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="whatsapp">WhatsApp</Label>
+                                <Input id="whatsapp" name="whatsapp" placeholder="+584121234567" defaultValue={doctorData.whatsapp} required/>
+                            </div>
                         </div>
                          <div className="space-y-2">
                            <Label htmlFor="specialty">Especialidad</Label>
@@ -1537,14 +1549,14 @@ export default function DoctorDashboardPage() {
                                         </Badge>
                                     </div>
                                 </CardContent>
-                                {(new Date(selectedAppointment.date + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0)) && selectedAppointment.attendance === 'Pendiente') && (
+                                {(new Date(selectedAppointment.date + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0))) && selectedAppointment.attendance === 'Pendiente' && (
                                     <CardFooter className="justify-end gap-2">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() => {
                                                 handleUpdateAttendance(selectedAppointment.id, 'No Asistió');
-                                                setIsDetailDialogOpen(false);
+                                                setSelectedAppointment(prev => prev ? {...prev, attendance: 'No Asistió'} : null);
                                             }}
                                         >
                                             <UserX className="mr-2 h-4 w-4" />
@@ -1554,7 +1566,7 @@ export default function DoctorDashboardPage() {
                                             size="sm"
                                             onClick={() => {
                                                 handleUpdateAttendance(selectedAppointment.id, 'Atendido');
-                                                setIsDetailDialogOpen(false);
+                                                setSelectedAppointment(prev => prev ? {...prev, attendance: 'Atendido'} : null);
                                             }}
                                         >
                                             <UserCheck className="mr-2 h-4 w-4" />
@@ -1602,7 +1614,7 @@ export default function DoctorDashboardPage() {
                                             className="w-full"
                                             onClick={() => {
                                                 handleConfirmPayment(selectedAppointment.id);
-                                                setIsDetailDialogOpen(false);
+                                                setSelectedAppointment(prev => prev ? {...prev, paymentStatus: 'Pagado'} : null);
                                             }}
                                         >
                                             <CheckCircle className="mr-2 h-4 w-4" />

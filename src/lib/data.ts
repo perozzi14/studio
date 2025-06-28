@@ -59,6 +59,8 @@ export type Schedule = {
 export type Doctor = {
   id: number;
   name: string;
+  email: string;
+  whatsapp: string;
   specialty: string;
   city: string;
   sector: string;
@@ -90,7 +92,9 @@ const defaultSchedule: Schedule = {
 export const doctors: Doctor[] = [
   { 
     id: 1, 
-    name: "Dr. Ana Rodriguez", 
+    name: "Dr. Ana Rodriguez",
+    email: "ana.rodriguez@suma.com",
+    whatsapp: "+584121234567",
     specialty: "Cardiología", 
     city: "Caracas",
     sector: "Chacao",
@@ -140,6 +144,8 @@ export const doctors: Doctor[] = [
   { 
     id: 2, 
     name: "Dr. Carlos Sanchez", 
+    email: "carlos.sanchez@suma.com",
+    whatsapp: "+584122345678",
     specialty: "Dermatología", 
     city: "Maracaibo", 
     sector: "Tierra Negra",
@@ -169,6 +175,8 @@ export const doctors: Doctor[] = [
   { 
     id: 3, 
     name: "Dr. Sofia Gomez", 
+    email: "sofia.gomez@suma.com",
+    whatsapp: "+584123456789",
     specialty: "Neurología", 
     city: "Valencia", 
     sector: "El Viñedo",
@@ -197,6 +205,8 @@ export const doctors: Doctor[] = [
   { 
     id: 4, 
     name: "Dr. Luis Fernandez", 
+    email: "luis.fernandez@suma.com",
+    whatsapp: "+584124567890",
     specialty: "Pediatría", 
     city: "Caracas", 
     sector: "Las Mercedes",
@@ -225,6 +235,8 @@ export const doctors: Doctor[] = [
   { 
     id: 5, 
     name: "Dr. Maria Hernandez", 
+    email: "maria.hernandez@suma.com",
+    whatsapp: "+584125678901",
     specialty: "Oncología", 
     city: "Maracaibo", 
     sector: "La Lago",
@@ -253,6 +265,8 @@ export const doctors: Doctor[] = [
   { 
     id: 6, 
     name: "Dr. Javier Torres", 
+    email: "javier.torres@suma.com",
+    whatsapp: "+584126789012",
     specialty: "Ortopedia", 
     city: "Caracas", 
     sector: "San Bernardino",
@@ -281,6 +295,8 @@ export const doctors: Doctor[] = [
   { 
     id: 7, 
     name: "Dr. Laura Martínez", 
+    email: "laura.martinez@suma.com",
+    whatsapp: "+584127890123",
     specialty: "Cardiología", 
     city: "Valencia", 
     sector: "Prebo",
@@ -309,6 +325,8 @@ export const doctors: Doctor[] = [
   { 
     id: 8, 
     name: "Dr. Ricardo Vargas", 
+    email: "ricardo.vargas@suma.com",
+    whatsapp: "+584128901234",
     specialty: "Dermatología", 
     city: "Caracas", 
     sector: "Altamira",
@@ -337,6 +355,8 @@ export const doctors: Doctor[] = [
   { 
     id: 9, 
     name: "Dr. Valentina Diaz", 
+    email: "valentina.diaz@suma.com",
+    whatsapp: "+584129012345",
     specialty: "Ginecología", 
     city: "Maracaibo", 
     sector: "Indio Mara",
@@ -366,6 +386,8 @@ export const doctors: Doctor[] = [
   { 
     id: 10, 
     name: "Dr. Andres Castillo", 
+    email: "andres.castillo@suma.com",
+    whatsapp: "+584120123456",
     specialty: "Neumonología", 
     city: "Valencia", 
     sector: "La Trigaleña",
