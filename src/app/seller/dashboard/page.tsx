@@ -17,6 +17,7 @@ import { Link, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone } from
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Separator } from '@/components/ui/separator';
 
 export default function SellerDashboardPage() {
   const { user, logout } = useAuth();
@@ -139,7 +140,8 @@ export default function SellerDashboardPage() {
                             <CardDescription>Un resumen de todos los médicos que has ingresado a la plataforma.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Table>
+                            {/* Desktop Table */}
+                            <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Médico</TableHead>
@@ -185,6 +187,51 @@ export default function SellerDashboardPage() {
                                     )}
                                 </TableBody>
                             </Table>
+                            {/* Mobile Cards */}
+                            <div className="space-y-4 md:hidden">
+                                {referredDoctors.length > 0 ? referredDoctors.map((doctor) => (
+                                    <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <p className="font-bold">{doctor.name}</p>
+                                                <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                                            </div>
+                                            <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                                {doctor.status === 'active' ? <CheckCircle className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
+                                                {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                            </Badge>
+                                        </div>
+                                        <Separator/>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                            <div>
+                                                <p className="font-semibold text-xs text-muted-foreground mb-1">Ubicación</p>
+                                                <p>{doctor.city}</p>
+                                            </div>
+                                             <div>
+                                                <p className="font-semibold text-xs text-muted-foreground mb-1">Último Pago</p>
+                                                <p>{format(new Date(doctor.lastPaymentDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="font-semibold text-xs text-muted-foreground mb-1">Contacto</p>
+                                                <div className="flex flex-col gap-1.5 text-xs">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Mail className="h-3 w-3 flex-shrink-0" />
+                                                        <span>{doctor.email}</span>
+                                                    </span>
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Phone className="h-3 w-3 flex-shrink-0" />
+                                                        <span>{doctor.whatsapp}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                     <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+                                        Aún no tienes médicos referidos. ¡Comparte tu enlace!
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
