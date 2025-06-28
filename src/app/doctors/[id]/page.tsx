@@ -1,15 +1,19 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/header";
-import { doctors, Doctor } from "@/lib/data";
+import { doctors, type Doctor, type Service } from "@/lib/data";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Clock, MapPin, Star, CheckCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function DoctorProfilePage() {
@@ -17,9 +21,62 @@ export default function DoctorProfilePage() {
   const id = params.id ? parseInt(params.id as string, 10) : null;
   const doctor = doctors.find((d) => d.id === id);
 
+  const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [isBooked, setIsBooked] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia' | null>(null);
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'Pendiente' | 'Pagado'>('Pendiente');
+  
+  const totalPrice = useMemo(() => {
+    return selectedServices.reduce((total, service) => total + service.price, 0);
+  }, [selectedServices]);
+
+  const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+
+  const handleServiceToggle = (service: Service) => {
+    setSelectedServices((prev) =>
+      prev.some((s) => s.id === service.id)
+        ? prev.filter((s) => s.id !== service.id)
+        : [...prev, service]
+    );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPaymentProof(e.target.files[0]);
+    }
+  };
+
+  const handleDateTimeSubmit = () => {
+    if (selectedDate && selectedTime) {
+      setStep('selectServices');
+    }
+  };
+
+  const handleServicesSubmit = () => {
+    if (selectedServices.length > 0) {
+      setStep('selectPayment');
+    }
+  };
+
+  const handlePaymentSubmit = () => {
+    if (paymentMethod) {
+      setPaymentStatus('Pendiente');
+      setStep('confirmation');
+    }
+  };
+
+  const resetBookingFlow = () => {
+    setStep('selectDateTime');
+    setSelectedDate(new Date());
+    setSelectedTime(null);
+    setSelectedServices([]);
+    setPaymentMethod(null);
+    setPaymentProof(null);
+    setPaymentStatus('Pendiente');
+  };
 
   if (!doctor) {
     return (
@@ -32,13 +89,217 @@ export default function DoctorProfilePage() {
     );
   }
 
-  const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+  const renderStepContent = () => {
+    switch (step) {
+      case 'selectDateTime':
+        return (
+          <>
+            <CardHeader>
+              <CardTitle className="text-2xl">Paso 1: Selecciona Fecha y Hora</CardTitle>
+              <CardDescription>Elige un horario disponible para tu cita.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-8 items-start">
+                <div className="flex flex-col items-center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border bg-card"
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  {selectedDate ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {availableTimes.map((time) => (
+                        <Button
+                          key={time}
+                          variant={selectedTime === time ? "default" : "outline"}
+                          onClick={() => setSelectedTime(time)}
+                          className="flex items-center gap-2"
+                        >
+                          <Clock className="h-4 w-4" />
+                          {time}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                     <p className="text-muted-foreground text-center md:text-left mt-4">Por favor, selecciona una fecha primero.</p>
+                  )}
 
-  const handleBooking = () => {
-    if (selectedDate && selectedTime) {
-      setIsBooked(true);
+                  <Button
+                    onClick={handleDateTimeSubmit}
+                    disabled={!selectedDate || !selectedTime}
+                    className="w-full mt-8"
+                    size="lg"
+                  >
+                    Continuar al Paso 2
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </>
+        );
+
+      case 'selectServices':
+        return (
+          <>
+            <CardHeader>
+              <CardTitle className="text-2xl">Paso 2: Elige los Servicios</CardTitle>
+              <CardDescription>Selecciona los servicios que necesitas. Puedes elegir más de uno.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3 rounded-md border p-4">
+                {doctor.services.map((service) => (
+                  <div key={service.id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`service-${service.id}`}
+                        checked={selectedServices.some((s) => s.id === service.id)}
+                        onCheckedChange={() => handleServiceToggle(service)}
+                      />
+                      <Label htmlFor={`service-${service.id}`} className="text-base font-normal">
+                        {service.name}
+                      </Label>
+                    </div>
+                    <span className="font-semibold text-primary">${service.price}</span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center text-xl font-bold p-4 bg-muted/50 rounded-lg">
+                <span>Total a Pagar:</span>
+                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-4">
+                 <Button variant="outline" onClick={() => setStep('selectDateTime')} className="w-full">
+                    Atrás
+                  </Button>
+                  <Button onClick={handleServicesSubmit} disabled={selectedServices.length === 0} className="w-full" size="lg">
+                    Continuar al Paso 3
+                  </Button>
+              </div>
+            </CardContent>
+          </>
+        );
+
+      case 'selectPayment':
+        return (
+          <>
+            <CardHeader>
+              <CardTitle className="text-2xl">Paso 3: Método de Pago</CardTitle>
+              <CardDescription>Elige cómo deseas pagar tu cita.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <RadioGroup value={paymentMethod || ''} onValueChange={(value) => setPaymentMethod(value as 'efectivo' | 'transferencia')}>
+                <Label className="flex items-center space-x-3 p-4 border rounded-md cursor-pointer hover:bg-muted/50">
+                  <RadioGroupItem value="efectivo" id="efectivo" />
+                  <Banknote className="h-6 w-6 text-green-600" />
+                  <div>
+                    <span className="font-semibold">Efectivo</span>
+                    <p className="text-sm text-muted-foreground">Paga el monto total el día de tu cita.</p>
+                  </div>
+                </Label>
+                <Label className="flex items-center space-x-3 p-4 border rounded-md cursor-pointer hover:bg-muted/50">
+                  <RadioGroupItem value="transferencia" id="transferencia" />
+                  <Landmark className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <span className="font-semibold">Transferencia Bancaria</span>
+                    <p className="text-sm text-muted-foreground">Realiza el pago y sube el comprobante.</p>
+                  </div>
+                </Label>
+              </RadioGroup>
+
+              {paymentMethod === 'transferencia' && (
+                <Card className="bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Datos para la Transferencia</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p><strong>Banco:</strong> {doctor.bankDetails.bank}</p>
+                    <p><strong>Titular:</strong> {doctor.bankDetails.accountHolder}</p>
+                    <p><strong>C.I./R.I.F.:</strong> {doctor.bankDetails.idNumber}</p>
+                    <p><strong>Nro. Cuenta:</strong> {doctor.bankDetails.accountNumber}</p>
+                    <Separator className="my-4"/>
+                    <Label htmlFor="paymentProof">Sube tu comprobante de pago:</Label>
+                    <Input id="paymentProof" type="file" onChange={handleFileChange} />
+                    {paymentProof && <p className="text-sm text-green-600">Archivo seleccionado: {paymentProof.name}</p>}
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex justify-between items-center text-xl font-bold p-4 bg-muted/50 rounded-lg">
+                <span>Total a Pagar:</span>
+                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-4">
+                 <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full">
+                    Atrás
+                  </Button>
+                  <Button onClick={handlePaymentSubmit} disabled={!paymentMethod || (paymentMethod === 'transferencia' && !paymentProof)} className="w-full" size="lg">
+                    Confirmar Cita
+                  </Button>
+              </div>
+            </CardContent>
+          </>
+        );
+
+      case 'confirmation':
+        return (
+          <>
+            <CardHeader className="items-center text-center">
+              <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+              <CardTitle className="text-2xl">¡Cita Agendada con Éxito!</CardTitle>
+              <CardDescription>
+                Tu cita está confirmada. Aquí tienes los detalles.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-semibold text-lg">Resumen de la Cita</h4>
+                    <p><strong>Médico:</strong> {doctor.name}</p>
+                    <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p><strong>Hora:</strong> {selectedTime}</p>
+                    <div>
+                        <p><strong>Servicios:</strong></p>
+                        <ul className="list-disc list-inside text-muted-foreground">
+                            {selectedServices.map(s => <li key={s.id}>{s.name} (${s.price})</li>)}
+                        </ul>
+                    </div>
+                    <Separator/>
+                     <div className="flex justify-between items-center font-bold">
+                        <span>Total Pagado:</span>
+                        <span>${totalPrice.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                 <div className="border rounded-lg p-4 space-y-2">
+                    <h4 className="font-semibold text-lg">Detalles del Pago</h4>
+                    <div className="flex items-center gap-2">
+                        <p><strong>Método:</strong> <span className="capitalize">{paymentMethod}</span></p>
+                    </div>
+                    <div className="flex items-center gap-2 text-amber-600 font-semibold">
+                         <ClipboardCheck className="h-5 w-5"/>
+                        <p><strong>Estado:</strong> {paymentStatus}</p>
+                    </div>
+                    {paymentMethod === 'transferencia' && (
+                        <p className="text-sm text-muted-foreground">El comprobante ha sido enviado y está pendiente de revisión por el doctor.</p>
+                    )}
+                     {paymentMethod === 'efectivo' && (
+                        <p className="text-sm text-muted-foreground">Recuerda llevar el monto exacto el día de tu cita.</p>
+                    )}
+                </div>
+
+              <Button onClick={resetBookingFlow} className="w-full" size="lg">
+                Reservar Otra Cita
+              </Button>
+            </CardContent>
+          </>
+        );
     }
-  };
+  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -47,7 +308,7 @@ export default function DoctorProfilePage() {
         <div className="container max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
              <div className="md:col-span-1">
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden sticky top-24">
                     <div className="aspect-w-1 aspect-h-1">
                       <Image
                         src={doctor.image}
@@ -58,89 +319,27 @@ export default function DoctorProfilePage() {
                         data-ai-hint={doctor.aiHint}
                       />
                     </div>
+                     <div className="p-4 border-t">
+                        <h2 className="text-xl font-bold font-headline">{doctor.name}</h2>
+                        <p className="text-primary font-medium text-lg">{doctor.specialty}</p>
+                        <div className="flex items-center gap-1.5 text-muted-foreground mt-2 text-sm">
+                            <MapPin className="h-4 w-4" />
+                            <span>{doctor.location}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1 text-sm">
+                            <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                            <span className="font-bold">{doctor.rating}</span>
+                            <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>
+                        </div>
+                     </div>
                 </Card>
              </div>
              <div className="md:col-span-2">
-                 <h1 className="text-3xl font-bold font-headline">{doctor.name}</h1>
-                  <p className="text-primary font-medium text-xl mt-1">{doctor.specialty}</p>
-                  <div className="flex items-center gap-4 text-muted-foreground mt-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4" />
-                      <span>{doctor.location}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                      <span className="font-bold text-lg">{doctor.rating}</span>
-                      <span>({doctor.reviewCount} reseñas)</span>
-                    </div>
-                  </div>
+                <Card>
+                    {renderStepContent()}
+                </Card>
              </div>
           </div>
-          
-          <Separator className="my-8 md:my-12" />
-
-          <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Reservar una Cita</CardTitle>
-                <CardDescription>Selecciona una fecha y hora que te funcione.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isBooked ? (
-                  <div className="flex flex-col items-center justify-center text-center h-96">
-                    <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                    <h3 className="text-2xl font-bold">¡Cita Confirmada!</h3>
-                    <p className="text-muted-foreground mt-2 max-w-md">
-                      Tu cita con {doctor.name} el{" "}
-                      {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedTime} está reservada.
-                    </p>
-                    <Button onClick={() => setIsBooked(false)} className="mt-6">Reservar Otra Cita</Button>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-8 items-start">
-                    <div className="flex flex-col items-center">
-                      <h4 className="font-semibold mb-4 text-lg">1. Selecciona una Fecha</h4>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        className="rounded-md border bg-card"
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <h4 className="font-semibold mb-4 text-lg text-center md:text-left">2. Selecciona una Hora</h4>
-                      {selectedDate ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {availableTimes.map((time) => (
-                            <Button
-                              key={time}
-                              variant={selectedTime === time ? "default" : "outline"}
-                              onClick={() => setSelectedTime(time)}
-                              className="flex items-center gap-2"
-                            >
-                              <Clock className="h-4 w-4" />
-                              {time}
-                            </Button>
-                          ))}
-                        </div>
-                      ) : (
-                         <p className="text-muted-foreground text-center md:text-left mt-4">Por favor, selecciona una fecha primero.</p>
-                      )}
-
-                      <Button
-                        onClick={handleBooking}
-                        disabled={!selectedDate || !selectedTime}
-                        className="w-full mt-8"
-                        size="lg"
-                      >
-                        Confirmar Cita
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
         </div>
       </main>
     </div>
