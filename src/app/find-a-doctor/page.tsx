@@ -223,8 +223,8 @@ export default function FindDoctorPage() {
             </div>
           </div>
 
-          {view === 'list' ? (
-              filteredDoctors.length > 0 ? (
+          <div className={cn(view !== 'list' && 'hidden')}>
+            {filteredDoctors.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredDoctors.map((doctor) => (
                   <DoctorCard key={doctor.id} doctor={doctor} />
@@ -239,10 +239,13 @@ export default function FindDoctorPage() {
                   Intenta ajustar tus filtros.
                 </p>
               </div>
-            )
-          ) : (
-             <DoctorMap doctors={filteredDoctors} />
-          )}
+            )}
+          </div>
+          
+          <div className={cn(view !== 'map' && 'hidden')}>
+            <DoctorMap doctors={filteredDoctors} />
+          </div>
+
         </div>
       </main>
     </div>
