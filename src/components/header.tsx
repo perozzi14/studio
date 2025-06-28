@@ -40,7 +40,7 @@ export function Header() {
           <span className="font-headline">MedAgenda</span>
         </Link>
         <nav className="hidden md:flex ml-auto items-center gap-4">
-          {navLinks.map((link) => (
+          {user?.role !== 'doctor' && navLinks.map((link) => (
             <Button key={link.href} variant="ghost" asChild>
               <Link href={link.href}>{link.label}</Link>
             </Button>
@@ -114,7 +114,7 @@ export function Header() {
                   <Stethoscope className="h-6 w-6 text-primary" />
                   <span className="font-headline">MedAgenda</span>
                 </Link>
-                {navLinks.map((link) => (
+                {user?.role !== 'doctor' && navLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
                     <Link href={link.href} className="text-lg font-medium hover:text-primary">
                       {link.label}
