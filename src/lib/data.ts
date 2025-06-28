@@ -89,6 +89,7 @@ export type Seller = {
   profileImage: string;
   referralCode: string;
   bankDetails: BankDetail[];
+  commissionRate: number;
 };
 
 const defaultSchedule: Schedule = {
@@ -109,6 +110,7 @@ export const sellers: Seller[] = [
     phone: "0412-9876543",
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "VENDE123",
+    commissionRate: 0.20,
     bankDetails: [
       {
         id: 9001,
@@ -118,6 +120,26 @@ export const sellers: Seller[] = [
         idNumber: "V-99.888.777"
       }
     ]
+  },
+  {
+    id: 2,
+    name: "Maria Garcia",
+    email: "maria.g@venta.com",
+    phone: "0414-1112233",
+    profileImage: "https://placehold.co/400x400.png",
+    referralCode: "MARIA456",
+    commissionRate: 0.18,
+    bankDetails: []
+  },
+   {
+    id: 3,
+    name: "Sofia Martinez",
+    email: "sofia.m@venta.com",
+    phone: "0424-4445566",
+    profileImage: "https://placehold.co/400x400.png",
+    referralCode: "SOFIA789",
+    commissionRate: 0.20,
+    bankDetails: []
   }
 ];
 
@@ -242,7 +264,7 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
-    sellerId: null,
+    sellerId: 2,
     status: 'inactive',
     lastPaymentDate: '2024-03-15',
     email: 'sofia.gomez.dr@email.com',
@@ -312,7 +334,7 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
-    sellerId: 1,
+    sellerId: 2,
     status: 'inactive',
     lastPaymentDate: '2024-04-30',
     email: 'javier.torres.dr@email.com',
@@ -348,7 +370,7 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
-    sellerId: null,
+    sellerId: 3,
     status: 'active',
     lastPaymentDate: '2024-05-22',
     email: 'laura.montes.dr@email.com',
@@ -365,14 +387,16 @@ export type Patient = {
     email: string;
     age: number | null;
     gender: 'masculino' | 'femenino' | 'otro' | null;
+    phone: string | null;
+    cedula: string | null;
 };
 
 export const mockPatients: Patient[] = [
-    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino' },
-    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino' },
-    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino' },
-    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino' },
-    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino' },
+    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456' },
+    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678' },
+    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino', phone: '0416-3334455', cedula: 'V-20.987.654' },
+    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino', phone: '0424-4445566', cedula: 'V-9.876.543' },
+    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210' },
 ];
 
 
@@ -696,3 +720,62 @@ export const mockSupportTickets: SupportTicket[] = [
         lastReply: 'Hace 5 días',
     },
 ];
+
+export type DoctorPayment = {
+  id: string;
+  doctorId: number;
+  doctorName: string;
+  date: string;
+  amount: number;
+  status: 'Paid' | 'Pending';
+};
+
+export const mockDoctorPayments: DoctorPayment[] = [
+  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid'},
+  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid'},
+  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid'},
+  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid'},
+  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-05-30', amount: 50, status: 'Pending'},
+];
+
+export type AdminSupportTicket = {
+    id: string;
+    userId: string; 
+    userName: string;
+    userRole: 'doctor' | 'seller';
+    subject: string;
+    status: 'abierto' | 'cerrado';
+    date: string;
+};
+
+export const mockAdminSupportTickets: AdminSupportTicket[] = [
+    {
+        id: 'ticket-admin-1',
+        userId: 'vendedora@venta.com',
+        userName: 'Vendedora Principal',
+        userRole: 'seller',
+        subject: 'Problema con la comisión de un referido',
+        status: 'abierto',
+        date: '2024-05-20',
+    },
+    {
+        id: 'ticket-admin-2',
+        userId: 'ana.rodriguez.dr@email.com',
+        userName: 'Dr. Ana Rodriguez',
+        userRole: 'doctor',
+        subject: 'Duda sobre el horario de trabajo',
+        status: 'abierto',
+        date: '2024-05-28',
+    },
+    {
+        id: 'ticket-admin-3',
+        userId: 'vendedora@venta.com',
+        userName: 'Vendedora Principal',
+        userRole: 'seller',
+        subject: 'Cómo actualizar los datos de un médico',
+        status: 'cerrado',
+        date: '2024-05-15',
+    },
+];
+
+    

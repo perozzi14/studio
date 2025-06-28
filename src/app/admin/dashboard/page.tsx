@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, type Doctor, type Seller, type Patient } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,22 +13,53 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const currentTab = searchParams.get('view') || 'overview';
   
   const [doctors, setDoctors] = useState<Doctor[]>(allDoctors);
   const [sellers, setSellers] = useState<Seller[]>(allSellers);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(mockDoctorPayments);
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
+  const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
+  
   useEffect(() => {
     if (user === undefined) return;
     if (user === null || user.role !== 'admin') {
@@ -54,10 +85,11 @@ export default function AdminDashboardPage() {
     const totalSellers = sellers.length;
     const totalPatients = patients.length;
     
-    const totalRevenue = activeDoctors * 50;
+    const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+
     const commissionsPaid = sellers.reduce((acc, seller) => {
-        const referredActive = doctors.filter(d => d.sellerId === seller.id && d.status === 'active').length;
-        return acc + (referredActive * 50 * 0.20);
+        const referredActiveCount = doctors.filter(d => d.sellerId === seller.id && d.status === 'active').length;
+        return acc + (referredActiveCount * 50 * seller.commissionRate);
     }, 0);
 
     return {
@@ -69,7 +101,7 @@ export default function AdminDashboardPage() {
         commissionsPaid,
         netProfit: totalRevenue - commissionsPaid,
     }
-  }, [doctors, sellers, patients]);
+  }, [doctors, sellers, patients, doctorPayments]);
 
   if (isLoading || !user) {
     return (
@@ -97,12 +129,13 @@ export default function AdminDashboardPage() {
           <p className="text-muted-foreground mb-8">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
 
            <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                     <TabsTrigger value="overview">General</TabsTrigger>
                     <TabsTrigger value="doctors">Médicos</TabsTrigger>
                     <TabsTrigger value="sellers">Vendedoras</TabsTrigger>
                     <TabsTrigger value="patients">Pacientes</TabsTrigger>
                     <TabsTrigger value="finances">Finanzas</TabsTrigger>
+                    <TabsTrigger value="support">Soporte</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-6">
@@ -201,6 +234,7 @@ export default function AdminDashboardPage() {
                                                 />
                                                 <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -212,15 +246,53 @@ export default function AdminDashboardPage() {
                 
                  <TabsContent value="sellers" className="mt-6">
                     <Card>
-                      <CardHeader>
-                          <CardTitle>Gestión de Vendedoras</CardTitle>
-                          <CardDescription>Próximamente: gestiona las cuentas y referidos de las vendedoras.</CardDescription>
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                            <CardTitle>Gestión de Vendedoras</CardTitle>
+                            <CardDescription>Registra, visualiza y gestiona a todas las vendedoras del sistema.</CardDescription>
+                          </div>
+                           <Button onClick={() => { setEditingSeller(null); setIsSellerDialogOpen(true); }}>
+                              <PlusCircle className="mr-2"/> Registrar Vendedora
+                           </Button>
                       </CardHeader>
                       <CardContent>
-                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                              <UserCheck className="h-12 w-12" />
-                              <p>La funcionalidad de gestión de vendedoras estará disponible próximamente.</p>
-                          </div>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Vendedora</TableHead>
+                                      <TableHead>Referidos (Activos)</TableHead>
+                                      <TableHead>Comisión</TableHead>
+                                      <TableHead className="text-right">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {sellers.map((seller) => {
+                                    const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
+                                    const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
+                                    return (
+                                      <TableRow key={seller.id}>
+                                          <TableCell className="font-medium flex items-center gap-3">
+                                              <Avatar className="h-9 w-9">
+                                                  <AvatarImage src={seller.profileImage} alt={seller.name} />
+                                                  <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                                              </Avatar>
+                                              <div>
+                                                  <p>{seller.name}</p>
+                                                  <p className="text-xs text-muted-foreground">{seller.email}</p>
+                                              </div>
+                                          </TableCell>
+                                          <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
+                                          <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
+                                          <TableCell className="text-right flex items-center justify-end gap-2">
+                                              <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                              <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                          </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                              </TableBody>
+                          </Table>
                       </CardContent>
                     </Card>
                 </TabsContent>
@@ -229,28 +301,148 @@ export default function AdminDashboardPage() {
                      <Card>
                       <CardHeader>
                           <CardTitle>Gestión de Pacientes</CardTitle>
-                          <CardDescription>Próximamente: busca y gestiona la información de los pacientes.</CardDescription>
+                          <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                              <Users className="h-12 w-12" />
-                              <p>La funcionalidad de gestión de pacientes estará disponible próximamente.</p>
-                          </div>
+                         <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Paciente</TableHead>
+                                      <TableHead>Cédula</TableHead>
+                                      <TableHead>Contacto</TableHead>
+                                      <TableHead className="text-right">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {patients.map((patient) => (
+                                      <TableRow key={patient.id}>
+                                          <TableCell className="font-medium">{patient.name}</TableCell>
+                                          <TableCell>{patient.cedula || 'N/A'}</TableCell>
+                                          <TableCell>
+                                             <p>{patient.email}</p>
+                                             <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
+                                          </TableCell>
+                                          <TableCell className="text-right flex items-center justify-end gap-2">
+                                              <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                              <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                          </TableCell>
+                                      </TableRow>
+                                  ))}
+                              </TableBody>
+                          </Table>
                       </CardContent>
                     </Card>
                 </TabsContent>
 
                  <TabsContent value="finances" className="mt-6">
+                    <div className="space-y-6">
+                       <div className="grid gap-4 md:grid-cols-3">
+                          <Card>
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Ingresos Totales (Suscripciones)</CardTitle>
+                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Basado en los pagos de médicos</p>
+                              </CardContent>
+                          </Card>
+                          <Card>
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Comisiones Pagadas</CardTitle>
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="text-2xl font-bold text-red-600">${stats.commissionsPaid.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Pagos a vendedoras</p>
+                              </CardContent>
+                          </Card>
+                          <Card>
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
+                                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="text-2xl font-bold">${stats.netProfit.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Ingresos - Comisiones</p>
+                              </CardContent>
+                          </Card>
+                      </div>
+                      <Card>
+                        <CardHeader>
+                            <CardTitle>Pagos de Médicos Recibidos</CardTitle>
+                            <CardDescription>Historial de pagos de mensualidades de los médicos.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Médico</TableHead>
+                                        <TableHead>Monto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {doctorPayments.map((payment) => (
+                                        <TableRow key={payment.id}>
+                                            <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                            <TableCell>{payment.doctorName}</TableCell>
+                                            <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                            <TableCell>
+                                                 <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
+                                                    {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                      </Card>
+                    </div>
+                </TabsContent>
+
+                 <TabsContent value="support" className="mt-6">
                     <Card>
                       <CardHeader>
-                          <CardTitle>Finanzas Globales</CardTitle>
-                          <CardDescription>Próximamente: un desglose completo de los ingresos, comisiones y ganancias.</CardDescription>
+                          <CardTitle>Tickets de Soporte</CardTitle>
+                          <CardDescription>Gestiona las solicitudes de soporte de médicos y vendedoras.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                              <BarChart className="h-12 w-12" />
-                              <p>La funcionalidad de finanzas globales estará disponible próximamente.</p>
-                          </div>
+                         <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Fecha</TableHead>
+                                      <TableHead>Usuario</TableHead>
+                                      <TableHead>Rol</TableHead>
+                                      <TableHead>Asunto</TableHead>
+                                      <TableHead>Estado</TableHead>
+                                      <TableHead className="text-right">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {supportTickets.map((ticket) => (
+                                      <TableRow key={ticket.id}>
+                                          <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                          <TableCell>{ticket.userName}</TableCell>
+                                          <TableCell className="capitalize">{ticket.userRole}</TableCell>
+                                          <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                          <TableCell>
+                                             <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                {ticket.status}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                              <Button variant="outline" size="sm">
+                                                  <Eye className="mr-2 h-4 w-4" /> Ver Ticket
+                                              </Button>
+                                          </TableCell>
+                                      </TableRow>
+                                  ))}
+                              </TableBody>
+                          </Table>
                       </CardContent>
                     </Card>
                 </TabsContent>
@@ -258,6 +450,37 @@ export default function AdminDashboardPage() {
            </Tabs>
         </div>
       </main>
+
+      <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{editingSeller ? 'Editar Vendedora' : 'Registrar Nueva Vendedora'}</DialogTitle>
+                <DialogDescription>
+                    {editingSeller ? 'Actualiza la información de la vendedora.' : 'Completa el formulario para agregar una nueva vendedora.'}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">Nombre</Label>
+                    <Input id="name" defaultValue={editingSeller?.name || ''} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">Email</Label>
+                    <Input id="email" type="email" defaultValue={editingSeller?.email || ''} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
+                    <Input id="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.2) * 100} className="col-span-3" />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit">Guardar</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    
