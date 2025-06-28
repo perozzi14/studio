@@ -649,7 +649,8 @@ export default function DoctorDashboardPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Table>
+                             {/* Desktop Table */}
+                            <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Paciente</TableHead>
@@ -707,6 +708,64 @@ export default function DoctorDashboardPage() {
                                     )}
                                 </TableBody>
                             </Table>
+
+                             {/* Mobile Cards */}
+                            <div className="space-y-4 md:hidden">
+                                {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
+                                    <div key={appt.id} className="p-4 border rounded-lg space-y-4">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <p className="font-bold">{appt.patientName}</p>
+                                                <p className="text-sm text-muted-foreground">{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                                            </div>
+                                            <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                <Eye className="h-4 w-4" />
+                                                <span className="sr-only">Ver Detalles</span>
+                                            </Button>
+                                        </div>
+                                        <Separator/>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-semibold text-sm mb-1">Pago</p>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
+                                                        {appt.paymentStatus}
+                                                    </Badge>
+                                                    <p className="text-xs text-muted-foreground capitalize">
+                                                        {appt.paymentMethod}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm mb-1">Asistencia</p>
+                                                {appt.attendance === 'Pendiente' ? (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" size="sm">Marcar <MoreVertical className="ml-1 h-4 w-4" /></Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'Atendido')}>
+                                                                <UserCheck className="mr-2 h-4 w-4 text-green-600" />
+                                                                Atendido
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
+                                                                <UserX className="mr-2 h-4 w-4 text-red-600" />
+                                                                No Asistió
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                ) : (
+                                                    <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
+                                                        {appt.attendance}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No hay citas en el historial.</div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
