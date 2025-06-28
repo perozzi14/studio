@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -21,13 +21,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/lib/notifications";
 
 
 export function Header() {
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -49,6 +56,7 @@ export function Header() {
 
   const dashboardHref = user?.role === 'doctor' ? '/doctor/dashboard' : '/dashboard';
   const currentView = searchParams.get('view') || 'appointments';
+  const isPatient = user?.role === 'patient';
 
 
   return (
@@ -72,10 +80,55 @@ export function Header() {
                 </Button>
                )
             })}
+          
+          {user && isPatient && (
+            <Popover onOpenChange={(open) => {
+              if (open && unreadCount > 0) {
+                setTimeout(() => markAllAsRead(), 500); 
+              }
+            }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative ml-2">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
+                  <span className="sr-only">Ver notificaciones</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 md:w-96">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <h4 className="font-medium text-sm">Notificaciones</h4>
+                </div>
+                {notifications.length > 0 ? (
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
+                    {notifications.map(n => (
+                      <div key={n.id} className="p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50">
+                        <div className="mt-1">
+                          {n.read ? <Check className="h-4 w-4 text-green-500"/> : <BellRing className="h-4 w-4 text-primary"/>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.relativeTime}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
+
           {user ? (
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-1">
                   <Avatar className="h-8 w-8">
                     {user.profileImage && <AvatarImage src={user.profileImage} alt={user.name} />}
                     <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>

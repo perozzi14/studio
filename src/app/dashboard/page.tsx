@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
+import { useNotifications } from '@/lib/notifications';
 import type { Appointment } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,7 @@ function AppointmentCard({ appointment, isPast = false }: { appointment: Appoint
 export default function DashboardPage() {
   const { user } = useAuth();
   const { appointments } = useAppointments();
+  const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
 
   useEffect(() => {
@@ -84,6 +86,13 @@ export default function DashboardPage() {
     
     return { upcomingAppointments: upcoming, pastAppointments: past };
   }, [user, appointments]);
+  
+  useEffect(() => {
+    if (upcomingAppointments.length > 0) {
+      checkAndSetNotifications(upcomingAppointments);
+    }
+  }, [upcomingAppointments, checkAndSetNotifications]);
+
 
   if (!user || user.role !== 'patient') {
     return (
