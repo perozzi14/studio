@@ -1125,26 +1125,30 @@ export default function DoctorDashboardPage() {
                                                     />
                                                 </div>
                                                 {daySchedule.active && (
-                                                    <div className="space-y-3 pl-2 border-l-2 border-primary/50 ml-2">
+                                                    <div className="space-y-4 pt-2 pl-2 border-l-2 border-primary/50 ml-2 md:pl-4 md:ml-4">
                                                         {daySchedule.slots.map((slot, index) => (
-                                                            <div key={index} className="flex items-center gap-2">
-                                                                <Input
-                                                                    type="time"
-                                                                    value={slot.start}
-                                                                    onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)}
-                                                                />
-                                                                <span>-</span>
-                                                                <Input
-                                                                    type="time"
-                                                                    value={slot.end}
-                                                                    onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)}
-                                                                />
+                                                            <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                                                <div className="flex-1 flex items-center gap-2">
+                                                                    <Input
+                                                                        type="time"
+                                                                        value={slot.start}
+                                                                        onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)}
+                                                                    />
+                                                                    <span className="font-semibold text-muted-foreground">-</span>
+                                                                    <Input
+                                                                        type="time"
+                                                                        value={slot.end}
+                                                                        onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)}
+                                                                    />
+                                                                </div>
                                                                 <Button
-                                                                    variant="ghost"
+                                                                    variant="outline"
                                                                     size="icon"
                                                                     onClick={() => handleRemoveSlot(key, index)}
+                                                                    className="self-end sm:self-center"
                                                                 >
                                                                     <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    <span className="sr-only">Eliminar bloque</span>
                                                                 </Button>
                                                             </div>
                                                         ))}
@@ -1152,6 +1156,7 @@ export default function DoctorDashboardPage() {
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => handleAddSlot(key)}
+                                                            className="w-full sm:w-auto"
                                                         >
                                                             <PlusCircle className="mr-2 h-4 w-4" /> Agregar bloque
                                                         </Button>
