@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
   input: {schema: WhatsAppAssistantInputSchema},
   output: {schema: WhatsAppAssistantOutputSchema},
   tools: [findDoctorsTool],
-  prompt: `Eres un asistente de IA servicial para MedAgenda, interactuando con pacientes a través de WhatsApp.
+  prompt: `Eres un asistente de IA servicial para SUMA (Sistema Unificado de Medicina Avanzada), interactuando con pacientes a través de WhatsApp.
 
   Tu objetivo es responder sus preguntas sobre procedimientos médicos, recomendar especialistas apropiados según sus síntomas y ayudarlos a confirmar y gestionar sus reservas de citas.
 

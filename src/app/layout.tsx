@@ -5,7 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MedAgenda",
+  title: "SUMA",
   description: "Sistema Unificado de Medicina Avanzada",
 };
 

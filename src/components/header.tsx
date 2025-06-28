@@ -51,7 +51,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <Stethoscope className="h-6 w-6 text-primary" />
-          <span className="font-headline">MedAgenda</span>
+          <span className="font-headline">SUMA</span>
         </Link>
         <nav className="hidden md:flex ml-auto items-center gap-2">
           {user?.role !== 'doctor' && patientNavLinks.map((link) => (
@@ -134,7 +134,7 @@ export function Header() {
               <div className="flex flex-col gap-4 py-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-lg mb-4">
                   <Stethoscope className="h-6 w-6 text-primary" />
-                  <span className="font-headline">MedAgenda</span>
+                  <span className="font-headline">SUMA</span>
                 </Link>
                 {user?.role !== 'doctor' && patientNavLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
