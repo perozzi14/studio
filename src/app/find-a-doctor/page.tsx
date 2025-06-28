@@ -29,14 +29,14 @@ import { specialties, doctors, type Doctor } from "@/lib/data";
 
 export default function FindDoctorPage() {
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [specialty, setSpecialty] = useState("");
+  const [specialty, setSpecialty] = useState("all");
   const [location, setLocation] = useState("");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
 
   const handleSearch = () => {
      let results = doctors;
 
-    if (specialty) {
+    if (specialty && specialty !== "all") {
       results = results.filter(d => d.specialty.toLowerCase() === specialty.toLowerCase());
     }
 
@@ -70,7 +70,7 @@ export default function FindDoctorPage() {
                     <SelectValue placeholder="e.g., Cardiology" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="">All Specialties</SelectItem>
+                     <SelectItem value="all">All Specialties</SelectItem>
                     {specialties.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
