@@ -43,6 +43,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { useToast } from "@/hooks/use-toast";
 
 
 // A simple mock for available times. In a real app, this would be more complex.
@@ -62,6 +63,7 @@ const chartConfig = {
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,7 +182,10 @@ export default function DoctorDashboardPage() {
         location: formData.get('location') as string,
     };
     setDoctorData(updatedData);
-    alert("¡Perfil actualizado! (simulación)");
+    toast({
+        title: "¡Perfil Actualizado!",
+        description: "Tu información pública ha sido guardada.",
+    });
   };
   
   const handleOpenServiceDialog = (service: Service | null) => {
