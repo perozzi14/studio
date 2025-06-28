@@ -1177,15 +1177,16 @@ export default function DoctorDashboardPage() {
         case 'bank-details':
             return (
                <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
                         <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
                     </div>
-                    <Button onClick={() => handleOpenBankDetailDialog(null)}><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                    <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                    {/* Desktop Table */}
+                    <Table className="hidden md:table">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Banco</TableHead>
@@ -1202,9 +1203,11 @@ export default function DoctorDashboardPage() {
                                     <TableCell>{bd.accountHolder}</TableCell>
                                     <TableCell>{bd.accountNumber}</TableCell>
                                     <TableCell>{bd.idNumber}</TableCell>
-                                    <TableCell className="text-center space-x-2">
-                                        <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    <TableCell className="text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -1215,6 +1218,38 @@ export default function DoctorDashboardPage() {
                             )}
                         </TableBody>
                     </Table>
+                    {/* Mobile Cards */}
+                    <div className="space-y-4 md:hidden">
+                        {doctorData.bankDetails.length > 0 ? doctorData.bankDetails.map(bd => (
+                            <div key={bd.id} className="p-4 border rounded-lg space-y-4">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Banco</p>
+                                        <p className="font-medium">{bd.bank}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Titular</p>
+                                        <p className="font-medium">{bd.accountHolder}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
+                                        <p className="font-mono text-sm">{bd.accountNumber}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
+                                        <p className="font-mono text-sm">{bd.idNumber}</p>
+                                    </div>
+                                </div>
+                                <Separator />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
+                        )}
+                    </div>
                 </CardContent>
                </Card>
             )
