@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { allDoctors, mockSellerPayments, type Doctor, type SellerPayment } from '@/lib/data';
+import { doctors as allDoctors, mockSellerPayments, type Doctor, type SellerPayment } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
