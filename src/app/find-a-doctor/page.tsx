@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -252,7 +251,7 @@ export default function FindDoctorPage() {
   );
 }
 
-function DoctorCard({ doctor }: { doctor: Doctor }) {
+const DoctorCard = React.memo(function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
     <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-lg w-full">
       <CardContent className="flex items-center gap-4 p-4">
@@ -287,4 +286,5 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
       </CardContent>
     </Card>
   );
-}
+});
+DoctorCard.displayName = "DoctorCard";
