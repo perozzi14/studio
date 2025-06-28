@@ -45,6 +45,8 @@ export function Header() {
     ? '/doctor/dashboard' 
     : user?.role === 'seller'
     ? '/seller/dashboard'
+    : user?.role === 'admin'
+    ? '/admin/dashboard'
     : '/dashboard';
 
   const isPatient = user?.role === 'patient';

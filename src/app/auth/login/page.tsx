@@ -42,6 +42,8 @@ export default function LoginPage() {
           <CardDescription>
             Ingresa tu correo para iniciar sesión.
             <br />
+            <span className="text-xs">(Admin, usa: admin@admin.com / 1234)</span>
+            <br />
             <span className="text-xs">(Médico, usa: doctor@admin.com / 1234)</span>
             <br />
             <span className="text-xs">(Vendedora, usa: vendedora@venta.com / 1234)</span>

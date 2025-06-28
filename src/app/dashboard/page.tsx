@@ -95,6 +95,10 @@ export default function DashboardPage() {
       router.push('/auth/login');
     } else if (user?.role === 'doctor') {
       router.push('/doctor/dashboard');
+    } else if (user?.role === 'seller') {
+      router.push('/seller/dashboard');
+    } else if (user?.role === 'admin') {
+      router.push('/admin/dashboard');
     }
   }, [user, router]);
 

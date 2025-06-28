@@ -8,7 +8,7 @@ import { doctors, sellers } from './data';
 interface User {
   name: string;
   email: string;
-  role: 'patient' | 'doctor' | 'seller';
+  role: 'patient' | 'doctor' | 'seller' | 'admin';
   age: number | null;
   gender: 'masculino' | 'femenino' | 'otro' | null;
   profileImage: string | null;
@@ -54,7 +54,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let loggedInUser: User;
     const lowerEmail = email.toLowerCase();
 
-    if (lowerEmail === 'doctor@admin.com') {
+    if (lowerEmail === 'admin@admin.com') {
+      loggedInUser = { 
+        email, 
+        name: 'Administrador', 
+        role: 'admin', 
+        age: null, 
+        gender: null,
+        cedula: null,
+        phone: null,
+        profileImage: 'https://placehold.co/100x100.png',
+        favoriteDoctorIds: []
+      };
+      setUser(loggedInUser);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      router.push('/admin/dashboard');
+    } else if (lowerEmail === 'doctor@admin.com') {
       const doctorInfo = doctors.find(d => d.id === 1);
       loggedInUser = { 
         email, 
