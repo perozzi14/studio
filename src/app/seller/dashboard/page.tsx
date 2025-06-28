@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link, Users, DollarSign, Copy, CheckCircle, XCircle } from 'lucide-react';
+import { Link, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -143,6 +143,7 @@ export default function SellerDashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Médico</TableHead>
+                                        <TableHead>Contacto</TableHead>
                                         <TableHead>Especialidad</TableHead>
                                         <TableHead>Ubicación</TableHead>
                                         <TableHead>Último Pago</TableHead>
@@ -153,6 +154,18 @@ export default function SellerDashboardPage() {
                                     {referredDoctors.length > 0 ? referredDoctors.map((doctor) => (
                                         <TableRow key={doctor.id}>
                                             <TableCell className="font-medium">{doctor.name}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1 text-xs">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Mail className="h-3 w-3 flex-shrink-0" />
+                                                        <span className="truncate">{doctor.email}</span>
+                                                    </span>
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Phone className="h-3 w-3 flex-shrink-0" />
+                                                        <span className="truncate">{doctor.whatsapp}</span>
+                                                    </span>
+                                                </div>
+                                            </TableCell>
                                             <TableCell>{doctor.specialty}</TableCell>
                                             <TableCell>{doctor.city}, {doctor.sector}</TableCell>
                                             <TableCell>{format(new Date(doctor.lastPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
@@ -165,7 +178,7 @@ export default function SellerDashboardPage() {
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center">
+                                            <TableCell colSpan={6} className="h-24 text-center">
                                                 Aún no tienes médicos referidos. ¡Comparte tu enlace!
                                             </TableCell>
                                         </TableRow>
