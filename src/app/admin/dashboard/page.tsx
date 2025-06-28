@@ -12,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -69,10 +68,6 @@ export default function AdminDashboardPage() {
     }
   }, [user, router]);
   
-  const handleTabChange = (value: string) => {
-    router.push(`/admin/dashboard?view=${value}`);
-  };
-
   const handleDoctorStatusChange = (doctorId: number, newStatus: 'active' | 'inactive') => {
       setDoctors(prevDoctors => 
         prevDoctors.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc)
@@ -125,20 +120,14 @@ export default function AdminDashboardPage() {
       <Header />
       <main className="flex-1 bg-muted/40">
         <div className="container py-12">
-          <h1 className="text-3xl font-bold font-headline mb-2">Panel de Administrador</h1>
-          <p className="text-muted-foreground mb-8">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
-
-           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-                    <TabsTrigger value="overview">General</TabsTrigger>
-                    <TabsTrigger value="doctors">Médicos</TabsTrigger>
-                    <TabsTrigger value="sellers">Vendedoras</TabsTrigger>
-                    <TabsTrigger value="patients">Pacientes</TabsTrigger>
-                    <TabsTrigger value="finances">Finanzas</TabsTrigger>
-                    <TabsTrigger value="support">Soporte</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="mt-6">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold font-headline mb-2">Panel de Administrador</h1>
+            <p className="text-muted-foreground">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
+          </div>
+          
+           <>
+                {currentTab === 'overview' && (
+                <div className="mt-6">
                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                           <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -186,9 +175,11 @@ export default function AdminDashboardPage() {
                           <h3 className="text-xl font-semibold">Gráficos y Analíticas</h3>
                           <p>Más analíticas detalladas sobre el crecimiento y uso de la plataforma estarán disponibles aquí.</p>
                       </div>
-                </TabsContent>
+                </div>
+                )}
 
-                <TabsContent value="doctors" className="mt-6">
+                {currentTab === 'doctors' && (
+                <div className="mt-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Gestión de Médicos</CardTitle>
@@ -242,9 +233,11 @@ export default function AdminDashboardPage() {
                             </Table>
                         </CardContent>
                     </Card>
-                </TabsContent>
+                </div>
+                )}
                 
-                 <TabsContent value="sellers" className="mt-6">
+                {currentTab === 'sellers' && (
+                 <div className="mt-6">
                     <Card>
                       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div>
@@ -295,9 +288,11 @@ export default function AdminDashboardPage() {
                           </Table>
                       </CardContent>
                     </Card>
-                </TabsContent>
+                </div>
+                )}
                 
-                 <TabsContent value="patients" className="mt-6">
+                {currentTab === 'patients' && (
+                 <div className="mt-6">
                      <Card>
                       <CardHeader>
                           <CardTitle>Gestión de Pacientes</CardTitle>
@@ -333,9 +328,11 @@ export default function AdminDashboardPage() {
                           </Table>
                       </CardContent>
                     </Card>
-                </TabsContent>
+                </div>
+                )}
 
-                 <TabsContent value="finances" className="mt-6">
+                {currentTab === 'finances' && (
+                 <div className="mt-6">
                     <div className="space-y-6">
                        <div className="grid gap-4 md:grid-cols-3">
                           <Card>
@@ -402,9 +399,11 @@ export default function AdminDashboardPage() {
                         </CardContent>
                       </Card>
                     </div>
-                </TabsContent>
+                </div>
+                )}
 
-                 <TabsContent value="support" className="mt-6">
+                {currentTab === 'support' && (
+                 <div className="mt-6">
                     <Card>
                       <CardHeader>
                           <CardTitle>Tickets de Soporte</CardTitle>
@@ -445,9 +444,9 @@ export default function AdminDashboardPage() {
                           </Table>
                       </CardContent>
                     </Card>
-                </TabsContent>
-
-           </Tabs>
+                </div>
+                )}
+           </>
         </div>
       </main>
 
@@ -482,5 +481,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

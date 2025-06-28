@@ -27,7 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 
 
@@ -35,10 +35,20 @@ export function Header() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const patientNavLinks = [
     { href: "/find-a-doctor", label: "Buscar Médico" },
     { href: "/ai-assistant", label: "Asistente IA" },
+  ];
+  
+  const adminNavLinks = [
+    { href: "/admin/dashboard?view=overview", label: "General" },
+    { href: "/admin/dashboard?view=doctors", label: "Médicos" },
+    { href: "/admin/dashboard?view=sellers", label: "Vendedoras" },
+    { href: "/admin/dashboard?view=patients", label: "Pacientes" },
+    { href: "/admin/dashboard?view=finances", label: "Finanzas" },
+    { href: "/admin/dashboard?view=support", label: "Soporte" },
   ];
 
   const dashboardHref = user?.role === 'doctor' 
@@ -46,7 +56,7 @@ export function Header() {
     : user?.role === 'seller'
     ? '/seller/dashboard'
     : user?.role === 'admin'
-    ? '/admin/dashboard'
+    ? '/admin/dashboard?view=overview'
     : '/dashboard';
 
   const isPatient = user?.role === 'patient';
@@ -65,6 +75,17 @@ export function Header() {
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
+          
+          {user?.role === 'admin' && pathname.startsWith('/admin') && adminNavLinks.map((link) => {
+            const currentViewParam = searchParams.get('view') || 'overview';
+            const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
+            const isActive = currentViewParam === linkView;
+            return (
+              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} asChild>
+                <Link href={link.href}>{link.label}</Link>
+              </Button>
+            );
+          })}
           
           {user && isPatient && (
             <Popover onOpenChange={(open) => {
@@ -243,6 +264,18 @@ export function Header() {
                   <Stethoscope className="h-6 w-6 text-primary" />
                   <span className="font-headline">SUMA</span>
                 </Link>
+                {user?.role === 'admin' && pathname.startsWith('/admin') && (
+                   <div className="flex flex-col gap-3">
+                    <p className="text-muted-foreground font-semibold text-sm">PANEL ADMIN</p>
+                    {adminNavLinks.map((link) => (
+                      <SheetClose key={link.href} asChild>
+                        <Link href={link.href} className="text-lg font-medium hover:text-primary">
+                          {link.label}
+                        </Link>
+                      </SheetClose>
+                    ))}
+                   </div>
+                )}
                 {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
                     <Link href={link.href} className="text-lg font-medium hover:text-primary">
