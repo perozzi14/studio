@@ -14,6 +14,7 @@ interface User {
   profileImage: string | null;
   cedula: string | null;
   phone: string | null;
+  favoriteDoctorIds: number[];
 }
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
   login: (email: string, name?: string) => void;
   logout: () => void;
   updateUser: (data: Partial<Omit<User, 'role' | 'email'>>) => void;
+  toggleFavoriteDoctor: (doctorId: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        // Ensure favoriteDoctorIds is an array
+        if (!parsedUser.favoriteDoctorIds) {
+          parsedUser.favoriteDoctorIds = [];
+        }
+        setUser(parsedUser);
       } else {
         setUser(null);
       }
@@ -54,13 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         gender: null,
         cedula: null,
         phone: null,
-        profileImage: doctorInfo?.profileImage || null
+        profileImage: doctorInfo?.profileImage || null,
+        favoriteDoctorIds: []
       };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/doctor/dashboard');
     } else {
-      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null, cedula: null, phone: null };
+      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/dashboard');
@@ -82,8 +90,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const toggleFavoriteDoctor = (doctorId: number) => {
+    setUser(prevUser => {
+        if (!prevUser || prevUser.role !== 'patient') return prevUser;
+        
+        const favorites = prevUser.favoriteDoctorIds || [];
+        const isFavorite = favorites.includes(doctorId);
+        
+        const newFavorites = isFavorite
+            ? favorites.filter(id => id !== doctorId)
+            : [...favorites, doctorId];
+            
+        const updatedUser = { ...prevUser, favoriteDoctorIds: newFavorites };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, toggleFavoriteDoctor }}>
       {children}
     </AuthContext.Provider>
   );
