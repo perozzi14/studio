@@ -27,7 +27,6 @@ import {
   List,
   Stethoscope,
   Wind,
-  Map,
 } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -35,8 +34,6 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { specialties, doctors, type Doctor } from "@/lib/data";
-import dynamic from 'next/dynamic';
-import { Skeleton } from "@/components/ui/skeleton";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -49,19 +46,12 @@ const specialtyIcons: Record<string, React.ElementType> = {
   Neumonología: Wind,
 };
 
-const DoctorMap = dynamic(() => import('@/components/doctor-map'), {
-  ssr: false,
-  loading: () => <Skeleton className="h-[600px] w-full rounded-lg" />,
-});
-
-
 export default function FindDoctorPage() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [specialty, setSpecialty] = useState("all");
   const [location, setLocation] = useState("");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
-  const [view, setView] = useState<'list' | 'map'>('list');
 
   const handleSearch = () => {
     let results = doctors;
@@ -204,26 +194,16 @@ export default function FindDoctorPage() {
         </div>
 
         <div className="container py-12">
-           <div className="flex justify-between items-center mb-6">
+           <div className="mb-6">
             <h2 className="text-2xl font-bold">
               {filteredDoctors.length}{" "}
               {filteredDoctors.length === 1
                 ? "médico encontrado"
                 : "médicos encontrados"}
             </h2>
-            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-              <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('list')}>
-                <List className="h-4 w-4" />
-                <span className="ml-2 hidden sm:inline">Lista</span>
-              </Button>
-              <Button variant={view === 'map' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('map')}>
-                <Map className="h-4 w-4" />
-                <span className="ml-2 hidden sm:inline">Mapa</span>
-              </Button>
-            </div>
           </div>
 
-          <div className={cn(view !== 'list' && 'hidden')}>
+          <div>
             {filteredDoctors.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredDoctors.map((doctor) => (
@@ -241,18 +221,13 @@ export default function FindDoctorPage() {
               </div>
             )}
           </div>
-          
-          <div className={cn(view !== 'map' && 'hidden')}>
-            <DoctorMap doctors={filteredDoctors} />
-          </div>
-
         </div>
       </main>
     </div>
   );
 }
 
-const DoctorCard = React.memo(function DoctorCard({ doctor }: { doctor: Doctor }) {
+function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
     <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-lg w-full">
       <CardContent className="flex items-center gap-4 p-4">
@@ -287,5 +262,4 @@ const DoctorCard = React.memo(function DoctorCard({ doctor }: { doctor: Doctor }
       </CardContent>
     </Card>
   );
-});
-DoctorCard.displayName = "DoctorCard";
+}
