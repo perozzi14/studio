@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, type Appointment, type Doctor, type Service } from '@/lib/data';
+import { appointments as mockAppointments, doctors, type Appointment, type Doctor, type Service, type BankDetail } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +70,14 @@ export default function DoctorDashboardPage() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [servicePrice, setServicePrice] = useState('');
+
+  // State for the bank detail dialog
+  const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
+  const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
+  const [bankName, setBankName] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [idNumber, setIdNumber] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
 
 
   useEffect(() => {
@@ -199,6 +207,43 @@ export default function DoctorDashboardPage() {
   const handleRemoveTime = (timeToRemove: string) => {
     setSchedule(schedule.filter(t => t !== timeToRemove));
   };
+  
+  const handleOpenBankDetailDialog = (bankDetail: BankDetail | null) => {
+    setEditingBankDetail(bankDetail);
+    setBankName(bankDetail ? bankDetail.bank : '');
+    setAccountHolder(bankDetail ? bankDetail.accountHolder : '');
+    setIdNumber(bankDetail ? bankDetail.idNumber : '');
+    setAccountNumber(bankDetail ? bankDetail.accountNumber : '');
+    setIsBankDetailDialogOpen(true);
+  };
+  
+  const handleSaveBankDetail = () => {
+    if (!doctorData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
+    
+    const newBankDetail: BankDetail = {
+      id: editingBankDetail ? editingBankDetail.id : Date.now(),
+      bank: bankName,
+      accountHolder: accountHolder,
+      idNumber: idNumber,
+      accountNumber: accountNumber,
+    };
+
+    let updatedBankDetails;
+    if (editingBankDetail) {
+      updatedBankDetails = doctorData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
+    } else {
+      updatedBankDetails = [...doctorData.bankDetails, newBankDetail];
+    }
+    
+    setDoctorData({ ...doctorData, bankDetails: updatedBankDetails });
+    setIsBankDetailDialogOpen(false);
+  };
+
+  const handleDeleteBankDetail = (bankDetailId: number) => {
+    if (!doctorData) return;
+    const updatedBankDetails = doctorData.bankDetails.filter(bd => bd.id !== bankDetailId);
+    setDoctorData({ ...doctorData, bankDetails: updatedBankDetails });
+  };
 
 
   if (isLoading || !user || !doctorData || !financialStats) {
@@ -227,12 +272,13 @@ export default function DoctorDashboardPage() {
           <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
 
           <Tabs defaultValue="appointments" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="appointments">Citas</TabsTrigger>
               <TabsTrigger value="finances">Finanzas</TabsTrigger>
               <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
               <TabsTrigger value="services">Mis Servicios</TabsTrigger>
               <TabsTrigger value="schedule">Mi Horario</TabsTrigger>
+              <TabsTrigger value="bank-details">Datos Bancarios</TabsTrigger>
             </TabsList>
 
             <TabsContent value="appointments">
@@ -477,6 +523,51 @@ export default function DoctorDashboardPage() {
                     </CardContent>
                  </Card>
             </TabsContent>
+            
+            <TabsContent value="bank-details">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
+                            <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
+                        </div>
+                        <Button onClick={() => handleOpenBankDetailDialog(null)}><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Banco</TableHead>
+                                    <TableHead>Titular</TableHead>
+                                    <TableHead>Nro. de Cuenta</TableHead>
+                                    <TableHead>C.I./R.I.F.</TableHead>
+                                    <TableHead className="text-center">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {doctorData.bankDetails.map(bd => (
+                                    <TableRow key={bd.id}>
+                                        <TableCell className="font-medium">{bd.bank}</TableCell>
+                                        <TableCell>{bd.accountHolder}</TableCell>
+                                        <TableCell>{bd.accountNumber}</TableCell>
+                                        <TableCell>{bd.idNumber}</TableCell>
+                                        <TableCell className="text-center space-x-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {doctorData.bankDetails.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                 </Card>
+            </TabsContent>
+
           </Tabs>
 
            <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
@@ -505,8 +596,46 @@ export default function DoctorDashboardPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+             <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
+                        <DialogDescription>
+                            {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir transferencias."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="bankName" className="text-right">Banco</Label>
+                            <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="accountHolder" className="text-right">Titular</Label>
+                            <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
+                            <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
+                            <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                         <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancelar</Button>
+                         </DialogClose>
+                        <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
       </main>
     </div>
   );
 }
+
+    

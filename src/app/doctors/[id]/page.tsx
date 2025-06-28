@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/header";
-import { doctors, type Doctor, type Service } from "@/lib/data";
+import { doctors, type Doctor, type Service, type BankDetail } from "@/lib/data";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export default function DoctorProfilePage() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia' | null>(null);
+  const [selectedBankDetail, setSelectedBankDetail] = useState<BankDetail | null>(null);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'Pendiente' | 'Pagado'>('Pendiente');
   
@@ -62,7 +63,7 @@ export default function DoctorProfilePage() {
   };
 
   const handlePaymentSubmit = () => {
-    if (paymentMethod) {
+    if (paymentMethod === 'efectivo' || (paymentMethod === 'transferencia' && selectedBankDetail && paymentProof)) {
       setPaymentStatus('Pendiente');
       setStep('confirmation');
     }
@@ -74,6 +75,7 @@ export default function DoctorProfilePage() {
     setSelectedTime(null);
     setSelectedServices([]);
     setPaymentMethod(null);
+    setSelectedBankDetail(null);
     setPaymentProof(null);
     setPaymentStatus('Pendiente');
   };
@@ -214,13 +216,40 @@ export default function DoctorProfilePage() {
               {paymentMethod === 'transferencia' && (
                 <Card className="bg-muted/30">
                   <CardHeader>
-                    <CardTitle className="text-lg">Datos para la Transferencia</CardTitle>
+                    <CardTitle className="text-lg">Selecciona una Cuenta y Sube el Comprobante</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <p><strong>Banco:</strong> {doctor.bankDetails.bank}</p>
-                    <p><strong>Titular:</strong> {doctor.bankDetails.accountHolder}</p>
-                    <p><strong>C.I./R.I.F.:</strong> {doctor.bankDetails.idNumber}</p>
-                    <p><strong>Nro. Cuenta:</strong> {doctor.bankDetails.accountNumber}</p>
+                  <CardContent className="space-y-4">
+                     <RadioGroup 
+                      value={selectedBankDetail?.id.toString()} 
+                      onValueChange={(value) => {
+                        const bankId = parseInt(value, 10);
+                        setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
+                      }}
+                      className="space-y-2"
+                    >
+                      {doctor.bankDetails.map((bd) => (
+                        <Label key={bd.id} className="flex items-center space-x-3 p-3 border rounded-md cursor-pointer hover:bg-muted/50 has-[input:checked]:bg-primary/10 has-[input:checked]:border-primary">
+                          <RadioGroupItem value={bd.id.toString()} id={`bank-${bd.id}`} />
+                          <div className="flex items-center gap-2">
+                            <Landmark className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <span className="font-semibold">{bd.bank}</span>
+                              <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                            </div>
+                          </div>
+                        </Label>
+                      ))}
+                    </RadioGroup>
+
+                    {selectedBankDetail && (
+                      <div className="space-y-2 border-t pt-4 mt-4">
+                        <p><strong>Banco:</strong> {selectedBankDetail.bank}</p>
+                        <p><strong>Titular:</strong> {selectedBankDetail.accountHolder}</p>
+                        <p><strong>C.I./R.I.F.:</strong> {selectedBankDetail.idNumber}</p>
+                        <p><strong>Nro. Cuenta:</strong> {selectedBankDetail.accountNumber}</p>
+                      </div>
+                    )}
+                    
                     <Separator className="my-4"/>
                     <Label htmlFor="paymentProof">Sube tu comprobante de pago:</Label>
                     <Input id="paymentProof" type="file" onChange={handleFileChange} />
@@ -237,7 +266,7 @@ export default function DoctorProfilePage() {
                  <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full">
                     Atrás
                   </Button>
-                  <Button onClick={handlePaymentSubmit} disabled={!paymentMethod || (paymentMethod === 'transferencia' && !paymentProof)} className="w-full" size="lg">
+                  <Button onClick={handlePaymentSubmit} disabled={!paymentMethod || (paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail))} className="w-full" size="lg">
                     Confirmar Cita
                   </Button>
               </div>
@@ -345,3 +374,5 @@ export default function DoctorProfilePage() {
     </div>
   );
 }
+
+    
