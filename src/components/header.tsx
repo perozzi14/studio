@@ -27,8 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 
 
@@ -36,22 +35,10 @@ export function Header() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const patientNavLinks = [
     { href: "/find-a-doctor", label: "Buscar Médico" },
     { href: "/ai-assistant", label: "Asistente IA" },
-  ];
-  
-  const doctorNavLinks = [
-    { href: "/doctor/dashboard?view=appointments", label: "Citas", view: "appointments" },
-    { href: "/doctor/dashboard?view=finances", label: "Finanzas", view: "finances" },
-    { href: "/doctor/dashboard?view=profile", label: "Mi Perfil", view: "profile" },
-    { href: "/doctor/dashboard?view=services", label: "Mis Servicios", view: "services" },
-    { href: "/doctor/dashboard?view=schedule", label: "Mi Horario", view: "schedule" },
-    { href: "/doctor/dashboard?view=bank-details", label: "Datos Bancarios", view: "bank-details" },
-    { href: "/doctor/dashboard?view=coupons", label: "Cupones", view: "coupons" },
-    { href: "/doctor/dashboard?view=support", label: "Soporte", view: "support" },
   ];
 
   const dashboardHref = user?.role === 'doctor' 
@@ -60,7 +47,6 @@ export function Header() {
     ? '/seller/dashboard'
     : '/dashboard';
 
-  const currentView = searchParams.get('view') || 'appointments';
   const isPatient = user?.role === 'patient';
 
 
@@ -77,14 +63,6 @@ export function Header() {
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
-          {user?.role === 'doctor' && doctorNavLinks.map((link) => {
-               const isActive = (pathname === '/doctor/dashboard' && currentView === link.view);
-               return (
-                <Button key={link.href} variant={isActive ? "secondary" : "ghost"} size="sm" asChild>
-                  <Link href={link.href}>{link.label}</Link>
-                </Button>
-               )
-            })}
           
           {user && isPatient && (
             <Popover onOpenChange={(open) => {
@@ -256,13 +234,6 @@ export function Header() {
                   <span className="font-headline">SUMA</span>
                 </Link>
                 {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
-                  <SheetClose key={link.href} asChild>
-                    <Link href={link.href} className="text-lg font-medium hover:text-primary">
-                      {link.label}
-                    </Link>
-                  </SheetClose>
-                ))}
-                 {user?.role === 'doctor' && doctorNavLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
                     <Link href={link.href} className="text-lg font-medium hover:text-primary">
                       {link.label}

@@ -12,13 +12,11 @@ export const specialties = [
   "Medicina Estética",
 ];
 
-export const locations: Record<string, string[]> = {
-  "Caracas": ["Chacao", "Las Mercedes", "San Bernardino", "Altamira"],
-  "Maracaibo": ["Tierra Negra", "La Lago", "Indio Mara"],
-  "Valencia": ["El Viñedo", "Prebo", "La Trigaleña"],
-};
-
-export const cities = Object.keys(locations);
+export const cities = [
+  "Caracas",
+  "Maracaibo",
+  "Valencia",
+];
 
 export type BankDetail = {
   id: number;
@@ -62,16 +60,23 @@ export type Doctor = {
   specialty: string;
   city: string;
   address: string;
+  sector: string;
   rating: number;
   reviewCount: number;
   profileImage: string;
   bannerImage: string;
   aiHint: string;
+  description: string;
   services: Service[];
   bankDetails: BankDetail[];
   coupons: Coupon[];
   schedule: Schedule;
   slotDuration: 30 | 60;
+  sellerId: number | null;
+  status: 'active' | 'inactive';
+  lastPaymentDate: string;
+  email: string;
+  whatsapp: string;
 };
 
 export type Seller = {
@@ -108,11 +113,13 @@ export const doctors: Doctor[] = [
     specialty: "Cardiología", 
     city: "Caracas", 
     address: "Av. Francisco de Miranda, Centro Lido, Piso 5",
+    sector: "Chacao",
     rating: 4.9, 
     reviewCount: 120, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "woman doctor",
+    description: "Cardióloga con más de 15 años de experiencia en el diagnóstico y tratamiento de enfermedades cardiovasculares. Comprometida con la prevención y el bienestar de mis pacientes.",
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
       { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
@@ -147,7 +154,12 @@ export const doctors: Doctor[] = [
         friday: { active: true, slots: [{ start: "09:00", end: "15:00" }] },
         saturday: { active: false, slots: [] },
         sunday: { active: false, slots: [] },
-    }
+    },
+    sellerId: 1,
+    status: 'active',
+    lastPaymentDate: '2024-05-28',
+    email: 'ana.rodriguez.dr@email.com',
+    whatsapp: '0414-1234567'
   },
   { 
     id: 2, 
@@ -155,11 +167,13 @@ export const doctors: Doctor[] = [
     specialty: "Dermatología", 
     city: "Maracaibo", 
     address: "Calle 72 con Av. 3H, Edificio Profesional",
+    sector: "Tierra Negra",
     rating: 4.8, 
     reviewCount: 98, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "man doctor",
+    description: "Especialista en dermatología clínica y estética, enfocado en ofrecer tratamientos personalizados para el cuidado de la piel. Miembro activo de la Sociedad Venezolana de Dermatología.",
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
       { id: 202, name: "Crioterapia (verrugas)", price: 60 },
@@ -175,6 +189,11 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
+    sellerId: 1,
+    status: 'active',
+    lastPaymentDate: '2024-05-25',
+    email: 'carlos.sanchez.dr@email.com',
+    whatsapp: '0412-2345678'
   },
   { 
     id: 3, 
@@ -182,11 +201,13 @@ export const doctors: Doctor[] = [
     specialty: "Neurología", 
     city: "Valencia", 
     address: "Av. Monseñor Adams, Centro Médico El Viñedo",
+    sector: "El Viñedo",
     rating: 4.9, 
     reviewCount: 150, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor smile",
+    description: "Neuróloga dedicada al estudio y tratamiento de trastornos del sistema nervioso. Experiencia en migrañas, epilepsia y enfermedades neurodegenerativas.",
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
       { id: 302, name: "Electroencefalograma (EEG)", price: 120 },
@@ -201,6 +222,11 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    sellerId: null,
+    status: 'inactive',
+    lastPaymentDate: '2024-03-15',
+    email: 'sofia.gomez.dr@email.com',
+    whatsapp: '0424-3456789'
   },
   { 
     id: 4, 
@@ -208,11 +234,13 @@ export const doctors: Doctor[] = [
     specialty: "Pediatría", 
     city: "Caracas", 
     address: "Calle París, Torre Orinoco, Las Mercedes",
+    sector: "Las Mercedes",
     rating: 5.0, 
     reviewCount: 210, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor",
+    description: "Pediatra apasionado por el cuidado integral de los niños, desde el nacimiento hasta la adolescencia. Foco en la prevención, crecimiento y desarrollo saludable.",
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
       { id: 402, name: "Vacunación", price: 25 },
@@ -227,32 +255,11 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
-  },
-  { 
-    id: 5, 
-    name: "Dr. Maria Hernandez", 
-    specialty: "Oncología", 
-    city: "Maracaibo", 
-    address: "Av. El Milagro, Hospital Coromoto",
-    rating: 4.7, 
-    reviewCount: 75, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "female doctor",
-    services: [
-      { id: 501, name: "Consulta Oncológica", price: 70 },
-      { id: 502, name: "Quimioterapia (por sesión)", price: 200 },
-    ],
-    bankDetails: [{
-      id: 5001,
-      bank: "Banco Mercantil",
-      accountNumber: "0105-0005-0005-0005-0005",
-      accountHolder: "Maria Hernandez",
-      idNumber: "V-9.876.543"
-    }],
-    coupons: [],
-    slotDuration: 60,
-    schedule: defaultSchedule,
+    sellerId: 1,
+    status: 'active',
+    lastPaymentDate: '2024-05-29',
+    email: 'luis.fernandez.dr@email.com',
+    whatsapp: '0416-4567890'
   },
   { 
     id: 6, 
@@ -260,11 +267,13 @@ export const doctors: Doctor[] = [
     specialty: "Ortopedia", 
     city: "Caracas", 
     address: "Av. Panteón, Clínica Caracas, San Bernardino",
+    sector: "San Bernardino",
     rating: 4.8, 
     reviewCount: 112, 
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor portrait",
+    description: "Traumatólogo y Ortopedista especializado en lesiones deportivas y cirugía artroscópica. Mi objetivo es devolver la movilidad y calidad de vida a mis pacientes.",
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
       { id: 602, name: "Infiltración", price: 75 },
@@ -279,165 +288,11 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
-  },
-  { 
-    id: 7, 
-    name: "Dr. Laura Martínez", 
-    specialty: "Cardiología", 
-    city: "Valencia", 
-    address: "Av. 104, Centro Policlínico Valencia, Prebo",
-    rating: 4.9, 
-    reviewCount: 135, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "female doctor professional",
-    services: [
-      { id: 701, name: "Consulta Cardiológica", price: 50 },
-      { id: 702, name: "Prueba de Esfuerzo", price: 110 },
-    ],
-    bankDetails: [{
-      id: 7001,
-      bank: "Banco de Venezuela",
-      accountNumber: "0102-0007-0007-0007-0007",
-      accountHolder: "Laura Martínez",
-      idNumber: "V-15.432.109"
-    }],
-    coupons: [],
-    slotDuration: 60,
-    schedule: defaultSchedule,
-  },
-  { 
-    id: 8, 
-    name: "Dr. Ricardo Vargas", 
-    specialty: "Dermatología", 
-    city: "Caracas", 
-    address: "Av. San Juan Bosco, Policlínica Metropolitana, Altamira",
-    rating: 4.7, 
-    reviewCount: 88, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "male doctor smile",
-    services: [
-      { id: 801, name: "Consulta Dermatológica", price: 45 },
-      { id: 802, name: "Peeling Químico", price: 90 },
-    ],
-    bankDetails: [{
-      id: 8001,
-      bank: "BBVA Provincial",
-      accountNumber: "0108-0008-0008-0008-0008",
-      accountHolder: "Ricardo Vargas",
-      idNumber: "V-12.876.543"
-    }],
-    coupons: [],
-    slotDuration: 30,
-    schedule: defaultSchedule,
-  },
-  { 
-    id: 9, 
-    name: "Dr. Valentina Diaz", 
-    specialty: "Ginecología", 
-    city: "Maracaibo", 
-    address: "Av. 5 de Julio, Centro Médico de Occidente, Indio Mara",
-    rating: 4.9, 
-    reviewCount: 180, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "doctor woman",
-    services: [
-      { id: 901, name: "Consulta Ginecológica", price: 50 },
-      { id: 902, name: "Citología", price: 35 },
-      { id: 903, name: "Ecografía Transvaginal", price: 60 },
-    ],
-    bankDetails: [{
-      id: 9001,
-      bank: "Banco Mercantil",
-      accountNumber: "0105-0009-0009-0009-0009",
-      accountHolder: "Valentina Diaz",
-      idNumber: "V-16.123.456"
-    }],
-    coupons: [],
-    slotDuration: 30,
-    schedule: defaultSchedule,
-  },
-  { 
-    id: 10, 
-    name: "Dr. Andres Castillo", 
-    specialty: "Neumonología", 
-    city: "Valencia", 
-    address: "Av. Principal La Trigaleña, Instituto Docente de Urología",
-    rating: 4.8, 
-    reviewCount: 95, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "doctor young",
-    services: [
-      { id: 1001, name: "Consulta Neumonológica", price: 55 },
-      { id: 1002, name: "Espirometría", price: 70 },
-    ],
-    bankDetails: [{
-      id: 10001,
-      bank: "Banesco",
-      accountNumber: "0134-0010-0010-0010-0010",
-      accountHolder: "Andres Castillo",
-      idNumber: "V-14.987.654"
-    }],
-    coupons: [],
-    slotDuration: 60,
-    schedule: defaultSchedule,
-  },
-  { 
-    id: 11, 
-    name: "Dra. Isabella Conti", 
-    specialty: "Medicina Estética", 
-    city: "Caracas", 
-    address: "Av. Principal de Las Mercedes, Torre Emperatriz, Piso 10",
-    rating: 4.9, 
-    reviewCount: 85, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "aesthetic doctor",
-    services: [
-      { id: 1101, name: "Aplicación de Toxina Botulínica", price: 150 },
-      { id: 1102, name: "Relleno con Ácido Hialurónico", price: 250 },
-      { id: 1103, name: "Plasma Rico en Plaquetas (PRP)", price: 120 },
-    ],
-    bankDetails: [{
-      id: 11001,
-      bank: "Banesco",
-      accountNumber: "0134-0011-0011-0011-0011",
-      accountHolder: "Isabella Conti",
-      idNumber: "V-17.111.222"
-    }],
-    coupons: [],
-    slotDuration: 60,
-    schedule: defaultSchedule,
-  },
-  { 
-    id: 12, 
-    name: "Dr. Ricardo Salas", 
-    specialty: "Medicina Estética", 
-    city: "Valencia", 
-    address: "C.C. La Trigaleña Plaza, Nivel Mezzanina, La Trigaleña",
-    rating: 4.8, 
-    reviewCount: 70, 
-    profileImage: "https://placehold.co/400x400.png",
-    bannerImage: "https://placehold.co/1200x400.png",
-    aiHint: "male aesthetic doctor",
-    services: [
-      { id: 1201, name: "Consulta de Medicina Estética", price: 60 },
-      { id: 1202, name: "Depilación Láser (por zona)", price: 80 },
-      { id: 1203, name: "Mesoterapia Corporal", price: 90 },
-    ],
-    bankDetails: [{
-      id: 12001,
-      bank: "Mercantil",
-      accountNumber: "0105-0012-0012-0012-0012",
-      accountHolder: "Ricardo Salas",
-      idNumber: "V-16.333.444"
-    }],
-    coupons: [],
-    slotDuration: 30,
-    schedule: defaultSchedule,
+    sellerId: 1,
+    status: 'inactive',
+    lastPaymentDate: '2024-04-30',
+    email: 'javier.torres.dr@email.com',
+    whatsapp: '0414-6789012'
   },
 ];
 
@@ -455,10 +310,7 @@ export const mockPatients: Patient[] = [
     { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino' },
     { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino' },
     { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino' },
-    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", age: 41, gender: 'femenino' },
     { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino' },
-    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", age: 25, gender: 'femenino' },
-    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", age: 38, gender: 'masculino' },
 ];
 
 

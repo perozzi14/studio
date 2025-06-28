@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -151,7 +151,7 @@ export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const view = searchParams.get('view') || 'appointments';
+  const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -213,6 +213,10 @@ export default function DoctorDashboardPage() {
       setIsLoading(false);
     }
   }, [user, router]);
+  
+  const handleTabChange = (value: string) => {
+    router.push(`/doctor/dashboard?view=${value}`);
+  };
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
     const today = new Date();
@@ -538,10 +542,28 @@ export default function DoctorDashboardPage() {
     );
   }
 
-  const renderContent = () => {
-    switch(view) {
-        case 'appointments':
-            return (
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header />
+      <main className="flex-1 bg-muted/40">
+        <div className="container py-12">
+          <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
+          <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
+
+           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
+                  <TabsTrigger value="appointments">Citas</TabsTrigger>
+                  <TabsTrigger value="finances">Finanzas</TabsTrigger>
+                  <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
+                  <TabsTrigger value="services">Servicios</TabsTrigger>
+                  <TabsTrigger value="schedule">Horario</TabsTrigger>
+                  <TabsTrigger value="bank-details">Cuentas</TabsTrigger>
+                  <TabsTrigger value="coupons">Cupones</TabsTrigger>
+                  <TabsTrigger value="support">Soporte</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="appointments" className="mt-6">
                 <div className="space-y-8">
                     <Card>
                         <CardHeader>
@@ -576,7 +598,6 @@ export default function DoctorDashboardPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             {/* Desktop Table */}
                             <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
@@ -636,7 +657,6 @@ export default function DoctorDashboardPage() {
                                 </TableBody>
                             </Table>
 
-                             {/* Mobile Cards */}
                             <div className="space-y-4 md:hidden">
                                 {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
                                     <div key={appt.id} className="p-4 border rounded-lg space-y-4">
@@ -689,9 +709,9 @@ export default function DoctorDashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-            )
-        case 'finances':
-             return (
+              </TabsContent>
+
+              <TabsContent value="finances" className="mt-6">
                 <div className="space-y-6">
                     <Tabs defaultValue="month" onValueChange={(value) => setTimeRange(value as any)} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
@@ -799,7 +819,6 @@ export default function DoctorDashboardPage() {
                             </div>
                         </CardHeader>
                       <CardContent>
-                          {/* Desktop Table */}
                           <Table className="hidden md:table">
                               <TableHeader>
                                   <TableRow>
@@ -830,7 +849,6 @@ export default function DoctorDashboardPage() {
                               </TableBody>
                           </Table>
 
-                           {/* Mobile Cards */}
                           <div className="space-y-4 md:hidden">
                             {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
                                 <div key={expense.id} className="p-4 border rounded-lg space-y-4">
@@ -853,71 +871,73 @@ export default function DoctorDashboardPage() {
                       </CardContent>
                   </Card>
                 </div>
-            )
-        case 'profile':
-            return (
-              <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><User />Mi Perfil</CardTitle>
-                    <CardDescription>Actualiza tu información pública y de contacto.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form className="space-y-4">
-                        <div className="space-y-2">
-                           <Label htmlFor="name">Nombre Completo</Label>
-                           <Input id="name" defaultValue={doctorData.name} />
-                        </div>
-                        <div className="space-y-2">
-                           <Label htmlFor="specialty">Especialidad</Label>
-                           <Input id="specialty" defaultValue={doctorData.specialty} />
-                        </div>
-                        <div className="space-y-2">
-                           <Label htmlFor="address">Dirección del Consultorio</Label>
-                           <Input id="address" defaultValue={doctorData.address} />
-                        </div>
-                        <Button>Guardar Cambios</Button>
-                    </form>
-                </CardContent>
-               </Card>
-            )
-        case 'services':
-            return (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle>
-                        <CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription>
-                    </div>
-                    <Button onClick={() => handleOpenServiceDialog(null)}><PlusCircle className="mr-2"/> Agregar Servicio</Button>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Servicio</TableHead>
-                                <TableHead className="text-right">Precio</TableHead>
-                                <TableHead className="text-center">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {doctorData.services.map(service => (
-                                <TableRow key={service.id}>
-                                    <TableCell className="font-medium">{service.name}</TableCell>
-                                    <TableCell className="text-right">${service.price.toFixed(2)}</TableCell>
-                                    <TableCell className="text-center space-x-2">
-                                        <Button variant="outline" size="icon" onClick={() => handleOpenServiceDialog(service)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-              </Card>
-            )
-        case 'schedule':
-            return (
+              </TabsContent>
+
+              <TabsContent value="profile" className="mt-6">
                 <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><User />Mi Perfil</CardTitle>
+                      <CardDescription>Actualiza tu información pública y de contacto.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <form className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="name">Nombre Completo</Label>
+                            <Input id="name" defaultValue={doctorData.name} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="specialty">Especialidad</Label>
+                            <Input id="specialty" defaultValue={doctorData.specialty} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="address">Dirección del Consultorio</Label>
+                            <Input id="address" defaultValue={doctorData.address} />
+                          </div>
+                          <Button>Guardar Cambios</Button>
+                      </form>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="services" className="mt-6">
+                <Card>
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                          <CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle>
+                          <CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription>
+                      </div>
+                      <Button onClick={() => handleOpenServiceDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Servicio</Button>
+                  </CardHeader>
+                  <CardContent>
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Servicio</TableHead>
+                                  <TableHead className="text-right">Precio</TableHead>
+                                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {doctorData.services.map(service => (
+                                  <TableRow key={service.id}>
+                                      <TableCell className="font-medium">{service.name}</TableCell>
+                                      <TableCell className="text-right">${service.price.toFixed(2)}</TableCell>
+                                      <TableCell className="text-center">
+                                          <div className="flex items-center justify-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenServiceDialog(service)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="schedule" className="mt-6">
+                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><CalendarClock /> Mi Horario de Trabajo</CardTitle>
                         <CardDescription>Define tu disponibilidad semanal.</CardDescription>
@@ -926,31 +946,31 @@ export default function DoctorDashboardPage() {
                         {weekDays.map(({ key, label }) => {
                             const daySchedule = doctorData.schedule[key];
                             return (
-                                <div key={key} className="flex items-center justify-between p-3 rounded-md border">
+                                <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-md border gap-4">
                                     <div className="flex items-center space-x-4">
                                         <Switch
                                             id={`switch-${key}`}
                                             checked={daySchedule.active}
                                             onCheckedChange={(checked) => handleScheduleChange(key, 'active', checked)}
                                         />
-                                        <Label htmlFor={`switch-${key}`} className="text-lg">{label}</Label>
+                                        <Label htmlFor={`switch-${key}`} className="text-base sm:text-lg min-w-[90px]">{label}</Label>
                                     </div>
                                     {daySchedule.active && (
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 gap-2">
                                             {daySchedule.slots.map((slot, index) => (
                                                 <div key={index} className="flex items-center gap-2">
                                                     <Input
                                                         type="time"
                                                         value={slot.start}
                                                         onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)}
-                                                        className="w-28"
+                                                        className="w-full sm:w-28"
                                                     />
                                                     <span>-</span>
                                                     <Input
                                                         type="time"
                                                         value={slot.end}
                                                         onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)}
-                                                        className="w-28"
+                                                        className="w-full sm:w-28"
                                                     />
                                                     {index > 0 && (
                                                         <Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(key, index)}>
@@ -959,7 +979,7 @@ export default function DoctorDashboardPage() {
                                                     )}
                                                 </div>
                                             ))}
-                                            <Button variant="outline" size="sm" onClick={() => handleAddSlot(key)}>
+                                            <Button variant="outline" size="sm" onClick={() => handleAddSlot(key)} className="mt-2 sm:mt-0">
                                                 <PlusCircle className="mr-2 h-4 w-4" /> Agregar
                                             </Button>
                                         </div>
@@ -969,241 +989,254 @@ export default function DoctorDashboardPage() {
                         })}
                     </CardContent>
                 </Card>
-            );
-        case 'bank-details':
-            return (
-               <Card>
-                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
-                        <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
-                    </div>
-                    <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
-                </CardHeader>
-                <CardContent>
-                    {/* Desktop Table */}
-                    <Table className="hidden md:table">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Banco</TableHead>
-                                <TableHead>Titular</TableHead>
-                                <TableHead>Nro. de Cuenta</TableHead>
-                                <TableHead>C.I./R.I.F.</TableHead>
-                                <TableHead className="text-center">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {doctorData.bankDetails.map(bd => (
-                                <TableRow key={bd.id}>
-                                    <TableCell className="font-medium">{bd.bank}</TableCell>
-                                    <TableCell>{bd.accountHolder}</TableCell>
-                                    <TableCell>{bd.accountNumber}</TableCell>
-                                    <TableCell>{bd.idNumber}</TableCell>
-                                    <TableCell className="text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {doctorData.bankDetails.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                    {/* Mobile Cards */}
-                    <div className="space-y-4 md:hidden">
-                        {doctorData.bankDetails.length > 0 ? doctorData.bankDetails.map(bd => (
-                            <div key={bd.id} className="p-4 border rounded-lg space-y-4">
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Banco</p>
-                                        <p className="font-medium">{bd.bank}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Titular</p>
-                                        <p className="font-medium">{bd.accountHolder}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
-                                        <p className="font-mono text-sm">{bd.accountNumber}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
-                                        <p className="font-mono text-sm">{bd.idNumber}</p>
-                                    </div>
-                                </div>
-                                <Separator />
-                                <div className="flex justify-end gap-2">
-                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
-                        )}
-                    </div>
-                </CardContent>
-               </Card>
-            )
-        default:
-            return null;
-    }
-  }
+              </TabsContent>
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-1 bg-muted/40">
-        <div className="container py-12">
-          <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
-          <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
+              <TabsContent value="bank-details" className="mt-6">
+                <Card>
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                          <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
+                          <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
+                      </div>
+                      <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                  </CardHeader>
+                  <CardContent>
+                      <Table className="hidden md:table">
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Banco</TableHead>
+                                  <TableHead>Titular</TableHead>
+                                  <TableHead>Nro. de Cuenta</TableHead>
+                                  <TableHead>C.I./R.I.F.</TableHead>
+                                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {doctorData.bankDetails.map(bd => (
+                                  <TableRow key={bd.id}>
+                                      <TableCell className="font-medium">{bd.bank}</TableCell>
+                                      <TableCell>{bd.accountHolder}</TableCell>
+                                      <TableCell>{bd.accountNumber}</TableCell>
+                                      <TableCell>{bd.idNumber}</TableCell>
+                                      <TableCell className="text-center">
+                                          <div className="flex items-center justify-center gap-2">
+                                              <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                              <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                              {doctorData.bankDetails.length === 0 && (
+                                  <TableRow>
+                                      <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
+                                  </TableRow>
+                              )}
+                          </TableBody>
+                      </Table>
+                      <div className="space-y-4 md:hidden">
+                          {doctorData.bankDetails.length > 0 ? doctorData.bankDetails.map(bd => (
+                              <div key={bd.id} className="p-4 border rounded-lg space-y-4">
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                      <div>
+                                          <p className="text-xs text-muted-foreground">Banco</p>
+                                          <p className="font-medium">{bd.bank}</p>
+                                      </div>
+                                      <div>
+                                          <p className="text-xs text-muted-foreground">Titular</p>
+                                          <p className="font-medium">{bd.accountHolder}</p>
+                                      </div>
+                                      <div>
+                                          <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
+                                          <p className="font-mono text-sm">{bd.accountNumber}</p>
+                                      </div>
+                                      <div>
+                                          <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
+                                          <p className="font-mono text-sm">{bd.idNumber}</p>
+                                      </div>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-end gap-2">
+                                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                      <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                  </div>
+                              </div>
+                          )) : (
+                              <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
+                          )}
+                      </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          <div className="space-y-4">
-            {renderContent()}
-          </div>
+              <TabsContent value="coupons" className="mt-6">
+                  <Card>
+                      <CardHeader>
+                          <CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle>
+                          <CardDescription>Crea y gestiona cupones para atraer más pacientes.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
+                              <Tag className="h-12 w-12" />
+                              <p>La funcionalidad de gestión de cupones estará disponible próximamente.</p>
+                          </div>
+                      </CardContent>
+                  </Card>
+              </TabsContent>
 
-           <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingService ? "Editar Servicio" : "Agregar Nuevo Servicio"}</DialogTitle>
-                        <DialogDescription>
-                            {editingService ? "Modifica los detalles de este servicio." : "Añade un nuevo servicio a tu lista."}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="serviceName" className="text-right">Servicio</Label>
-                            <Input id="serviceName" value={serviceName} onChange={e => setServiceName(e.target.value)} className="col-span-3" />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="servicePrice" className="text-right">Precio ($)</Label>
-                            <Input id="servicePrice" type="number" value={servicePrice} onChange={e => setServicePrice(e.target.value)} className="col-span-3" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancelar</Button>
-                         </DialogClose>
-                        <Button type="button" onClick={handleSaveService}>Guardar Cambios</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-             <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
-                        <DialogDescription>
-                            {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir transferencias."}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="bankName" className="text-right">Banco</Label>
-                            <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
-                        </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="accountHolder" className="text-right">Titular</Label>
-                            <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
-                        </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
-                            <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
-                        </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
-                            <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancelar</Button>
-                         </DialogClose>
-                        <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-             <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle>
-                        <DialogDescription>
-                           Registra un nuevo gasto para llevar un control financiero.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="expenseDate" className="text-right">Fecha</Label>
-                            <Input id="expenseDate" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="col-span-3" />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="expenseDescription" className="text-right">Descripción</Label>
-                            <Input id="expenseDescription" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} className="col-span-3" />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label>
-                            <Input id="expenseAmount" type="number" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} className="col-span-3" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancelar</Button>
-                         </DialogClose>
-                        <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Detalles de la Cita</DialogTitle>
-                    </DialogHeader>
-                    {selectedAppointment && (
-                        <div className="py-4 space-y-4">
-                            <div>
-                                <h3 className="font-semibold">Paciente</h3>
-                                <p>{selectedAppointment.patientName}</p>
-                                <p className="text-sm text-muted-foreground">{selectedAppointment.patient?.email}</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold">Fecha y Hora</h3>
-                                <p>{new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold">Servicios</h3>
-                                <ul className="list-disc list-inside text-muted-foreground">
-                                  {selectedAppointment.services.map(s => <li key={s.id}>{s.name}</li>)}
-                                </ul>
-                            </div>
-                             <div>
-                                <h3 className="font-semibold">Información de Pago</h3>
-                                <p>Total: ${selectedAppointment.totalPrice.toFixed(2)}</p>
-                                <p>Método: <span className="capitalize">{selectedAppointment.paymentMethod}</span></p>
-                                {selectedAppointment.paymentProof && (
-                                     <div className="mt-2">
-                                        <p className="font-semibold">Comprobante:</p>
-                                        <Image src={selectedAppointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cerrar</Button>
-                         </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
+              <TabsContent value="support" className="mt-6">
+                  <Card>
+                      <CardHeader>
+                          <CardTitle className="flex items-center gap-2"><LifeBuoy /> Soporte y Ayuda</CardTitle>
+                          <CardDescription>Encuentra respuestas a tus preguntas y contacta a nuestro equipo.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
+                              <LifeBuoy className="h-12 w-12" />
+                              <p>El centro de ayuda estará disponible próximamente.</p>
+                          </div>
+                      </CardContent>
+                  </Card>
+              </TabsContent>
+            </Tabs>
         </div>
       </main>
+
+      {/* Dialogs */}
+       <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingService ? "Editar Servicio" : "Agregar Nuevo Servicio"}</DialogTitle>
+                    <DialogDescription>
+                        {editingService ? "Modifica los detalles de este servicio." : "Añade un nuevo servicio a tu lista."}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="serviceName" className="text-right">Servicio</Label>
+                        <Input id="serviceName" value={serviceName} onChange={e => setServiceName(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="servicePrice" className="text-right">Precio ($)</Label>
+                        <Input id="servicePrice" type="number" value={servicePrice} onChange={e => setServicePrice(e.target.value)} className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancelar</Button>
+                      </DialogClose>
+                    <Button type="button" onClick={handleSaveService}>Guardar Cambios</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+          <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
+                    <DialogDescription>
+                        {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir transferencias."}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="bankName" className="text-right">Banco</Label>
+                        <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
+                        <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
+                        <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
+                        <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancelar</Button>
+                      </DialogClose>
+                    <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+          <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle>
+                    <DialogDescription>
+                        Registra un nuevo gasto para llevar un control financiero.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expenseDate" className="text-right">Fecha</Label>
+                        <Input id="expenseDate" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expenseDescription" className="text-right">Descripción</Label>
+                        <Input id="expenseDescription" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label>
+                        <Input id="expenseAmount" type="number" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancelar</Button>
+                      </DialogClose>
+                    <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Detalles de la Cita</DialogTitle>
+                </DialogHeader>
+                {selectedAppointment && (
+                    <div className="py-4 space-y-4">
+                        <div>
+                            <h3 className="font-semibold">Paciente</h3>
+                            <p>{selectedAppointment.patientName}</p>
+                            <p className="text-sm text-muted-foreground">{selectedAppointment.patient?.email}</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Fecha y Hora</h3>
+                            <p>{new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Servicios</h3>
+                            <ul className="list-disc list-inside text-muted-foreground">
+                                {selectedAppointment.services.map(s => <li key={s.id}>{s.name}</li>)}
+                            </ul>
+                        </div>
+                          <div>
+                            <h3 className="font-semibold">Información de Pago</h3>
+                            <p>Total: ${selectedAppointment.totalPrice.toFixed(2)}</p>
+                            <p>Método: <span className="capitalize">{selectedAppointment.paymentMethod}</span></p>
+                            {selectedAppointment.paymentProof && (
+                                  <div className="mt-2">
+                                    <p className="font-semibold">Comprobante:</p>
+                                    <Image src={selectedAppointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">Cerrar</Button>
+                      </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
