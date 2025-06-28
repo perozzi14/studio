@@ -1,5 +1,7 @@
+
 "use client";
 
+import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import type { Doctor } from "@/lib/data";
 import L from "leaflet";
@@ -18,7 +20,7 @@ L.Icon.Default.mergeOptions({
 });
 
 
-export default function DoctorMap({ doctors }: { doctors: Doctor[] }) {
+const DoctorMapComponent = ({ doctors }: { doctors: Doctor[] }) => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -87,3 +89,5 @@ export default function DoctorMap({ doctors }: { doctors: Doctor[] }) {
     </MapContainer>
   );
 }
+
+export default React.memo(DoctorMapComponent);
