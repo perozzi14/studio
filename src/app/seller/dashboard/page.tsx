@@ -224,7 +224,7 @@ export default function SellerDashboardPage() {
             <p className="text-muted-foreground mb-8">Bienvenida de nuevo, {user.name}. Aquí puedes gestionar tus médicos y finanzas.</p>
 
              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                     <TabsTrigger value="referrals">Mis Referidos</TabsTrigger>
                     <TabsTrigger value="finances">Finanzas</TabsTrigger>
                     <TabsTrigger value="accounts">Cuentas</TabsTrigger>
@@ -666,3 +666,5 @@ export default function SellerDashboardPage() {
     </div>
   );
 }
+
+    
