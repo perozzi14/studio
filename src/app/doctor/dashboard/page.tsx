@@ -55,6 +55,9 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 const chartConfig = {
@@ -67,6 +70,14 @@ const chartConfig = {
     color: "hsl(var(--destructive))",
   },
 } satisfies ChartConfig;
+
+const timeRangeLabels: Record<string, string> = {
+    today: 'Hoy',
+    week: 'Esta Semana',
+    month: 'Este Mes',
+    year: 'Este Año',
+};
+
 
 function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails }: { appointment: Appointment, onConfirmPayment: (id: string) => void, onViewDetails: (appointment: Appointment) => void }) {
     return (
@@ -148,6 +159,7 @@ export default function DoctorDashboardPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
   
@@ -235,49 +247,123 @@ export default function DoctorDashboardPage() {
   const financialStats = useMemo(() => {
     if (!appointments || !expenses) return null;
 
-    const paidAppointments = appointments.filter(a => a.paymentStatus === 'Pagado');
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (timeRange) {
+        case 'today':
+            startDate = startOfDay(now);
+            endDate = endOfDay(now);
+            break;
+        case 'week':
+            startDate = startOfWeek(now, { locale: es });
+            endDate = endOfWeek(now, { locale: es });
+            break;
+        case 'year':
+            startDate = startOfYear(now);
+            endDate = endOfYear(now);
+            break;
+        case 'month':
+        default:
+            startDate = startOfMonth(now);
+            endDate = endOfMonth(now);
+            break;
+    }
+
+    const filteredAppointments = appointments.filter(a => {
+        const apptDate = new Date(a.date + 'T00:00:00');
+        return apptDate >= startDate && apptDate <= endDate;
+    });
+
+    const filteredExpenses = expenses.filter(e => {
+        const expDate = new Date(e.date + 'T00:00:00');
+        return expDate >= startDate && expDate <= endDate;
+    });
+    
+    const paidAppointments = filteredAppointments.filter(a => a.paymentStatus === 'Pagado');
     const totalRevenue = paidAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
 
-    const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    let chartData: { label: string; income: number; expenses: number; }[] = [];
 
-    const monthlyIncome = appointments
-        .filter(a => a.paymentStatus === 'Pagado')
-        .reduce((acc, appt) => {
-            const month = new Date(appt.date + 'T00:00:00').toLocaleString('es-ES', { month: 'short' });
-            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
-            if (!acc[capitalizedMonth]) acc[capitalizedMonth] = 0;
-            acc[capitalizedMonth] += appt.totalPrice;
-            return acc;
-        }, {} as Record<string, number>);
+    if (timeRange === 'year') {
+        const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const monthlyData: Record<string, { income: number; expenses: number }> = {};
+        monthOrder.forEach(m => monthlyData[m] = { income: 0, expenses: 0 });
 
-    const monthlyExpenses = expenses.reduce((acc, exp) => {
-        const month = new Date(exp.date + 'T00:00:00').toLocaleString('es-ES', { month: 'short' });
-        const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
-        if (!acc[capitalizedMonth]) acc[capitalizedMonth] = 0;
-        acc[capitalizedMonth] += exp.amount;
-        return acc;
-    }, {} as Record<string, number>);
+        paidAppointments.forEach(appt => {
+            const month = format(new Date(appt.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
+            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+            if (monthlyData[capitalizedMonth]) {
+                monthlyData[capitalizedMonth].income += appt.totalPrice;
+            }
+        });
 
-    const allMonths = new Set([...Object.keys(monthlyIncome), ...Object.keys(monthlyExpenses)]);
+        filteredExpenses.forEach(exp => {
+            const month = format(new Date(exp.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
+            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+            if (monthlyData[capitalizedMonth]) {
+                monthlyData[capitalizedMonth].expenses += exp.amount;
+            }
+        });
+        
+        chartData = Object.entries(monthlyData)
+            .map(([label, data]) => ({ label, ...data }))
+            .filter(d => d.income > 0 || d.expenses > 0);
 
-    const chartData = monthOrder
-      .filter(month => allMonths.has(month))
-      .map(month => ({ 
-        month, 
-        income: monthlyIncome[month] || 0,
-        expenses: monthlyExpenses[month] || 0,
-       }));
-    
+    } else if (timeRange === 'month') {
+        const weeklyData: Record<string, { income: number; expenses: number }> = {};
+        
+        paidAppointments.forEach(appt => {
+            const weekNumber = getWeek(new Date(appt.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
+            const weekLabel = `Semana ${weekNumber}`;
+            if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
+            weeklyData[weekLabel].income += appt.totalPrice;
+        });
+
+        filteredExpenses.forEach(exp => {
+            const weekNumber = getWeek(new Date(exp.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
+            const weekLabel = `Semana ${weekNumber}`;
+            if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
+            weeklyData[weekLabel].expenses += exp.amount;
+        });
+        
+        chartData = Object.entries(weeklyData)
+          .map(([label, data]) => ({ label, ...data }))
+          .sort((a,b) => parseInt(a.label.split(' ')[1]) - parseInt(b.label.split(' ')[1]));
+
+    } else if (timeRange === 'week') {
+        const dailyData: Record<string, { income: number; expenses: number }> = {};
+        const daysOfWeek = eachDayOfInterval({ start: startDate, end: endDate });
+        const dayOrder = daysOfWeek.map(d => format(d, "E", { locale: es }));
+        
+        dayOrder.forEach(dayLabel => {
+            dailyData[dayLabel] = { income: 0, expenses: 0 };
+        });
+        
+        paidAppointments.forEach(appt => {
+            const dayLabel = format(new Date(appt.date + 'T00:00:00'), "E", { locale: es });
+            if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].income += appt.totalPrice;
+        });
+
+        filteredExpenses.forEach(exp => {
+            const dayLabel = format(new Date(exp.date + 'T00:00:00'), "E", { locale: es });
+            if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].expenses += exp.amount;
+        });
+
+        chartData = dayOrder.map(label => ({ label, ...dailyData[label] }));
+    }
 
     return {
         totalRevenue,
         totalExpenses,
         netProfit,
-        chartData
+        chartData,
+        paidAppointmentsCount: paidAppointments.length,
     };
-  }, [appointments, expenses]);
+}, [appointments, expenses, timeRange]);
+
 
   const handleConfirmPayment = (appointmentId: string) => {
     setAppointments(prev =>
@@ -628,6 +714,15 @@ export default function DoctorDashboardPage() {
         case 'finances':
              return (
                 <div className="space-y-6">
+                    <Tabs defaultValue="month" onValueChange={(value) => setTimeRange(value as any)} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                            <TabsTrigger value="today">Hoy</TabsTrigger>
+                            <TabsTrigger value="week">Esta Semana</TabsTrigger>
+                            <TabsTrigger value="month">Este Mes</TabsTrigger>
+                            <TabsTrigger value="year">Este Año</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                       <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -636,7 +731,7 @@ export default function DoctorDashboardPage() {
                           </CardHeader>
                           <CardContent>
                               <div className="text-2xl font-bold text-green-600">${financialStats.totalRevenue.toFixed(2)}</div>
-                              <p className="text-xs text-muted-foreground">Proveniente de citas pagadas</p>
+                              <p className="text-xs text-muted-foreground">En el período seleccionado</p>
                           </CardContent>
                       </Card>
                       <Card>
@@ -646,7 +741,7 @@ export default function DoctorDashboardPage() {
                           </CardHeader>
                           <CardContent>
                               <div className="text-2xl font-bold text-red-600">${financialStats.totalExpenses.toFixed(2)}</div>
-                              <p className="text-xs text-muted-foreground">Total de gastos registrados</p>
+                              <p className="text-xs text-muted-foreground">En el período seleccionado</p>
                           </CardContent>
                       </Card>
                       <Card>
@@ -656,7 +751,7 @@ export default function DoctorDashboardPage() {
                           </CardHeader>
                           <CardContent>
                               <div className={`text-2xl font-bold ${financialStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financialStats.netProfit.toFixed(2)}</div>
-                              <p className="text-xs text-muted-foreground">Ingresos menos gastos</p>
+                              <p className="text-xs text-muted-foreground">En el período seleccionado</p>
                           </CardContent>
                       </Card>
                       <Card>
@@ -665,40 +760,51 @@ export default function DoctorDashboardPage() {
                               <CheckCircle className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold">+{appointments.filter(a => a.paymentStatus === 'Pagado').length}</div>
-                              <p className="text-xs text-muted-foreground">Total de citas con pago exitoso</p>
+                              <div className="text-2xl font-bold">+{financialStats.paidAppointmentsCount}</div>
+                              <p className="text-xs text-muted-foreground">En el período seleccionado</p>
                           </CardContent>
                       </Card>
                   </div>
                   <Card>
                       <CardHeader>
-                          <CardTitle>Resumen Mensual</CardTitle>
-                          <CardDescription>Comparativa de ingresos y gastos por mes.</CardDescription>
+                          <CardTitle>Resumen Financiero: {timeRangeLabels[timeRange]}</CardTitle>
+                          <CardDescription>Comparativa de ingresos y gastos para el período seleccionado.</CardDescription>
                       </CardHeader>
                       <CardContent className="pl-2">
-                          <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                              <BarChart accessibilityLayer data={financialStats.chartData}>
-                                  <CartesianGrid vertical={false} />
-                                  <XAxis
-                                      dataKey="month"
-                                      tickLine={false}
-                                      tickMargin={10}
-                                      axisLine={false}
-                                  />
-                                  <YAxis
-                                      tickLine={false}
-                                      axisLine={false}
-                                      tickMargin={10}
-                                      tickFormatter={(value) => `$${value}`}
-                                  />
-                                  <ChartTooltip
-                                      cursor={false}
-                                      content={<ChartTooltipContent indicator="dot" />}
-                                  />
-                                  <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-                                  <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                          </ChartContainer>
+                          {timeRange !== 'today' && financialStats.chartData.length > 0 ? (
+                            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                                <BarChart accessibilityLayer data={financialStats.chartData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="label"
+                                        tickLine={false}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={10}
+                                        tickFormatter={(value) => `$${value}`}
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dot" />}
+                                    />
+                                    <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ChartContainer>
+                          ) : (
+                            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                              <p>
+                                {timeRange === 'today' 
+                                  ? 'La vista de gráfico no está disponible para el día de hoy.'
+                                  : 'No hay datos financieros para mostrar en este período.'
+                                }
+                              </p>
+                            </div>
+                          )}
                       </CardContent>
                   </Card>
                   <Card>
