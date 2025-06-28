@@ -351,11 +351,20 @@ export default function DoctorProfilePage() {
                      <div className="p-4 border-t">
                         <h2 className="text-xl font-bold font-headline">{doctor.name}</h2>
                         <p className="text-primary font-medium text-lg">{doctor.specialty}</p>
-                        <div className="flex items-center gap-1.5 text-muted-foreground mt-2 text-sm">
-                            <MapPin className="h-4 w-4" />
-                            <span>{doctor.location}</span>
+                        
+                        <p className="text-sm text-muted-foreground mt-2">{doctor.description}</p>
+                        
+                        <Separator className="my-3"/>
+                        
+                        <div className="flex items-start gap-2 text-muted-foreground mt-2 text-sm">
+                            <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+                            <div>
+                                <p className="font-medium text-foreground">{doctor.address}</p>
+                                <p>{doctor.sector}, {doctor.city}</p>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1 text-sm">
+
+                        <div className="flex items-center gap-1.5 mt-2 text-sm">
                             <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
                             <span className="font-bold">{doctor.rating}</span>
                             <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>

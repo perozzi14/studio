@@ -36,6 +36,7 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -179,7 +180,10 @@ export default function DoctorDashboardPage() {
         ...doctorData,
         name: formData.get('name') as string,
         specialty: formData.get('specialty') as string,
-        location: formData.get('location') as string,
+        city: formData.get('city') as string,
+        sector: formData.get('sector') as string,
+        address: formData.get('address') as string,
+        description: formData.get('description') as string,
     };
     setDoctorData(updatedData);
     toast({
@@ -546,9 +550,23 @@ export default function DoctorDashboardPage() {
                            <Label htmlFor="specialty">Especialidad</Label>
                            <Input id="specialty" name="specialty" defaultValue={doctorData.specialty} />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                               <Label htmlFor="city">Ciudad</Label>
+                               <Input id="city" name="city" defaultValue={doctorData.city} />
+                            </div>
+                             <div className="space-y-2">
+                               <Label htmlFor="sector">Sector</Label>
+                               <Input id="sector" name="sector" defaultValue={doctorData.sector} />
+                            </div>
+                        </div>
                          <div className="space-y-2">
-                           <Label htmlFor="location">Ubicación de la Consulta</Label>
-                           <Input id="location" name="location" defaultValue={doctorData.location} />
+                           <Label htmlFor="address">Dirección Completa</Label>
+                           <Input id="address" name="address" defaultValue={doctorData.address} />
+                        </div>
+                         <div className="space-y-2">
+                           <Label htmlFor="description">Descripción del Perfil</Label>
+                           <Textarea id="description" name="description" defaultValue={doctorData.description} placeholder="Una breve descripción sobre ti, tu experiencia y tu enfoque médico." rows={4}/>
                         </div>
                         <Button type="submit">Guardar Cambios</Button>
                     </form>

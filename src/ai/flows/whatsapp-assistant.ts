@@ -17,15 +17,15 @@ import { doctors } from '@/lib/data';
 const findDoctorsTool = ai.defineTool(
   {
     name: 'findDoctors',
-    description: 'Obtiene una lista de doctores, opcionalmente filtrando por especialidad y/o ubicación.',
+    description: 'Obtiene una lista de doctores, opcionalmente filtrando por especialidad y/o ciudad.',
     inputSchema: z.object({
       specialty: z.string().optional().describe('La especialidad por la que filtrar, ej., Cardiología'),
-      location: z.string().optional().describe('La ubicación por la que filtrar, ej., Caracas'),
+      location: z.string().optional().describe('La ciudad por la que filtrar, ej., Caracas'),
     }),
     outputSchema: z.array(z.object({
         name: z.string(),
         specialty: z.string(),
-        location: z.string(),
+        city: z.string(),
         rating: z.number(),
     })),
   },
@@ -38,10 +38,10 @@ const findDoctorsTool = ai.defineTool(
     }
     if (location) {
       filteredDoctors = filteredDoctors.filter(
-        (doc) => doc.location.toLowerCase() === location.toLowerCase()
+        (doc) => doc.city.toLowerCase() === location.toLowerCase()
       );
     }
-    return filteredDoctors.map(({ name, specialty, location, rating }) => ({ name, specialty, location, rating }));
+    return filteredDoctors.map(({ name, specialty, city, rating }) => ({ name, specialty, city, rating }));
   }
 );
 
@@ -70,7 +70,7 @@ const prompt = ai.definePrompt({
   Tu objetivo es responder sus preguntas sobre procedimientos médicos, recomendar especialistas apropiados según sus síntomas y ayudarlos a confirmar y gestionar sus reservas de citas.
 
   - Si el usuario pregunta por un médico o especialista, DEBES usar la herramienta 'findDoctors' para encontrar médicos relevantes. Puedes preguntar por síntomas para inferir una especialidad si es necesario. Presenta los resultados al usuario en una lista amigable y legible.
-  - Si encuentras doctores, menciona su nombre, especialidad, ubicación y calificación.
+  - Si encuentras doctores, menciona su nombre, especialidad, ciudad y calificación.
   - Sé conversacional y servicial.
 
   Consulta: {{{query}}}

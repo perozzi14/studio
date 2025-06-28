@@ -64,7 +64,7 @@ export default function FindDoctorPage() {
 
     if (location.trim()) {
       results = results.filter((d) =>
-        d.location.toLowerCase().includes(location.toLowerCase().trim())
+        d.city.toLowerCase().includes(location.toLowerCase().trim())
       );
     }
 
@@ -144,7 +144,7 @@ export default function FindDoctorPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-end gap-4">
                 <div className="space-y-2 lg:flex-1">
-                  <label className="font-medium text-sm">Ubicación</label>
+                  <label className="font-medium text-sm">Ubicación (Ciudad)</label>
                   <Input
                     placeholder="ej., Caracas"
                     value={location}
@@ -241,7 +241,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
           <p className="text-primary font-medium">{doctor.specialty}</p>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
             <MapPin className="h-4 w-4" />
-            <span>{doctor.location}</span>
+            <span>{doctor.city}</span>
           </div>
           <div className="flex items-center gap-1 text-sm mt-2">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
