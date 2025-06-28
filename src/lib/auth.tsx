@@ -12,13 +12,15 @@ interface User {
   age: number | null;
   gender: 'masculino' | 'femenino' | 'otro' | null;
   profileImage: string | null;
+  cedula: string | null;
+  phone: string | null;
 }
 
 interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
   login: (email: string, name?: string) => void;
   logout: () => void;
-  updateUser: (data: Partial<User>) => void;
+  updateUser: (data: Partial<Omit<User, 'role' | 'email'>>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,17 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const doctorInfo = doctors.find(d => d.id === 1);
       loggedInUser = { 
         email, 
-        name: 'Doctor Admin', 
+        name: doctorInfo?.name || 'Doctor Admin', 
         role: 'doctor', 
         age: null, 
         gender: null,
+        cedula: null,
+        phone: null,
         profileImage: doctorInfo?.profileImage || null
       };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/doctor/dashboard');
     } else {
-      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null };
+      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null, cedula: null, phone: null };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/dashboard');
@@ -69,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  const updateUser = (data: Partial<User>) => {
+  const updateUser = (data: Partial<Omit<User, 'role' | 'email'>>) => {
     setUser(prevUser => {
       if (!prevUser) return null;
       const updatedUser = { ...prevUser, ...data };

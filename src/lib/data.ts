@@ -420,19 +420,21 @@ export type Patient = {
     id: string;
     name: string;
     email: string;
+    cedula: string;
+    phone: string;
     age: number | null;
     gender: 'masculino' | 'femenino' | 'otro' | null;
 };
 
 export const mockPatients: Patient[] = [
-    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino' },
-    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino' },
-    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino' },
-    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino' },
-    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", age: 41, gender: 'femenino' },
-    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino' },
-    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", age: 25, gender: 'femenino' },
-    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", age: 38, gender: 'masculino' },
+    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", cedula: "V-18.123.456", phone: "0414-123-4567", age: 34, gender: 'femenino' },
+    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", cedula: "V-12.345.678", phone: "0412-234-5678", age: 45, gender: 'masculino' },
+    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", cedula: "V-20.456.789", phone: "0416-345-6789", age: 29, gender: 'femenino' },
+    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", cedula: "V-9.876.543", phone: "0424-456-7890", age: 52, gender: 'masculino' },
+    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", cedula: "V-15.654.321", phone: "0414-567-8901", age: 41, gender: 'femenino' },
+    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", cedula: "V-11.789.012", phone: "0412-678-9012", age: 60, gender: 'masculino' },
+    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", cedula: "V-25.890.123", phone: "0416-789-0123", age: 25, gender: 'femenino' },
+    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", cedula: "V-14.901.234", phone: "0424-890-1234", age: 38, gender: 'masculino' },
 ];
 
 

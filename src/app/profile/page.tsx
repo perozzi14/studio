@@ -33,6 +33,8 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('');
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'masculino' | 'femenino' | 'otro' | ''>('');
+  const [cedula, setCedula] = useState('');
+  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     if (user === undefined) return;
@@ -42,6 +44,8 @@ export default function ProfilePage() {
       setFullName(user.name);
       setAge(user.age ? String(user.age) : '');
       setGender(user.gender || '');
+      setCedula(user.cedula || '');
+      setPhone(user.phone || '');
     }
   }, [user, router]);
 
@@ -53,6 +57,8 @@ export default function ProfilePage() {
       name: fullName,
       age: age ? parseInt(age, 10) : null,
       gender: gender || null,
+      cedula: cedula || null,
+      phone: phone || null,
     });
     
     toast({
@@ -102,6 +108,28 @@ export default function ProfilePage() {
                     onChange={(e) => setFullName(e.target.value)}
                     required
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cedula">Cédula</Label>
+                    <Input
+                      id="cedula"
+                      value={cedula}
+                      onChange={(e) => setCedula(e.target.value)}
+                      placeholder="ej., V-12345678"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="ej., 0412-1234567"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

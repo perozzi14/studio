@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties, cities, locations } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload, Phone } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +59,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const chartConfig = {
@@ -158,6 +160,7 @@ export default function DoctorDashboardPage() {
   const view = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
@@ -190,6 +193,20 @@ export default function DoctorDashboardPage() {
 
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
+
+  const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
+  const initialNewAppointmentState = {
+    patientName: '',
+    patientCedula: '',
+    patientEmail: '',
+    patientPhone: '',
+    date: new Date(),
+    time: '',
+    selectedServices: [] as number[],
+    paymentMethod: 'efectivo' as 'efectivo' | 'transferencia',
+  };
+  const [newAppointment, setNewAppointment] = useState(initialNewAppointmentState);
+
 
   const [weekDays, setWeekDays] = useState([
     { key: 'monday', label: 'Lunes' },
@@ -589,10 +606,65 @@ export default function DoctorDashboardPage() {
   };
 
   const handleViewDetails = (appointment: Appointment) => {
-      const patient = mockPatients.find(p => p.id === appointment.patientId);
+      const patient = patients.find(p => p.id === appointment.patientId);
       setSelectedAppointment({ ...appointment, patient });
       setIsDetailDialogOpen(true);
   };
+
+  const handleSaveManualAppointment = () => {
+    if (!doctorData || !newAppointment.patientName || !newAppointment.date || !newAppointment.time || newAppointment.selectedServices.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Por favor, completa los campos obligatorios: Nombre del Paciente, Fecha, Hora y al menos un servicio.",
+        });
+        return;
+    }
+
+    // Create new patient
+    const newPatientId = `pat-${Date.now()}`;
+    const newPatient: Patient = {
+        id: newPatientId,
+        name: newAppointment.patientName,
+        cedula: newAppointment.patientCedula,
+        phone: newAppointment.patientPhone,
+        email: newAppointment.patientEmail,
+        age: null,
+        gender: null,
+    };
+    setPatients(prev => [...prev, newPatient]);
+
+    // Create new appointment
+    const services = doctorData.services.filter(s => newAppointment.selectedServices.includes(s.id));
+    const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+
+    const newAppt: Appointment = {
+        id: `appt-${Date.now()}`,
+        patientId: newPatientId,
+        patientName: newPatient.name,
+        doctorName: doctorData.name,
+        doctorId: doctorData.id,
+        date: format(newAppointment.date, 'yyyy-MM-dd'),
+        time: newAppointment.time,
+        services: services,
+        totalPrice: totalPrice,
+        paymentMethod: newAppointment.paymentMethod,
+        paymentStatus: 'Pagado', // Assume paid on the spot
+        paymentProof: null,
+        attendance: 'Atendido', // Assume attended
+    };
+
+    // Add to appointments and re-sort
+    setAppointments(prev => [...prev, newAppt].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    
+    setIsAddAppointmentOpen(false);
+    setNewAppointment(initialNewAppointmentState); // Reset form
+    toast({
+        title: "¡Cita Registrada!",
+        description: `La cita para ${newPatient.name} ha sido creada exitosamente.`
+    });
+};
+
 
   if (isLoading || !user || !doctorData || !financialStats) {
     return (
@@ -617,11 +689,16 @@ export default function DoctorDashboardPage() {
             return (
                 <div className="space-y-8">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><CalendarCheck /> Citas Próximas</CardTitle>
-                            <CardDescription>
-                                Tienes {upcomingAppointments.length} citas programadas.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2"><CalendarCheck /> Citas Próximas</CardTitle>
+                                <CardDescription>
+                                    Tienes {upcomingAppointments.length} citas programadas.
+                                </CardDescription>
+                            </div>
+                            <Button onClick={() => setIsAddAppointmentOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4"/> Agregar Cita Manual
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             {upcomingAppointments.length > 0 ? (
@@ -1506,14 +1583,22 @@ export default function DoctorDashboardPage() {
                                     <CardTitle className="flex items-center gap-2"><User /> Información del Paciente</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p className="font-semibold">Nombre</p>
                                             <p className="text-muted-foreground">{selectedAppointment.patient?.name || 'N/A'}</p>
                                         </div>
+                                         <div>
+                                            <p className="font-semibold">Cédula</p>
+                                            <p className="text-muted-foreground">{selectedAppointment.patient?.cedula || 'N/A'}</p>
+                                        </div>
                                         <div>
-                                            <p className="font-semibold">Correo Electrónico</p>
+                                            <p className="font-semibold flex items-center gap-1"><Mail className="h-4 w-4"/> Correo</p>
                                             <p className="text-muted-foreground">{selectedAppointment.patient?.email || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold flex items-center gap-1"><Phone className="h-4 w-4"/> Teléfono</p>
+                                            <p className="text-muted-foreground">{selectedAppointment.patient?.phone || 'N/A'}</p>
                                         </div>
                                         <div>
                                             <p className="font-semibold flex items-center gap-1"><Cake className="h-4 w-4"/> Edad</p>
@@ -1549,7 +1634,7 @@ export default function DoctorDashboardPage() {
                                         </Badge>
                                     </div>
                                 </CardContent>
-                                {(new Date(selectedAppointment.date + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0))) && selectedAppointment.attendance === 'Pendiente' && (
+                                {(new Date(selectedAppointment.date + 'T00:00:00') <= startOfDay(new Date())) && selectedAppointment.attendance === 'Pendiente' && (
                                     <CardFooter className="justify-end gap-2">
                                         <Button
                                             variant="outline"
@@ -1631,6 +1716,122 @@ export default function DoctorDashboardPage() {
                          </DialogClose>
                     </DialogFooter>
                 </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
+              <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                      <DialogTitle>Registrar Cita Manual</DialogTitle>
+                      <DialogDescription>
+                          Completa los datos para registrar una nueva cita para un paciente.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid md:grid-cols-2 gap-8 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                      <div className="space-y-4">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Información del Paciente</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                              <div className="space-y-1">
+                                <Label htmlFor="patientName">Nombre y Apellido</Label>
+                                <Input id="patientName" value={newAppointment.patientName} onChange={(e) => setNewAppointment(p => ({...p, patientName: e.target.value}))}/>
+                              </div>
+                               <div className="space-y-1">
+                                <Label htmlFor="patientCedula">Cédula</Label>
+                                <Input id="patientCedula" value={newAppointment.patientCedula} onChange={(e) => setNewAppointment(p => ({...p, patientCedula: e.target.value}))}/>
+                              </div>
+                               <div className="space-y-1">
+                                <Label htmlFor="patientEmail">Correo Electrónico</Label>
+                                <Input id="patientEmail" type="email" value={newAppointment.patientEmail} onChange={(e) => setNewAppointment(p => ({...p, patientEmail: e.target.value}))}/>
+                              </div>
+                               <div className="space-y-1">
+                                <Label htmlFor="patientPhone">Teléfono</Label>
+                                <Input id="patientPhone" type="tel" value={newAppointment.patientPhone} onChange={(e) => setNewAppointment(p => ({...p, patientPhone: e.target.value}))}/>
+                              </div>
+                          </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Fecha y Hora</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <Calendar
+                                    mode="single"
+                                    selected={newAppointment.date}
+                                    onSelect={(date) => setNewAppointment(p => ({...p, date: date || new Date()}))}
+                                    className="rounded-md border p-0"
+                                    locale={es}
+                                />
+                                <div className="space-y-1">
+                                    <Label htmlFor="appointmentTime">Hora (HH:MM)</Label>
+                                    <Input id="appointmentTime" type="time" value={newAppointment.time} onChange={(e) => setNewAppointment(p => ({...p, time: e.target.value}))}/>
+                                </div>
+                            </CardContent>
+                        </Card>
+                      </div>
+                      <div className="space-y-4">
+                          <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Servicios Prestados</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {doctorData.services.map(service => (
+                                    <div key={service.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                          id={`manual-service-${service.id}`}
+                                          checked={newAppointment.selectedServices.includes(service.id)}
+                                          onCheckedChange={(checked) => {
+                                            setNewAppointment(prev => ({
+                                                ...prev,
+                                                selectedServices: checked
+                                                    ? [...prev.selectedServices, service.id]
+                                                    : prev.selectedServices.filter(id => id !== service.id)
+                                            }));
+                                          }}
+                                        />
+                                        <Label htmlFor={`manual-service-${service.id}`} className="font-normal flex justify-between w-full">
+                                            <span>{service.name}</span>
+                                            <span>${service.price.toFixed(2)}</span>
+                                        </Label>
+                                    </div>
+                                ))}
+                            </CardContent>
+                          </Card>
+                           <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Pago</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <RadioGroup 
+                                  value={newAppointment.paymentMethod} 
+                                  onValueChange={(value: any) => setNewAppointment(p => ({...p, paymentMethod: value}))}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="efectivo" id="r-efectivo" />
+                                    <Label htmlFor="r-efectivo" className="font-normal">Efectivo</Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="transferencia" id="r-transferencia" />
+                                    <Label htmlFor="r-transferencia" className="font-normal">Transferencia</Label>
+                                  </div>
+                                </RadioGroup>
+                                <Separator/>
+                                <div className="flex justify-between items-center text-lg font-bold">
+                                    <span>Total:</span>
+                                    <span>${doctorData.services.filter(s => newAppointment.selectedServices.includes(s.id)).reduce((acc, s) => acc + s.price, 0).toFixed(2)}</span>
+                                </div>
+                            </CardContent>
+                          </Card>
+                      </div>
+                  </div>
+                  <DialogFooter>
+                      <DialogClose asChild>
+                          <Button type="button" variant="outline">Cancelar</Button>
+                      </DialogClose>
+                      <Button onClick={handleSaveManualAppointment}>Registrar Cita</Button>
+                  </DialogFooter>
+              </DialogContent>
             </Dialog>
 
         </div>
