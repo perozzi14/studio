@@ -8,12 +8,15 @@ interface User {
   name: string;
   email: string;
   role: 'patient' | 'doctor';
+  age: number | null;
+  gender: 'masculino' | 'femenino' | 'otro' | null;
 }
 
 interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
   login: (email: string, name?: string) => void;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,8 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   
   useEffect(() => {
-    // This effect runs once on mount to check for a persisted user session
-    // This helps prevent UI flicker on page reload
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -40,12 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, name: string = 'Nuevo Usuario') => {
     let loggedInUser: User;
     if (email.toLowerCase() === 'doctor@admin.com') {
-      loggedInUser = { email, name: 'Doctor Admin', role: 'doctor' };
+      loggedInUser = { email, name: 'Doctor Admin', role: 'doctor', age: null, gender: null };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/doctor/dashboard');
     } else {
-      loggedInUser = { email, name, role: 'patient' };
+      loggedInUser = { email, name, role: 'patient', age: null, gender: null };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/dashboard');
@@ -58,8 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      const updatedUser = { ...prevUser, ...data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

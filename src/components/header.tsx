@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -70,6 +70,14 @@ export function Header() {
                     <span>Panel de Control</span>
                   </Link>
                 </DropdownMenuItem>
+                 {user.role === 'patient' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Mi Perfil</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -130,6 +138,13 @@ export function Header() {
                             <LayoutDashboard className="mr-2 h-5 w-5" /> Panel de Control
                           </Link>
                        </SheetClose>
+                       {user.role === 'patient' && (
+                          <SheetClose asChild>
+                            <Link href="/profile" className="flex items-center text-lg font-medium hover:text-primary">
+                              <User className="mr-2 h-5 w-5" /> Mi Perfil
+                            </Link>
+                          </SheetClose>
+                       )}
                        <Button onClick={() => { logout(); }} className="w-full">
                          <LogOut className="mr-2 h-4 w-4" /> Cerrar Sesión
                        </Button>
