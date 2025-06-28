@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,7 +33,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,6 +63,8 @@ const chartConfig = {
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -328,17 +329,8 @@ export default function DoctorDashboardPage() {
           <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
           <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
 
-          <Tabs defaultValue="appointments" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="appointments">Citas</TabsTrigger>
-              <TabsTrigger value="finances">Finanzas</TabsTrigger>
-              <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
-              <TabsTrigger value="services">Mis Servicios</TabsTrigger>
-              <TabsTrigger value="schedule">Mi Horario</TabsTrigger>
-              <TabsTrigger value="bank-details">Datos Bancarios</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="appointments">
+          <div className="space-y-4">
+            {view === 'appointments' && (
               <Card>
                 <CardHeader>
                   <CardTitle>Próximas Citas</CardTitle>
@@ -418,124 +410,126 @@ export default function DoctorDashboardPage() {
                   </Table>
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="finances" className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600">${financialStats.totalRevenue.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">Proveniente de citas pagadas</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Gastos Totales</CardTitle>
-                            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-red-600">${financialStats.totalExpenses.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">Total de gastos registrados</p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ganancia Neta</CardTitle>
-                            <Wallet className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className={`text-2xl font-bold ${financialStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financialStats.netProfit.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">Ingresos menos gastos</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Citas Pagadas</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">+{appointments.filter(a => a.paymentStatus === 'Pagado').length}</div>
-                            <p className="text-xs text-muted-foreground">Total de citas con pago exitoso</p>
-                        </CardContent>
-                    </Card>
+            {view === 'finances' && (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold text-green-600">${financialStats.totalRevenue.toFixed(2)}</div>
+                              <p className="text-xs text-muted-foreground">Proveniente de citas pagadas</p>
+                          </CardContent>
+                      </Card>
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">Gastos Totales</CardTitle>
+                              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold text-red-600">${financialStats.totalExpenses.toFixed(2)}</div>
+                              <p className="text-xs text-muted-foreground">Total de gastos registrados</p>
+                          </CardContent>
+                      </Card>
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">Ganancia Neta</CardTitle>
+                              <Wallet className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className={`text-2xl font-bold ${financialStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financialStats.netProfit.toFixed(2)}</div>
+                              <p className="text-xs text-muted-foreground">Ingresos menos gastos</p>
+                          </CardContent>
+                      </Card>
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">Citas Pagadas</CardTitle>
+                              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold">+{appointments.filter(a => a.paymentStatus === 'Pagado').length}</div>
+                              <p className="text-xs text-muted-foreground">Total de citas con pago exitoso</p>
+                          </CardContent>
+                      </Card>
+                  </div>
+                  <Card>
+                      <CardHeader>
+                          <CardTitle>Resumen Mensual</CardTitle>
+                          <CardDescription>Comparativa de ingresos y gastos por mes.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="pl-2">
+                          <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                              <BarChart accessibilityLayer data={financialStats.chartData}>
+                                  <CartesianGrid vertical={false} />
+                                  <XAxis
+                                      dataKey="month"
+                                      tickLine={false}
+                                      tickMargin={10}
+                                      axisLine={false}
+                                  />
+                                  <YAxis
+                                      tickLine={false}
+                                      axisLine={false}
+                                      tickMargin={10}
+                                      tickFormatter={(value) => `$${value}`}
+                                  />
+                                  <ChartTooltip
+                                      cursor={false}
+                                      content={<ChartTooltipContent indicator="dot" />}
+                                  />
+                                  <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                          </ChartContainer>
+                      </CardContent>
+                  </Card>
+                  <Card>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                          <div>
+                              <CardTitle>Registro de Gastos</CardTitle>
+                              <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
+                          </div>
+                          <Button onClick={() => handleOpenExpenseDialog(null)}><PlusCircle className="mr-2"/> Agregar Gasto</Button>
+                      </CardHeader>
+                      <CardContent>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Fecha</TableHead>
+                                      <TableHead>Descripción</TableHead>
+                                      <TableHead className="text-right">Monto</TableHead>
+                                      <TableHead className="text-center">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                      <TableRow key={expense.id}>
+                                          <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                          <TableCell className="font-medium">{expense.description}</TableCell>
+                                          <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                                          <TableCell className="text-center space-x-2">
+                                              <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                              <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                          </TableCell>
+                                      </TableRow>
+                                  )) : (
+                                      <TableRow>
+                                          <TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell>
+                                      </TableRow>
+                                  )}
+                              </TableBody>
+                          </Table>
+                      </CardContent>
+                  </Card>
                 </div>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Resumen Mensual</CardTitle>
-                        <CardDescription>Comparativa de ingresos y gastos por mes.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <BarChart accessibilityLayer data={financialStats.chartData}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis
-                                    dataKey="month"
-                                    tickLine={false}
-                                    tickMargin={10}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickMargin={10}
-                                    tickFormatter={(value) => `$${value}`}
-                                />
-                                <ChartTooltip
-                                    cursor={false}
-                                    content={<ChartTooltipContent indicator="dot" />}
-                                />
-                                <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Registro de Gastos</CardTitle>
-                            <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
-                        </div>
-                        <Button onClick={() => handleOpenExpenseDialog(null)}><PlusCircle className="mr-2"/> Agregar Gasto</Button>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Descripción</TableHead>
-                                    <TableHead className="text-right">Monto</TableHead>
-                                    <TableHead className="text-center">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
-                                    <TableRow key={expense.id}>
-                                        <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                                        <TableCell className="font-medium">{expense.description}</TableCell>
-                                        <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
-                                        <TableCell className="text-center space-x-2">
-                                            <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : (
-                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                 </Card>
-            </TabsContent>
-
-            <TabsContent value="profile">
-               <Card>
+            )}
+            
+            {view === 'profile' && (
+              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><User />Mi Perfil Profesional</CardTitle>
                     <CardDescription>Actualiza tu información pública. Estos datos serán visibles para los pacientes.</CardDescription>
@@ -572,119 +566,119 @@ export default function DoctorDashboardPage() {
                     </form>
                 </CardContent>
                </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="services">
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle>
-                            <CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription>
-                        </div>
-                        <Button onClick={() => handleOpenServiceDialog(null)}><PlusCircle className="mr-2"/> Agregar Servicio</Button>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Servicio</TableHead>
-                                    <TableHead className="text-right">Precio</TableHead>
-                                    <TableHead className="text-center">Acciones</TableHead>
+            {view === 'services' && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle>
+                        <CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription>
+                    </div>
+                    <Button onClick={() => handleOpenServiceDialog(null)}><PlusCircle className="mr-2"/> Agregar Servicio</Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Servicio</TableHead>
+                                <TableHead className="text-right">Precio</TableHead>
+                                <TableHead className="text-center">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {doctorData.services.map(service => (
+                                <TableRow key={service.id}>
+                                    <TableCell className="font-medium">{service.name}</TableCell>
+                                    <TableCell className="text-right">${service.price.toFixed(2)}</TableCell>
+                                    <TableCell className="text-center space-x-2">
+                                        <Button variant="outline" size="icon" onClick={() => handleOpenServiceDialog(service)}><Pencil className="h-4 w-4" /></Button>
+                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {doctorData.services.map(service => (
-                                    <TableRow key={service.id}>
-                                        <TableCell className="font-medium">{service.name}</TableCell>
-                                        <TableCell className="text-right">${service.price.toFixed(2)}</TableCell>
-                                        <TableCell className="text-center space-x-2">
-                                            <Button variant="outline" size="icon" onClick={() => handleOpenServiceDialog(service)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                 </Card>
-            </TabsContent>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+              </Card>
+            )}
 
-            <TabsContent value="schedule">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><CalendarClock />Mi Horario</CardTitle>
-                        <CardDescription>Define los horarios en los que estás disponible para citas.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div>
-                            <h4 className="font-medium mb-4">Horas Disponibles</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {schedule.map(time => (
-                                    <Badge key={time} variant="secondary" className="text-base px-3 py-1 relative group">
-                                        {time}
-                                        <button onClick={() => handleRemoveTime(time)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
+            {view === 'schedule' && (
+              <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><CalendarClock />Mi Horario</CardTitle>
+                    <CardDescription>Define los horarios en los que estás disponible para citas.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <h4 className="font-medium mb-4">Horas Disponibles</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {schedule.map(time => (
+                                <Badge key={time} variant="secondary" className="text-base px-3 py-1 relative group">
+                                    {time}
+                                    <button onClick={() => handleRemoveTime(time)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
                         </div>
-                        <form onSubmit={handleAddTime} className="flex items-end gap-4">
-                             <div className="space-y-2 flex-grow">
-                                <Label htmlFor="newTime">Agregar nueva hora</Label>
-                                <Input id="newTime" name="newTime" type="time" />
-                             </div>
-                             <Button type="submit">Agregar</Button>
-                        </form>
-                    </CardContent>
-                 </Card>
-            </TabsContent>
+                    </div>
+                    <form onSubmit={handleAddTime} className="flex items-end gap-4">
+                         <div className="space-y-2 flex-grow">
+                            <Label htmlFor="newTime">Agregar nueva hora</Label>
+                            <Input id="newTime" name="newTime" type="time" />
+                         </div>
+                         <Button type="submit">Agregar</Button>
+                    </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {view === 'bank-details' && (
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
+                        <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
+                    </div>
+                    <Button onClick={() => handleOpenBankDetailDialog(null)}><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Banco</TableHead>
+                                <TableHead>Titular</TableHead>
+                                <TableHead>Nro. de Cuenta</TableHead>
+                                <TableHead>C.I./R.I.F.</TableHead>
+                                <TableHead className="text-center">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {doctorData.bankDetails.map(bd => (
+                                <TableRow key={bd.id}>
+                                    <TableCell className="font-medium">{bd.bank}</TableCell>
+                                    <TableCell>{bd.accountHolder}</TableCell>
+                                    <TableCell>{bd.accountNumber}</TableCell>
+                                    <TableCell>{bd.idNumber}</TableCell>
+                                    <TableCell className="text-center space-x-2">
+                                        <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {doctorData.bankDetails.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+               </Card>
+            )}
             
-            <TabsContent value="bank-details">
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
-                            <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
-                        </div>
-                        <Button onClick={() => handleOpenBankDetailDialog(null)}><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Banco</TableHead>
-                                    <TableHead>Titular</TableHead>
-                                    <TableHead>Nro. de Cuenta</TableHead>
-                                    <TableHead>C.I./R.I.F.</TableHead>
-                                    <TableHead className="text-center">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {doctorData.bankDetails.map(bd => (
-                                    <TableRow key={bd.id}>
-                                        <TableCell className="font-medium">{bd.bank}</TableCell>
-                                        <TableCell>{bd.accountHolder}</TableCell>
-                                        <TableCell>{bd.accountNumber}</TableCell>
-                                        <TableCell>{bd.idNumber}</TableCell>
-                                        <TableCell className="text-center space-x-2">
-                                            <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {doctorData.bankDetails.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                 </Card>
-            </TabsContent>
-
-          </Tabs>
+          </div>
 
            <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
                 <DialogContent>

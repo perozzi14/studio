@@ -20,17 +20,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePathname, useSearchParams } from "next/navigation";
 
 
 export function Header() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const navLinks = [
+  const patientNavLinks = [
     { href: "/find-a-doctor", label: "Buscar Médico" },
     { href: "/ai-assistant", label: "Asistente IA" },
   ];
+  
+  const doctorNavLinks = [
+    { href: "/doctor/dashboard?view=appointments", label: "Citas", view: "appointments" },
+    { href: "/doctor/dashboard?view=finances", label: "Finanzas", view: "finances" },
+    { href: "/doctor/dashboard?view=profile", label: "Mi Perfil", view: "profile" },
+    { href: "/doctor/dashboard?view=services", label: "Mis Servicios", view: "services" },
+    { href: "/doctor/dashboard?view=schedule", label: "Mi Horario", view: "schedule" },
+    { href: "/doctor/dashboard?view=bank-details", label: "Datos Bancarios", view: "bank-details" },
+  ];
 
   const dashboardHref = user?.role === 'doctor' ? '/doctor/dashboard' : '/dashboard';
+  const currentView = searchParams.get('view') || 'appointments';
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,16 +53,24 @@ export function Header() {
           <Stethoscope className="h-6 w-6 text-primary" />
           <span className="font-headline">MedAgenda</span>
         </Link>
-        <nav className="hidden md:flex ml-auto items-center gap-4">
-          {user?.role !== 'doctor' && navLinks.map((link) => (
+        <nav className="hidden md:flex ml-auto items-center gap-2">
+          {user?.role !== 'doctor' && patientNavLinks.map((link) => (
             <Button key={link.href} variant="ghost" asChild>
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
+          {user?.role === 'doctor' && doctorNavLinks.map((link) => {
+               const isActive = (pathname === '/doctor/dashboard' && currentView === link.view);
+               return (
+                <Button key={link.href} variant={isActive ? "secondary" : "ghost"} size="sm" asChild>
+                  <Link href={link.href}>{link.label}</Link>
+                </Button>
+               )
+            })}
           {user ? (
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
@@ -114,7 +136,14 @@ export function Header() {
                   <Stethoscope className="h-6 w-6 text-primary" />
                   <span className="font-headline">MedAgenda</span>
                 </Link>
-                {user?.role !== 'doctor' && navLinks.map((link) => (
+                {user?.role !== 'doctor' && patientNavLinks.map((link) => (
+                  <SheetClose key={link.href} asChild>
+                    <Link href={link.href} className="text-lg font-medium hover:text-primary">
+                      {link.label}
+                    </Link>
+                  </SheetClose>
+                ))}
+                 {user?.role === 'doctor' && doctorNavLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
                     <Link href={link.href} className="text-lg font-medium hover:text-primary">
                       {link.label}
