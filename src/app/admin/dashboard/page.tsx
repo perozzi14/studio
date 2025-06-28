@@ -744,7 +744,10 @@ export default function AdminDashboardPage() {
                     <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
                     <p><strong>Ubicación:</strong> {selectedDoctor.address}, {selectedDoctor.sector}, {selectedDoctor.city}</p>
                     <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
-                    <p><strong>Estado:</strong> <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge></p>
+                    <div className="flex items-center gap-2">
+                        <strong>Estado:</strong>
+                        <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                    </div>
                 </div>
             )}
             <DialogFooter>
