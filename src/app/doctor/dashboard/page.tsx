@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload } from 'lucide-react';
 import {
@@ -54,10 +54,8 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 
-
-// A simple mock for available times. In a real app, this would be more complex.
-const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
 
 const chartConfig = {
   income: {
@@ -152,7 +150,6 @@ export default function DoctorDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
-  const [schedule, setSchedule] = useState<string[]>(availableTimes);
   
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -181,6 +178,16 @@ export default function DoctorDashboardPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
 
+  const [weekDays, setWeekDays] = useState([
+    { key: 'monday', label: 'Lunes' },
+    { key: 'tuesday', label: 'Martes' },
+    { key: 'wednesday', label: 'Miércoles' },
+    { key: 'thursday', label: 'Jueves' },
+    { key: 'friday', label: 'Viernes' },
+    { key: 'saturday', label: 'Sábado' },
+    { key: 'sunday', label: 'Domingo' },
+  ] as { key: keyof Schedule; label: string }[]);
+
 
   useEffect(() => {
     if (user === undefined) return;
@@ -192,7 +199,6 @@ export default function DoctorDashboardPage() {
       const loggedInDoctor = doctors.find(d => d.id === 1);
       if (loggedInDoctor) {
         setDoctorData(loggedInDoctor);
-        setSchedule(availableTimes);
         
         const doctorAppointments = mockAppointments.filter(appt => appt.doctorId === loggedInDoctor.id);
         setAppointments(doctorAppointments);
@@ -343,20 +349,43 @@ export default function DoctorDashboardPage() {
     setDoctorData({ ...doctorData, services: updatedServices });
   };
   
-  const handleAddTime = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const newTime = (form.elements.namedItem('newTime') as HTMLInputElement).value;
-    if (newTime && !schedule.includes(newTime)) {
-        setSchedule([...schedule, newTime].sort());
-        form.reset();
-    }
-  };
+    const handleScheduleChange = <T extends keyof DaySchedule>(
+        dayKey: keyof Schedule,
+        field: T,
+        value: DaySchedule[T]
+    ) => {
+        if (!doctorData) return;
+        const newSchedule = { ...doctorData.schedule };
+        (newSchedule[dayKey] as any)[field] = value;
+        setDoctorData({ ...doctorData, schedule: newSchedule });
+    };
 
-  const handleRemoveTime = (timeToRemove: string) => {
-    setSchedule(schedule.filter(t => t !== timeToRemove));
-  };
-  
+    const handleSlotChange = (
+        dayKey: keyof Schedule,
+        slotIndex: number,
+        timeType: 'start' | 'end',
+        time: string
+    ) => {
+        if (!doctorData) return;
+        const newSchedule = { ...doctorData.schedule };
+        newSchedule[dayKey].slots[slotIndex][timeType] = time;
+        setDoctorData({ ...doctorData, schedule: newSchedule });
+    };
+
+    const handleAddSlot = (dayKey: keyof Schedule) => {
+        if (!doctorData) return;
+        const newSchedule = { ...doctorData.schedule };
+        newSchedule[dayKey].slots.push({ start: '09:00', end: '17:00' });
+        setDoctorData({ ...doctorData, schedule: newSchedule });
+    };
+
+    const handleRemoveSlot = (dayKey: keyof Schedule, slotIndex: number) => {
+        if (!doctorData) return;
+        const newSchedule = { ...doctorData.schedule };
+        newSchedule[dayKey].slots.splice(slotIndex, 1);
+        setDoctorData({ ...doctorData, schedule: newSchedule });
+    };
+
   const handleOpenBankDetailDialog = (bankDetail: BankDetail | null) => {
     setEditingBankDetail(bankDetail);
     setBankName(bankDetail ? bankDetail.bank : '');
@@ -811,35 +840,91 @@ export default function DoctorDashboardPage() {
             )
         case 'schedule':
             return (
-              <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><CalendarClock />Mi Horario</CardTitle>
-                    <CardDescription>Define los horarios en los que estás disponible para citas.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div>
-                        <h4 className="font-medium mb-4">Horas Disponibles</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {schedule.map(time => (
-                                <Badge key={time} variant="secondary" className="text-base px-3 py-1 relative group">
-                                    {time}
-                                    <button onClick={() => handleRemoveTime(time)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </Badge>
-                            ))}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><CalendarClock /> Mi Horario de Trabajo</CardTitle>
+                        <CardDescription>Define tu disponibilidad semanal y la duración de tus citas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                        <div>
+                            <Label className="text-base font-semibold">Duración de la Cita</Label>
+                            <RadioGroup
+                                value={String(doctorData.slotDuration)}
+                                onValueChange={(value) => setDoctorData({ ...doctorData, slotDuration: parseInt(value, 10) as 30 | 60 })}
+                                className="mt-2 flex items-center space-x-4"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="30" id="slot-30" />
+                                    <Label htmlFor="slot-30" className="font-normal">30 minutos</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="60" id="slot-60" />
+                                    <Label htmlFor="slot-60" className="font-normal">60 minutos</Label>
+                                </div>
+                            </RadioGroup>
                         </div>
-                    </div>
-                    <form onSubmit={handleAddTime} className="flex items-end gap-4">
-                         <div className="space-y-2 flex-grow">
-                            <Label htmlFor="newTime">Agregar nueva hora</Label>
-                            <Input id="newTime" name="newTime" type="time" />
-                         </div>
-                         <Button type="submit">Agregar</Button>
-                    </form>
-                </CardContent>
-              </Card>
-            )
+                        <Separator />
+                        <div>
+                            <Label className="text-base font-semibold">Horario Semanal</Label>
+                            <div className="space-y-4 mt-2">
+                                {weekDays.map(({ key, label }) => {
+                                    const daySchedule = doctorData.schedule[key];
+                                    return (
+                                        <Card key={key} className={cn(!daySchedule.active && "bg-muted/50")}>
+                                            <CardContent className="p-4 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor={`switch-${key}`} className="text-lg font-medium">{label}</Label>
+                                                    <Switch
+                                                        id={`switch-${key}`}
+                                                        checked={daySchedule.active}
+                                                        onCheckedChange={(checked) => handleScheduleChange(key, 'active', checked)}
+                                                    />
+                                                </div>
+                                                {daySchedule.active && (
+                                                    <div className="space-y-3 pl-2 border-l-2 border-primary/50 ml-2">
+                                                        {daySchedule.slots.map((slot, index) => (
+                                                            <div key={index} className="flex items-center gap-2">
+                                                                <Input
+                                                                    type="time"
+                                                                    value={slot.start}
+                                                                    onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)}
+                                                                />
+                                                                <span>-</span>
+                                                                <Input
+                                                                    type="time"
+                                                                    value={slot.end}
+                                                                    onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)}
+                                                                />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleRemoveSlot(key, index)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleAddSlot(key)}
+                                                        >
+                                                            <PlusCircle className="mr-2 h-4 w-4" /> Agregar bloque
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                {!daySchedule.active && (
+                                                    <p className="text-sm text-muted-foreground pl-4">Día no laborable</p>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
         case 'bank-details':
             return (
                <Card>

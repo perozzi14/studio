@@ -1,4 +1,5 @@
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -31,6 +32,22 @@ export type Coupon = {
   value: number; 
 };
 
+export type DaySchedule = {
+  active: boolean;
+  slots: { start: string; end: string }[];
+};
+
+export type Schedule = {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+};
+
+
 export type Doctor = {
   id: number;
   name: string;
@@ -47,7 +64,20 @@ export type Doctor = {
   services: Service[];
   bankDetails: BankDetail[];
   coupons: Coupon[];
+  schedule: Schedule;
+  slotDuration: 30 | 60;
 };
+
+const defaultSchedule: Schedule = {
+    monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+    tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+    wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+    thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+    friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+    saturday: { active: false, slots: [] },
+    sunday: { active: false, slots: [] },
+};
+
 
 export const doctors: Doctor[] = [
   { 
@@ -87,7 +117,17 @@ export const doctors: Doctor[] = [
     coupons: [
       { id: 1, code: "VERANO20", discountType: "percentage", value: 20 },
       { id: 2, code: "SUMA10", discountType: "fixed", value: 10 },
-    ]
+    ],
+    slotDuration: 30,
+    schedule: {
+        monday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
+        tuesday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+        wednesday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
+        thursday: { active: false, slots: [] },
+        friday: { active: true, slots: [{ start: "09:00", end: "15:00" }] },
+        saturday: { active: false, slots: [] },
+        sunday: { active: false, slots: [] },
+    }
   },
   { 
     id: 2, 
@@ -114,7 +154,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Carlos Sanchez",
       idNumber: "V-10.987.654"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 60,
+    schedule: defaultSchedule,
   },
   { 
     id: 3, 
@@ -140,7 +182,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Sofia Gomez",
       idNumber: "V-14.567.890"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 30,
+    schedule: defaultSchedule,
   },
   { 
     id: 4, 
@@ -166,7 +210,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Luis Fernandez",
       idNumber: "V-11.222.333"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 30,
+    schedule: defaultSchedule,
   },
   { 
     id: 5, 
@@ -192,7 +238,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Maria Hernandez",
       idNumber: "V-9.876.543"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 60,
+    schedule: defaultSchedule,
   },
   { 
     id: 6, 
@@ -218,7 +266,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Javier Torres",
       idNumber: "V-13.131.313"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 30,
+    schedule: defaultSchedule,
   },
   { 
     id: 7, 
@@ -244,7 +294,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Laura Martínez",
       idNumber: "V-15.432.109"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 60,
+    schedule: defaultSchedule,
   },
   { 
     id: 8, 
@@ -270,7 +322,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Ricardo Vargas",
       idNumber: "V-12.876.543"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 30,
+    schedule: defaultSchedule,
   },
   { 
     id: 9, 
@@ -297,7 +351,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Valentina Diaz",
       idNumber: "V-16.123.456"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 30,
+    schedule: defaultSchedule,
   },
   { 
     id: 10, 
@@ -323,7 +379,9 @@ export const doctors: Doctor[] = [
       accountHolder: "Andres Castillo",
       idNumber: "V-14.987.654"
     }],
-    coupons: []
+    coupons: [],
+    slotDuration: 60,
+    schedule: defaultSchedule,
   },
 ];
 

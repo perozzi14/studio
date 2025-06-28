@@ -18,6 +18,27 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+function generateTimeSlots(startTime: string, endTime: string, duration: number): string[] {
+    const slots: string[] = [];
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    let currentHour = startHour;
+    let currentMinute = startMinute;
+
+    while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
+        slots.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
+        currentMinute += duration;
+        if (currentMinute >= 60) {
+            currentHour += Math.floor(currentMinute / 60);
+            currentMinute %= 60;
+        }
+    }
+    return slots;
+}
+
 export default function DoctorProfilePage() {
   const params = useParams();
   const id = params.id ? parseInt(params.id as string, 10) : null;
@@ -46,7 +67,22 @@ export default function DoctorProfilePage() {
     return priceAfterDiscount < 0 ? 0 : priceAfterDiscount;
   }, [subtotal, discountAmount]);
 
-  const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+  const availableSlots = useMemo(() => {
+    if (!doctor || !selectedDate) return [];
+
+    const dayKey = dayKeyMapping[selectedDate.getDay()];
+    const daySchedule = doctor.schedule[dayKey];
+
+    if (!daySchedule.active) return [];
+
+    let allSlots: string[] = [];
+    daySchedule.slots.forEach(slot => {
+        const generated = generateTimeSlots(slot.start, slot.end, doctor.slotDuration);
+        allSlots = [...allSlots, ...generated];
+    });
+
+    return allSlots;
+  }, [selectedDate, doctor]);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) =>
@@ -140,6 +176,14 @@ export default function DoctorProfilePage() {
     );
   }
 
+  const isDayDisabled = (date: Date) => {
+    if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
+        return true;
+    }
+    const dayKey = dayKeyMapping[date.getDay()];
+    return !doctor.schedule[dayKey].active;
+  }
+
   const renderStepContent = () => {
     switch (step) {
       case 'selectDateTime':
@@ -155,15 +199,18 @@ export default function DoctorProfilePage() {
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                        setSelectedDate(date);
+                        setSelectedTime(null); // Reset time when date changes
+                    }}
                     className="rounded-md border bg-card"
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    disabled={isDayDisabled}
                   />
                 </div>
                 <div className="flex flex-col">
                   {selectedDate ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {availableTimes.map((time) => (
+                      {availableSlots.length > 0 ? availableSlots.map((time) => (
                         <Button
                           key={time}
                           variant={selectedTime === time ? "default" : "outline"}
@@ -173,7 +220,7 @@ export default function DoctorProfilePage() {
                           <Clock className="h-4 w-4" />
                           {time}
                         </Button>
-                      ))}
+                      )) : <p className="col-span-full text-center text-muted-foreground">No hay horarios disponibles este día.</p>}
                     </div>
                   ) : (
                      <p className="text-muted-foreground text-center md:text-left mt-4">Por favor, selecciona una fecha primero.</p>
