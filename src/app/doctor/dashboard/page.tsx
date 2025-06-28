@@ -702,21 +702,26 @@ export default function DoctorDashboardPage() {
                       </CardContent>
                   </Card>
                   <Card>
-                      <CardHeader className="flex flex-row items-center justify-between">
-                          <div>
-                              <CardTitle>Registro de Gastos</CardTitle>
-                              <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
-                          </div>
-                          <Button onClick={() => handleOpenExpenseDialog(null)}><PlusCircle className="mr-2"/> Agregar Gasto</Button>
-                      </CardHeader>
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div>
+                                    <CardTitle>Registro de Gastos</CardTitle>
+                                    <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
+                                </div>
+                                <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto">
+                                    <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
+                                </Button>
+                            </div>
+                        </CardHeader>
                       <CardContent>
-                          <Table>
+                          {/* Desktop Table */}
+                          <Table className="hidden md:table">
                               <TableHeader>
                                   <TableRow>
                                       <TableHead>Fecha</TableHead>
                                       <TableHead>Descripción</TableHead>
                                       <TableHead className="text-right">Monto</TableHead>
-                                      <TableHead className="text-center">Acciones</TableHead>
+                                      <TableHead className="w-[120px] text-center">Acciones</TableHead>
                                   </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -724,10 +729,12 @@ export default function DoctorDashboardPage() {
                                       <TableRow key={expense.id}>
                                           <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
                                           <TableCell className="font-medium">{expense.description}</TableCell>
-                                          <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
-                                          <TableCell className="text-center space-x-2">
-                                              <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
-                                              <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                          <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                          <TableCell className="text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
                                           </TableCell>
                                       </TableRow>
                                   )) : (
@@ -737,6 +744,27 @@ export default function DoctorDashboardPage() {
                                   )}
                               </TableBody>
                           </Table>
+
+                           {/* Mobile Cards */}
+                          <div className="space-y-4 md:hidden">
+                            {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                <div key={expense.id} className="p-4 border rounded-lg space-y-4">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div>
+                                            <p className="font-medium">{expense.description}</p>
+                                            <p className="text-sm text-muted-foreground">{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                                        </div>
+                                        <p className="font-semibold text-lg text-right font-mono">${expense.amount.toFixed(2)}</p>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                            <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                    </div>
+                                </div>
+                            )) : (
+                                <p className="text-center text-muted-foreground py-8">No hay gastos registrados.</p>
+                            )}
+                          </div>
                       </CardContent>
                   </Card>
                 </div>
