@@ -507,7 +507,7 @@ export const appointments: Appointment[] = [
     patientName: "Luis Ramirez",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-07-17",
+    date: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString().split('T')[0], // 15 days ago
     time: "11:00",
     services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
@@ -522,7 +522,7 @@ export const appointments: Appointment[] = [
     patientName: "Sofia Peña",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-07-20",
+    date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0], // 10 days ago
     time: "14:00",
     services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
@@ -537,7 +537,7 @@ export const appointments: Appointment[] = [
     patientName: "Juan Alfonzo",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-07-25",
+    date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString().split('T')[0], // 5 days ago
     time: "10:00",
     services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
@@ -557,9 +557,39 @@ export type Expense = {
 };
 
 export const mockExpenses: Expense[] = [
-  { id: 'exp-1', doctorId: 1, date: '2024-08-01', description: 'Alquiler de consultorio', amount: 500 },
-  { id: 'exp-2', doctorId: 1, date: '2024-08-05', description: 'Materiales médicos', amount: 150 },
-  { id: 'exp-3', doctorId: 1, date: '2024-07-10', description: 'Pago de servicios (luz, agua)', amount: 80 },
-  { id: 'exp-4', doctorId: 1, date: '2024-08-12', description: 'Suscripción software médico', amount: 45 },
-  { id: 'exp-5', doctorId: 1, date: '2024-07-20', description: 'Insumos de oficina', amount: 35 },
+  { 
+    id: 'exp-1', 
+    doctorId: 1, 
+    date: new Date(new Date().setDate(1)).toISOString().split('T')[0], // 1st of current month
+    description: 'Alquiler de consultorio', 
+    amount: 500 
+  },
+  { 
+    id: 'exp-2', 
+    doctorId: 1, 
+    date: new Date(new Date().setDate(5)).toISOString().split('T')[0], // 5th of current month
+    description: 'Materiales médicos', 
+    amount: 150 
+  },
+  { 
+    id: 'exp-3', 
+    doctorId: 1, 
+    date: new Date(new Date().setMonth(new Date().getMonth() - 1, 10)).toISOString().split('T')[0], // 10th of last month
+    description: 'Pago de servicios (luz, agua)', 
+    amount: 80 
+  },
+  { 
+    id: 'exp-4', 
+    doctorId: 1, 
+    date: new Date(new Date().setDate(12)).toISOString().split('T')[0], // 12th of current month
+    description: 'Suscripción software médico', 
+    amount: 45 
+  },
+  { 
+    id: 'exp-5', 
+    doctorId: 1, 
+    date: new Date(new Date().setMonth(new Date().getMonth() - 1, 20)).toISOString().split('T')[0], // 20th of last month
+    description: 'Insumos de oficina', 
+    amount: 35 
+  },
 ];
