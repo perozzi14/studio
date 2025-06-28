@@ -5,13 +5,13 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +32,12 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Image from 'next/image';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -44,6 +50,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 
 // A simple mock for available times. In a real app, this would be more complex.
@@ -59,6 +67,69 @@ const chartConfig = {
     color: "hsl(var(--destructive))",
   },
 } satisfies ChartConfig;
+
+function UpcomingAppointmentCard({ appointment, onConfirmPayment }: { appointment: Appointment, onConfirmPayment: (id: string) => void }) {
+    return (
+        <Card>
+            <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 space-y-2">
+                    <p className="font-bold text-lg">{appointment.patientName}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {appointment.time}
+                    </p>
+                    <p className="text-sm">
+                        <span className="font-semibold">Servicios:</span> {appointment.services.map(s => s.name).join(', ')}
+                    </p>
+                </div>
+                <Separator orientation="vertical" className="h-auto hidden sm:block" />
+                <Separator orientation="horizontal" className="w-full sm:hidden" />
+                <div className="flex sm:flex-col justify-between items-center sm:items-end gap-2 sm:w-48">
+                    <div className="text-right">
+                        <p className="font-bold text-xl">${appointment.totalPrice.toFixed(2)}</p>
+                        <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(
+                            appointment.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500',
+                            "text-white"
+                        )}>
+                            {appointment.paymentStatus === 'Pagado' ? <Check className="mr-1 h-3 w-3" /> : <Clock className="mr-1 h-3 w-3" />}
+                            {appointment.paymentStatus}
+                        </Badge>
+                    </div>
+                    {appointment.paymentMethod === 'transferencia' && appointment.paymentStatus === 'Pendiente' && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Revisar Pago
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar Pago de {appointment.patientName}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        El paciente ha subido un comprobante de pago. Por favor, verifica la transacción antes de confirmar.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="py-4">
+                                    <p className="font-semibold mb-2">Comprobante de Pago:</p>
+                                    {appointment.paymentProof ? (
+                                        <Image src={appointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
+                                    ) : <p className="text-sm text-muted-foreground">No se subió comprobante.</p>}
+                                </div>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onConfirmPayment(appointment.id)}>
+                                        <Check className="mr-2 h-4 w-4" /> Marcar como Pagado
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
@@ -117,6 +188,29 @@ export default function DoctorDashboardPage() {
       setIsLoading(false);
     }
   }, [user, router]);
+
+  const { upcomingAppointments, pastAppointments } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcoming: Appointment[] = [];
+    const past: Appointment[] = [];
+
+    appointments.forEach(appt => {
+        const apptDate = new Date(appt.date);
+        apptDate.setHours(0,0,0,0);
+        if (apptDate >= today) {
+            upcoming.push(appt);
+        } else {
+            past.push(appt);
+        }
+    });
+
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { upcomingAppointments: upcoming, pastAppointments: past };
+  }, [appointments]);
   
   const financialStats = useMemo(() => {
     if (!appointments || !expenses) return null;
@@ -171,6 +265,10 @@ export default function DoctorDashboardPage() {
         appt.id === appointmentId ? { ...appt, paymentStatus: 'Pagado' } : appt
       )
     );
+     toast({
+        title: "¡Pago Confirmado!",
+        description: "El estado de la cita ha sido actualizado a 'Pagado'.",
+    });
   };
   
   const handleProfileUpdate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -303,6 +401,17 @@ export default function DoctorDashboardPage() {
     setExpenses(expenses.filter(e => e.id !== expenseId));
   };
 
+  const handleUpdateAttendance = (appointmentId: string, attendance: 'Atendido' | 'No Asistió') => {
+    setAppointments(prev =>
+      prev.map(appt =>
+        appt.id === appointmentId ? { ...appt, attendance } : appt
+      )
+    );
+    toast({
+      title: "Asistencia Actualizada",
+      description: `La cita ha sido marcada como "${attendance}".`
+    });
+  };
 
   if (isLoading || !user || !doctorData || !financialStats) {
     return (
@@ -321,98 +430,95 @@ export default function DoctorDashboardPage() {
     );
   }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-1 bg-muted/40">
-        <div className="container py-12">
-          <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
-          <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
-
-          <div className="space-y-4">
-            {view === 'appointments' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Próximas Citas</CardTitle>
-                  <CardDescription>
-                    Tienes {appointments.length} citas programadas.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead>Fecha y Hora</TableHead>
-                        <TableHead>Servicios</TableHead>
-                        <TableHead className="text-right">Pago</TableHead>
-                        <TableHead className="text-center">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {appointments.length > 0 ? appointments.map((appt) => (
-                        <TableRow key={appt.id}>
-                          <TableCell className="font-medium">{appt.patientName}</TableCell>
-                          <TableCell>
-                            {new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long' })} a las {appt.time}
-                          </TableCell>
-                          <TableCell>{appt.services.map(s => s.name).join(', ')}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex flex-col items-end">
-                                <span className="font-semibold">${appt.totalPrice.toFixed(2)}</span>
-                                <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500'}>
-                                    {appt.paymentStatus === 'Pagado' ? <Check className="mr-1 h-3 w-3" /> : <Clock className="mr-1 h-3 w-3" />}
-                                    {appt.paymentStatus}
-                                </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' ? (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="outline">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Revisar Pago
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Pago de {appt.patientName}</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      El paciente ha subido un comprobante de pago. Por favor, verifica la transacción antes de confirmar.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <div className="py-4">
-                                    <p className="font-semibold mb-2">Comprobante de Pago:</p>
-                                    {appt.paymentProof ? (
-                                        <Image src={appt.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
-                                    ) : <p className="text-sm text-muted-foreground">No se subió comprobante.</p>}
-                                  </div>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleConfirmPayment(appt.id)}>
-                                        <Check className="mr-2 h-4 w-4" /> Marcar como Pagado
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+  const renderContent = () => {
+    switch(view) {
+        case 'appointments':
+            return (
+                <div className="space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CalendarCheck /> Citas Próximas</CardTitle>
+                            <CardDescription>
+                                Tienes {upcomingAppointments.length} citas programadas.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {upcomingAppointments.length > 0 ? (
+                                <div className="space-y-4">
+                                    {upcomingAppointments.map((appt) => (
+                                        <UpcomingAppointmentCard key={appt.id} appointment={appt} onConfirmPayment={handleConfirmPayment} />
+                                    ))}
+                                </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground capitalize">{appt.paymentMethod}</span>
+                                <p className="text-center text-muted-foreground py-8">No tienes citas próximas.</p>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center h-24">No tienes citas próximas.</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
+                        </CardContent>
+                    </Card>
 
-            {view === 'finances' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><History /> Historial de Citas</CardTitle>
+                            <CardDescription>
+                                Registro de tus citas pasadas y estado de asistencia.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Paciente</TableHead>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Pago</TableHead>
+                                        <TableHead className="text-center">Asistencia</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
+                                        <TableRow key={appt.id}>
+                                            <TableCell className="font-medium">{appt.patientName}</TableCell>
+                                            <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
+                                                    {appt.paymentStatus}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {appt.attendance === 'Pendiente' ? (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" size="sm">Marcar Asistencia <MoreVertical className="ml-2 h-4 w-4" /></Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'Atendido')}>
+                                                                <UserCheck className="mr-2 h-4 w-4 text-green-600" />
+                                                                Atendido
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
+                                                                <UserX className="mr-2 h-4 w-4 text-red-600" />
+                                                                No Asistió
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                ) : (
+                                                    <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
+                                                        {appt.attendance}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            )
+        case 'finances':
+             return (
                 <div className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                       <Card>
@@ -526,9 +632,9 @@ export default function DoctorDashboardPage() {
                       </CardContent>
                   </Card>
                 </div>
-            )}
-            
-            {view === 'profile' && (
+            )
+        case 'profile':
+            return (
               <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><User />Mi Perfil Profesional</CardTitle>
@@ -566,9 +672,9 @@ export default function DoctorDashboardPage() {
                     </form>
                 </CardContent>
                </Card>
-            )}
-
-            {view === 'services' && (
+            )
+        case 'services':
+            return (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -601,9 +707,9 @@ export default function DoctorDashboardPage() {
                     </Table>
                 </CardContent>
               </Card>
-            )}
-
-            {view === 'schedule' && (
+            )
+        case 'schedule':
+            return (
               <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><CalendarClock />Mi Horario</CardTitle>
@@ -632,9 +738,9 @@ export default function DoctorDashboardPage() {
                     </form>
                 </CardContent>
               </Card>
-            )}
-
-            {view === 'bank-details' && (
+            )
+        case 'bank-details':
+            return (
                <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -676,8 +782,22 @@ export default function DoctorDashboardPage() {
                     </Table>
                 </CardContent>
                </Card>
-            )}
-            
+            )
+        default:
+            return null;
+    }
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header />
+      <main className="flex-1 bg-muted/40">
+        <div className="container py-12">
+          <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
+          <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
+
+          <div className="space-y-4">
+            {renderContent()}
           </div>
 
            <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>

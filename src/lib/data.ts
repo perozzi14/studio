@@ -308,55 +308,55 @@ export type Appointment = {
   paymentMethod: 'efectivo' | 'transferencia';
   paymentStatus: 'Pendiente' | 'Pagado';
   paymentProof: string | null;
+  attendance: 'Atendido' | 'No Asistió' | 'Pendiente';
 };
 
 export const appointments: Appointment[] = [
+  // Upcoming Appointments for Dr. Rodriguez (id: 1)
   {
     id: "appt-1",
     patientName: "Elena Ríos",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-08-15",
+    date: "2024-09-15",
     time: "10:00",
-    services: [
-      { id: 101, name: "Consulta Cardiológica", price: 50 },
-      { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
-    ],
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pendiente',
-    paymentProof: 'https://placehold.co/400x200.png'
+    paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Pendiente'
   },
+  {
+    id: "appt-3",
+    patientName: "Maria Castillo",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-09-18",
+    time: "09:00",
+    services: [ { id: 103, name: "Ecocardiograma", price: 80 } ],
+    totalPrice: 80,
+    paymentMethod: 'transferencia',
+    paymentStatus: 'Pagado',
+    paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Pendiente'
+  },
+  // Upcoming for Dr. Sanchez (id: 2)
   {
     id: "appt-2",
     patientName: "Jorge Paez",
     doctorName: "Dr. Carlos Sanchez",
     doctorId: 2,
-    date: "2024-08-15",
+    date: "2024-09-15",
     time: "14:00",
-    services: [
-      { id: 201, name: "Consulta Dermatológica", price: 45 },
-    ],
+    services: [ { id: 201, name: "Consulta Dermatológica", price: 45 } ],
     totalPrice: 45,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pendiente',
-    paymentProof: null
+    paymentProof: null,
+    attendance: 'Pendiente'
   },
-    {
-    id: "appt-3",
-    patientName: "Maria Castillo",
-    doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
-    date: "2024-08-16",
-    time: "09:00",
-    services: [
-      { id: 103, name: "Ecocardiograma", price: 80 },
-    ],
-    totalPrice: 80,
-    paymentMethod: 'transferencia',
-    paymentStatus: 'Pagado',
-    paymentProof: 'https://placehold.co/400x200.png'
-  },
+  // Past Appointments for Dr. Rodriguez (id: 1)
    {
     id: "appt-4",
     patientName: "Luis Ramirez",
@@ -364,14 +364,41 @@ export const appointments: Appointment[] = [
     doctorId: 1,
     date: "2024-07-17",
     time: "11:00",
-    services: [
-      { id: 101, name: "Consulta Cardiológica", price: 50 },
-    ],
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
-    paymentProof: null
+    paymentProof: null,
+    attendance: 'Atendido'
   },
+  {
+    id: "appt-5",
+    patientName: "Sofia Peña",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-07-20",
+    time: "14:00",
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
+    totalPrice: 50,
+    paymentMethod: 'transferencia',
+    paymentStatus: 'Pagado',
+    paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'No Asistió'
+  },
+  {
+    id: "appt-6",
+    patientName: "Juan Alfonzo",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-07-25",
+    time: "10:00",
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
+    totalPrice: 80,
+    paymentMethod: 'efectivo',
+    paymentStatus: 'Pagado',
+    paymentProof: null,
+    attendance: 'Pendiente'
+  }
 ];
 
 export type Expense = {
