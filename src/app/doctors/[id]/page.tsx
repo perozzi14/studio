@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { Header } from "@/components/header";
+import { Header, BottomNav } from "@/components/header";
 import { doctors, type Doctor, type Service, type BankDetail, type Coupon } from "@/lib/data";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -493,7 +493,7 @@ export default function DoctorProfilePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 py-8 md:py-12 bg-muted/40">
+      <main className="flex-1 py-8 md:py-12 bg-muted/40 pb-20 md:pb-0">
         <div className="container max-w-4xl mx-auto">
           
           <Card className="mb-8 overflow-hidden">
@@ -541,6 +541,7 @@ export default function DoctorProfilePage() {
 
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

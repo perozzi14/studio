@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Header } from '@/components/header';
+import { Header, BottomNav } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -82,7 +82,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 flex items-center justify-center py-12 bg-muted/40">
+      <main className="flex-1 flex items-center justify-center py-12 bg-muted/40 pb-20 md:pb-12">
         <div className="container max-w-2xl">
           <Card>
             <CardHeader>
@@ -167,6 +167,7 @@ export default function ProfilePage() {
           </Card>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

@@ -4,7 +4,7 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Header } from '@/components/header';
+import { Header, BottomNav } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -122,7 +122,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 bg-muted/40">
+      <main className="flex-1 bg-muted/40 pb-20 md:pb-0">
         <div className="container py-12">
           <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
           <p className="text-muted-foreground mb-8">Este es tu panel médico personal.</p>
@@ -213,6 +213,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

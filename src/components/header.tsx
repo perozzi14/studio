@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 
 export function Header() {
@@ -144,8 +145,8 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Menú Principal</SheetTitle>
+              <SheetHeader className="text-left">
+                 <SheetTitle className="sr-only">Menú</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 py-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-lg mb-4">
@@ -223,5 +224,48 @@ export function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+
+const bottomNavItems = [
+  { href: "/dashboard", label: "Panel", icon: LayoutDashboard },
+  { href: "/find-a-doctor", label: "Buscar", icon: Search },
+  { href: "/favorites", label: "Favoritos", icon: Heart },
+  { href: "/profile", label: "Perfil", icon: User },
+];
+
+export function BottomNav() {
+  const pathname = usePathname();
+  const { user } = useAuth();
+
+  if (!user || user.role !== "patient") {
+    return null;
+  }
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+      <div className="container flex h-16 items-center justify-around px-2">
+        {bottomNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 p-2 rounded-md transition-colors w-1/4 h-full",
+                isActive
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-primary/80"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-xs font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

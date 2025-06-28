@@ -6,7 +6,7 @@ import {
   whatsappAssistant,
   type WhatsAppAssistantOutput,
 } from "@/ai/flows/whatsapp-assistant";
-import { Header } from "@/components/header";
+import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -50,7 +50,7 @@ export default function AiAssistantPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 flex items-center justify-center py-12">
+      <main className="flex-1 flex items-center justify-center py-12 md:pb-12 pb-20">
         <div className="container max-w-2xl">
           <Card>
             <CardHeader>
@@ -109,6 +109,7 @@ export default function AiAssistantPage() {
           </Card>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

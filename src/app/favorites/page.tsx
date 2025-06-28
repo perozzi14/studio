@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Header } from "@/components/header";
+import { Header, BottomNav } from "@/components/header";
 import { useAuth } from "@/lib/auth";
 import { doctors } from "@/lib/data";
 import { DoctorCard } from "@/components/doctor-card";
@@ -52,7 +52,7 @@ export default function FavoritesPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 bg-muted/40">
+      <main className="flex-1 bg-muted/40 pb-20 md:pb-0">
         <div className="container py-12">
            <div className="mb-8">
             <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
@@ -88,6 +88,7 @@ export default function FavoritesPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Header } from "@/components/header";
+import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -88,7 +88,7 @@ export default function FindDoctorPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         <div className="bg-muted/50 border-b">
           <div className="container py-8">
             <h1 className="text-3xl font-bold font-headline mb-2">
@@ -235,6 +235,7 @@ export default function FindDoctorPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }
