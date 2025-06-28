@@ -43,6 +43,8 @@ export default function LoginPage() {
             Ingresa tu correo para iniciar sesión.
             <br />
             <span className="text-xs">(Médico, usa: doctor@admin.com / 1234)</span>
+            <br />
+            <span className="text-xs">(Paciente, usa: paciente@example.com / 1234)</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
