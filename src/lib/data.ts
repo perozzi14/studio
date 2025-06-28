@@ -103,6 +103,8 @@ export type Doctor = {
   status: 'active' | 'inactive';
   paymentReports: PaymentReport[];
   supportTickets: SupportTicket[];
+  lat: number;
+  lng: number;
 };
 
 const defaultSchedule: Schedule = {
@@ -132,6 +134,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "woman doctor",
+    lat: 10.4991, 
+    lng: -66.8532,
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
       { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
@@ -210,6 +214,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "man doctor",
+    lat: 10.6655,
+    lng: -71.6125,
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
       { id: 202, name: "Crioterapia (verrugas)", price: 60 },
@@ -244,6 +250,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor smile",
+    lat: 10.2245,
+    lng: -68.0031,
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
       { id: 302, name: "Electroencefalograma (EEG)", price: 120 },
@@ -277,6 +285,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor",
+    lat: 10.478,
+    lng: -66.853,
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
       { id: 402, name: "Vacunación", price: 25 },
@@ -310,6 +320,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor",
+    lat: 10.672,
+    lng: -71.605,
     services: [
       { id: 501, name: "Consulta Oncológica", price: 70 },
       { id: 502, name: "Quimioterapia (por sesión)", price: 200 },
@@ -343,6 +355,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor portrait",
+    lat: 10.511,
+    lng: -66.904,
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
       { id: 602, name: "Infiltración", price: 75 },
@@ -376,6 +390,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor professional",
+    lat: 10.215,
+    lng: -68.01,
     services: [
       { id: 701, name: "Consulta Cardiológica", price: 50 },
       { id: 702, name: "Prueba de Esfuerzo", price: 110 },
@@ -409,6 +425,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor smile",
+    lat: 10.501,
+    lng: -66.839,
     services: [
       { id: 801, name: "Consulta Dermatológica", price: 45 },
       { id: 802, name: "Peeling Químico", price: 90 },
@@ -442,6 +460,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor woman",
+    lat: 10.65,
+    lng: -71.625,
     services: [
       { id: 901, name: "Consulta Ginecológica", price: 50 },
       { id: 902, name: "Citología", price: 35 },
@@ -476,6 +496,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor young",
+    lat: 10.207,
+    lng: -68.017,
     services: [
       { id: 1001, name: "Consulta Neumonológica", price: 55 },
       { id: 1002, name: "Espirometría", price: 70 },
