@@ -30,6 +30,8 @@ export function Header() {
     { href: "/ai-assistant", label: "Asistente IA" },
   ];
 
+  const dashboardHref = user?.role === 'doctor' ? '/doctor/dashboard' : '/dashboard';
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -63,7 +65,7 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard">
+                  <Link href={dashboardHref}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span>Panel de Control</span>
                   </Link>
@@ -124,7 +126,7 @@ export function Header() {
                          </div>
                        </div>
                        <SheetClose asChild>
-                          <Link href="/dashboard" className="flex items-center text-lg font-medium hover:text-primary">
+                          <Link href={dashboardHref} className="flex items-center text-lg font-medium hover:text-primary">
                             <LayoutDashboard className="mr-2 h-5 w-5" /> Panel de Control
                           </Link>
                        </SheetClose>

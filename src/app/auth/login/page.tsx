@@ -40,7 +40,9 @@ export default function LoginPage() {
           </Link>
           <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
-            Ingresa tu correo electrónico para iniciar sesión en tu cuenta
+            Ingresa tu correo para iniciar sesión.
+            <br />
+            <span className="text-xs">(Médico, usa: doctor@admin.com / 1234)</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,6 +75,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="1234"
                 />
               </div>
               <Button type="submit" className="w-full">

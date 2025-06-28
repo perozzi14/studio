@@ -18,7 +18,7 @@ export const doctors = [
     location: "Caracas", 
     rating: 4.9, 
     reviewCount: 120, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "woman doctor",
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
@@ -39,7 +39,7 @@ export const doctors = [
     location: "Maracaibo", 
     rating: 4.8, 
     reviewCount: 98, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "man doctor",
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
@@ -60,7 +60,7 @@ export const doctors = [
     location: "Valencia", 
     rating: 4.9, 
     reviewCount: 150, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "doctor smile",
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
@@ -80,7 +80,7 @@ export const doctors = [
     location: "Caracas", 
     rating: 5.0, 
     reviewCount: 210, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "male doctor",
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
@@ -100,7 +100,7 @@ export const doctors = [
     location: "Maracaibo", 
     rating: 4.7, 
     reviewCount: 75, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "female doctor",
     services: [
       { id: 501, name: "Consulta Oncológica", price: 70 },
@@ -120,7 +120,7 @@ export const doctors = [
     location: "Caracas", 
     rating: 4.8, 
     reviewCount: 112, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "doctor portrait",
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
@@ -140,7 +140,7 @@ export const doctors = [
     location: "Valencia", 
     rating: 4.9, 
     reviewCount: 135, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "female doctor professional",
     services: [
       { id: 701, name: "Consulta Cardiológica", price: 50 },
@@ -160,7 +160,7 @@ export const doctors = [
     location: "Caracas", 
     rating: 4.7, 
     reviewCount: 88, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "male doctor smile",
     services: [
       { id: 801, name: "Consulta Dermatológica", price: 45 },
@@ -180,7 +180,7 @@ export const doctors = [
     location: "Maracaibo", 
     rating: 4.9, 
     reviewCount: 180, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "doctor woman",
     services: [
       { id: 901, name: "Consulta Ginecológica", price: 50 },
@@ -201,7 +201,7 @@ export const doctors = [
     location: "Valencia", 
     rating: 4.8, 
     reviewCount: 95, 
-    image: "https://placehold.co/300x300.png", 
+    image: "https://placehold.co/400x400.png", 
     aiHint: "doctor young",
     services: [
       { id: 1001, name: "Consulta Neumonológica", price: 55 },
@@ -218,3 +218,70 @@ export const doctors = [
 
 export type Doctor = (typeof doctors)[0];
 export type Service = (typeof doctors)[0]["services"][0];
+
+// New mock appointments data
+export const appointments = [
+  {
+    id: "appt-1",
+    patientName: "Elena Ríos",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-08-15",
+    time: "10:00",
+    services: [
+      { id: 101, name: "Consulta Cardiológica", price: 50 },
+      { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
+    ],
+    totalPrice: 80,
+    paymentMethod: 'transferencia' as const,
+    paymentStatus: 'Pendiente' as const,
+    paymentProof: 'https://placehold.co/400x200.png'
+  },
+  {
+    id: "appt-2",
+    patientName: "Jorge Paez",
+    doctorName: "Dr. Carlos Sanchez",
+    doctorId: 2,
+    date: "2024-08-15",
+    time: "14:00",
+    services: [
+      { id: 201, name: "Consulta Dermatológica", price: 45 },
+    ],
+    totalPrice: 45,
+    paymentMethod: 'efectivo' as const,
+    paymentStatus: 'Pendiente' as const,
+    paymentProof: null
+  },
+    {
+    id: "appt-3",
+    patientName: "Maria Castillo",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-08-16",
+    time: "09:00",
+    services: [
+      { id: 103, name: "Ecocardiograma", price: 80 },
+    ],
+    totalPrice: 80,
+    paymentMethod: 'transferencia' as const,
+    paymentStatus: 'Pagado' as const,
+    paymentProof: 'https://placehold.co/400x200.png'
+  },
+   {
+    id: "appt-4",
+    patientName: "Luis Ramirez",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: "2024-08-17",
+    time: "11:00",
+    services: [
+      { id: 101, name: "Consulta Cardiológica", price: 50 },
+    ],
+    totalPrice: 50,
+    paymentMethod: 'efectivo' as const,
+    paymentStatus: 'Pendiente' as const,
+    paymentProof: null
+  },
+];
+
+export type Appointment = (typeof appointments)[0];

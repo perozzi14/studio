@@ -16,15 +16,17 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // If the user data is not loaded yet, don't do anything.
-    // If it has loaded and is null, redirect to login.
+    // If the user data is loaded and is null, redirect to login.
     if (user === null) {
       router.push('/auth/login');
+    } else if (user?.role === 'doctor') {
+      // If a doctor lands here, redirect them to their dashboard
+      router.push('/doctor/dashboard');
     }
   }, [user, router]);
 
-  // Show a loading state while waiting for user data
-  if (!user) {
+  // Show a loading state while waiting for user data or redirection
+  if (!user || user.role !== 'patient') {
     return (
        <div className="flex flex-col min-h-screen">
         <Header />
