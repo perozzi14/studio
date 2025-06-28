@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, type Appointment, type Doctor, type Service } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,9 +36,24 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+
 
 // A simple mock for available times. In a real app, this would be more complex.
 const availableTimes = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+
+const chartConfig = {
+  income: {
+    label: "Ingresos",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
@@ -78,6 +93,42 @@ export default function DoctorDashboardPage() {
       setIsLoading(false);
     }
   }, [user, router]);
+  
+  const financialStats = useMemo(() => {
+    if (!appointments) return null;
+
+    const paidAppointments = appointments.filter(a => a.paymentStatus === 'Pagado');
+    const pendingAppointments = appointments.filter(a => a.paymentStatus === 'Pendiente');
+
+    const totalRevenue = paidAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
+    const pendingRevenue = pendingAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
+
+    const monthlyIncome = appointments
+        .filter(a => a.paymentStatus === 'Pagado')
+        .reduce((acc, appt) => {
+            const month = new Date(appt.date + 'T00:00:00').toLocaleString('es-ES', { month: 'short' });
+            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
+            if (!acc[capitalizedMonth]) {
+                acc[capitalizedMonth] = 0;
+            }
+            acc[capitalizedMonth] += appt.totalPrice;
+            return acc;
+        }, {} as Record<string, number>);
+    
+    // Ensure chronological order for the chart
+    const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const chartData = monthOrder
+      .filter(month => monthlyIncome[month] !== undefined)
+      .map(month => ({ month, income: monthlyIncome[month] }));
+
+    return {
+        totalRevenue,
+        pendingRevenue,
+        paidCount: paidAppointments.length,
+        pendingCount: pendingAppointments.length,
+        chartData
+    };
+  }, [appointments]);
 
   const handleConfirmPayment = (appointmentId: string) => {
     setAppointments(prev =>
@@ -150,7 +201,7 @@ export default function DoctorDashboardPage() {
   };
 
 
-  if (isLoading || !user || !doctorData) {
+  if (isLoading || !user || !doctorData || !financialStats) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -176,8 +227,9 @@ export default function DoctorDashboardPage() {
           <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
 
           <Tabs defaultValue="appointments" className="space-y-4">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="appointments">Citas</TabsTrigger>
+              <TabsTrigger value="finances">Finanzas</TabsTrigger>
               <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
               <TabsTrigger value="services">Mis Servicios</TabsTrigger>
               <TabsTrigger value="schedule">Mi Horario</TabsTrigger>
@@ -263,6 +315,75 @@ export default function DoctorDashboardPage() {
                   </Table>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="finances" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ingresos Totales (Pagado)</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${financialStats.totalRevenue.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">de {financialStats.paidCount} citas confirmadas</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Pagos Pendientes</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${financialStats.pendingRevenue.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">de {financialStats.pendingCount} citas pendientes</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Citas Pagadas</CardTitle>
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">+{financialStats.paidCount}</div>
+                            <p className="text-xs text-muted-foreground">Total de citas con pago exitoso</p>
+                        </CardContent>
+                    </Card>
+                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ingresos por Mes</CardTitle>
+                        <CardDescription>Un desglose de los ingresos confirmados mensualmente.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                            <BarChart accessibilityLayer data={financialStats.chartData}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                    dataKey="month"
+                                    tickLine={false}
+                                    tickMargin={10}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={10}
+                                    tickFormatter={(value) => `$${value}`}
+                                />
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent indicator="dot" />}
+                                />
+                                <Bar
+                                    dataKey="income"
+                                    fill="var(--color-primary)"
+                                    radius={8}
+                                />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
             </TabsContent>
 
             <TabsContent value="profile">
