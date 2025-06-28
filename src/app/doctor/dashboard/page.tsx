@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties, cities, locations } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties, cities, locations, type PaymentReport, type SupportTicket } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload, Phone } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload, Phone, LifeBuoy, ReceiptText, Send } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,12 +55,13 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const chartConfig = {
@@ -166,6 +167,8 @@ export default function DoctorDashboardPage() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
+  const [paymentReports, setPaymentReports] = useState<PaymentReport[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -206,6 +209,13 @@ export default function DoctorDashboardPage() {
     paymentMethod: 'efectivo' as 'efectivo' | 'transferencia',
   };
   const [newAppointment, setNewAppointment] = useState(initialNewAppointmentState);
+  
+  const [isReportPaymentOpen, setIsReportPaymentOpen] = useState(false);
+  const [newPaymentReport, setNewPaymentReport] = useState({ date: new Date(), reference: '', amount: ''});
+  
+  const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
+  const [newTicket, setNewTicket] = useState({ subject: '', message: '' });
+  const [ticketReply, setTicketReply] = useState('');
 
 
   const [weekDays, setWeekDays] = useState([
@@ -235,6 +245,9 @@ export default function DoctorDashboardPage() {
 
         const doctorExpenses = mockExpenses.filter(exp => exp.doctorId === loggedInDoctor.id);
         setExpenses(doctorExpenses);
+
+        setPaymentReports(loggedInDoctor.paymentReports);
+        setSupportTickets(loggedInDoctor.supportTickets);
       }
       setIsLoading(false);
     }
@@ -663,6 +676,67 @@ export default function DoctorDashboardPage() {
         title: "¡Cita Registrada!",
         description: `La cita para ${newPatient.name} ha sido creada exitosamente.`
     });
+};
+
+const handleReportPayment = () => {
+    if (!newPaymentReport.reference || !newPaymentReport.amount) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Por favor, complete todos los campos.' });
+        return;
+    }
+    const report: PaymentReport = {
+        id: `pay-${Date.now()}`,
+        date: format(newPaymentReport.date, 'yyyy-MM-dd'),
+        referenceNumber: newPaymentReport.reference,
+        amount: parseFloat(newPaymentReport.amount),
+        status: 'Pendiente',
+        proofUrl: 'https://placehold.co/400x200.png' // Mock URL
+    };
+    setPaymentReports(prev => [report, ...prev]);
+    setIsReportPaymentOpen(false);
+    setNewPaymentReport({ date: new Date(), reference: '', amount: '' });
+    toast({ title: 'Pago Reportado', description: 'Tu reporte de pago ha sido enviado para verificación.' });
+};
+
+const handleCreateTicket = () => {
+    if (!newTicket.subject || !newTicket.message) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Asunto y mensaje son requeridos.' });
+        return;
+    }
+    const ticket: SupportTicket = {
+        id: `tic-${Date.now()}`,
+        subject: newTicket.subject,
+        status: 'Abierto',
+        createdAt: new Date().toISOString().split('T')[0],
+        messages: [
+            { from: 'doctor', message: newTicket.message, date: new Date().toISOString() }
+        ]
+    };
+    setSupportTickets(prev => [ticket, ...prev]);
+    setIsNewTicketOpen(false);
+    setNewTicket({ subject: '', message: '' });
+    toast({ title: 'Ticket Creado', description: 'Tu solicitud de soporte ha sido enviada.' });
+};
+
+const handleReplyToTicket = (ticketId: string) => {
+    if (!ticketReply.trim()) return;
+
+    setSupportTickets(prev => prev.map(ticket => {
+        if (ticket.id === ticketId) {
+            const newMessage = {
+                from: 'doctor' as const,
+                message: ticketReply,
+                date: new Date().toISOString()
+            };
+            return {
+                ...ticket,
+                messages: [...ticket.messages, newMessage]
+            };
+        }
+        return ticket;
+    }));
+
+    setTicketReply('');
+    toast({ title: 'Respuesta Enviada' });
 };
 
 
@@ -1414,6 +1488,114 @@ export default function DoctorDashboardPage() {
                 </CardContent>
                </Card>
             )
+        case 'support':
+            return (
+                <Tabs defaultValue="payments">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="payments"><ReceiptText className="mr-2" /> Reportar Pagos</TabsTrigger>
+                        <TabsTrigger value="support"><LifeBuoy className="mr-2" /> Soporte Técnico</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="payments" className="mt-6">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Historial de Pagos Reportados</CardTitle>
+                                    <CardDescription>Aquí puedes ver el estado de tus pagos mensuales.</CardDescription>
+                                </div>
+                                <Button onClick={() => setIsReportPaymentOpen(true)}><PlusCircle className="mr-2"/> Reportar Nuevo Pago</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Referencia</TableHead>
+                                            <TableHead className="text-right">Monto</TableHead>
+                                            <TableHead className="text-center">Estado</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paymentReports.map(report => (
+                                            <TableRow key={report.id}>
+                                                <TableCell>{format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                <TableCell className="font-mono">{report.referenceNumber}</TableCell>
+                                                <TableCell className="text-right">${report.amount.toFixed(2)}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant={report.status === 'Verificado' ? 'default' : report.status === 'Rechazado' ? 'destructive' : 'secondary'} className={cn(report.status === 'Verificado' && 'bg-green-600 text-white')}>
+                                                        {report.status}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {paymentReports.length === 0 && (
+                                            <TableRow><TableCell colSpan={4} className="h-24 text-center">No has reportado pagos.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="support" className="mt-6">
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Mis Tickets de Soporte</CardTitle>
+                                    <CardDescription>Comunícate con el equipo de SUMA para cualquier duda o problema.</CardDescription>
+                                </div>
+                                <Button onClick={() => setIsNewTicketOpen(true)}><PlusCircle className="mr-2"/> Crear Nuevo Ticket</Button>
+                            </CardHeader>
+                            <CardContent>
+                                {supportTickets.length > 0 ? (
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {supportTickets.map(ticket => (
+                                            <AccordionItem value={ticket.id} key={ticket.id}>
+                                                <AccordionTrigger>
+                                                    <div className="flex-1 flex justify-between items-center pr-4">
+                                                        <div className="text-left">
+                                                            <p className="font-semibold">{ticket.subject}</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Creado: {format(new Date(ticket.createdAt + 'T00:00:00'), "d MMM, yyyy", { locale: es })}
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant={ticket.status === 'Abierto' ? 'destructive' : 'default'}>{ticket.status}</Badge>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="p-2 space-y-4">
+                                                   <div className="max-h-60 overflow-y-auto space-y-4 p-4 border rounded-md bg-muted/50">
+                                                        {ticket.messages.map((msg, index) => (
+                                                          <div key={index} className={cn("flex items-end gap-2", msg.from === 'doctor' ? "justify-end" : "justify-start")}>
+                                                            {msg.from === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>S</AvatarFallback></Avatar>}
+                                                            <div className={cn("max-w-xs md:max-w-md rounded-lg px-3 py-2", msg.from === 'doctor' ? "bg-primary text-primary-foreground" : "bg-background")}>
+                                                                <p className="text-sm">{msg.message}</p>
+                                                                <p className="text-xs opacity-70 mt-1 text-right">{format(new Date(msg.date), "d MMM, HH:mm", { locale: es })}</p>
+                                                            </div>
+                                                            {msg.from === 'doctor' && <Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar>}
+                                                          </div>
+                                                        ))}
+                                                   </div>
+                                                   {ticket.status === 'Abierto' && (
+                                                      <div className="flex items-start gap-2 pt-4 border-t">
+                                                          <Input
+                                                            placeholder="Escribe tu respuesta..."
+                                                            value={ticketReply}
+                                                            onChange={(e) => setTicketReply(e.target.value)}
+                                                            onKeyPress={(e) => e.key === 'Enter' && handleReplyToTicket(ticket.id)}
+                                                          />
+                                                          <Button onClick={() => handleReplyToTicket(ticket.id)}><Send className="h-4 w-4" /></Button>
+                                                      </div>
+                                                   )}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            )
         default:
             return null;
     }
@@ -1834,10 +2016,66 @@ export default function DoctorDashboardPage() {
               </DialogContent>
             </Dialog>
 
+            <Dialog open={isReportPaymentOpen} onOpenChange={setIsReportPaymentOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reportar Pago Mensual</DialogTitle>
+                        <DialogDescription>
+                            Completa los datos para registrar tu pago de la membresía.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Fecha del Pago</Label>
+                            <Calendar mode="single" selected={newPaymentReport.date} onSelect={(d) => setNewPaymentReport(p => ({...p, date: d || new Date()}))} className="rounded-md border" locale={es} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="payment-ref">Número de Referencia</Label>
+                            <Input id="payment-ref" value={newPaymentReport.reference} onChange={(e) => setNewPaymentReport(p => ({...p, reference: e.target.value}))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="payment-amount">Monto ($)</Label>
+                            <Input id="payment-amount" type="number" value={newPaymentReport.amount} onChange={(e) => setNewPaymentReport(p => ({...p, amount: e.target.value}))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="payment-proof">Comprobante de Pago</Label>
+                            <Input id="payment-proof" type="file" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                        <Button onClick={handleReportPayment}>Enviar Reporte</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Crear Nuevo Ticket de Soporte</DialogTitle>
+                        <DialogDescription>
+                            Explica tu problema o duda y te responderemos a la brevedad.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="ticket-subject">Asunto</Label>
+                            <Input id="ticket-subject" value={newTicket.subject} onChange={(e) => setNewTicket(p => ({...p, subject: e.target.value}))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ticket-message">Mensaje</Label>
+                            <Textarea id="ticket-message" value={newTicket.message} onChange={(e) => setNewTicket(p => ({...p, message: e.target.value}))} rows={5}/>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                        <Button onClick={handleCreateTicket}>Crear Ticket</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
       </main>
     </div>
   );
 }
-
-    

@@ -55,6 +55,30 @@ export type Schedule = {
   sunday: DaySchedule;
 };
 
+export type PaymentReport = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  referenceNumber: string;
+  amount: number;
+  status: 'Pendiente' | 'Verificado' | 'Rechazado';
+  proofUrl: string;
+  notes?: string; 
+};
+
+export type SupportTicketMessage = {
+    from: 'doctor' | 'admin';
+    message: string;
+    date: string;
+};
+
+export type SupportTicket = {
+  id: string;
+  subject: string;
+  status: 'Abierto' | 'Cerrado';
+  messages: SupportTicketMessage[];
+  createdAt: string; // YYYY-MM-DD
+};
+
 
 export type Doctor = {
   id: number;
@@ -76,6 +100,8 @@ export type Doctor = {
   coupons: Coupon[];
   schedule: Schedule;
   slotDuration: 30 | 60;
+  paymentReports: PaymentReport[];
+  supportTickets: SupportTicket[];
 };
 
 const defaultSchedule: Schedule = {
@@ -139,7 +165,33 @@ export const doctors: Doctor[] = [
         friday: { active: true, slots: [{ start: "09:00", end: "15:00" }] },
         saturday: { active: false, slots: [] },
         sunday: { active: false, slots: [] },
-    }
+    },
+    paymentReports: [
+        { id: 'pay-1', date: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0], referenceNumber: 'REF-123-LAST', amount: 50, status: 'Verificado', proofUrl: 'https://placehold.co/400x200.png' },
+        { id: 'pay-2', date: new Date().toISOString().split('T')[0], referenceNumber: 'REF-456-THIS', amount: 50, status: 'Pendiente', proofUrl: 'https://placehold.co/400x200.png' },
+    ],
+    supportTickets: [
+        { 
+            id: 'tic-1', 
+            subject: 'Problema con la carga de horarios', 
+            status: 'Cerrado', 
+            createdAt: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0],
+            messages: [
+                { from: 'doctor', message: 'No puedo guardar los cambios en mi horario del viernes.', date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString() },
+                { from: 'admin', message: 'Hola Dr. Ana, hemos revisado el problema y ya debería estar solucionado. Por favor, intente de nuevo.', date: new Date(new Date().setDate(new Date().getDate() - 9)).toISOString() },
+                { from: 'doctor', message: '¡Perfecto, ya funciona! Gracias.', date: new Date(new Date().setDate(new Date().getDate() - 9)).toISOString() }
+            ]
+        },
+        { 
+            id: 'tic-2', 
+            subject: 'Consulta sobre facturación', 
+            status: 'Abierto', 
+            createdAt: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
+            messages: [
+                { from: 'doctor', message: 'Quisiera saber cuándo se emite la factura del mes.', date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString() },
+            ]
+        }
+    ]
   },
   { 
     id: 2, 
@@ -171,6 +223,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 3, 
@@ -201,6 +255,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 4, 
@@ -231,6 +287,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 5, 
@@ -261,6 +319,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 6, 
@@ -291,6 +351,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 7, 
@@ -321,6 +383,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 8, 
@@ -351,6 +415,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 9, 
@@ -382,6 +448,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
   { 
     id: 10, 
@@ -412,6 +480,8 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
+    paymentReports: [],
+    supportTickets: [],
   },
 ];
 
@@ -592,35 +662,35 @@ export const mockExpenses: Expense[] = [
   { 
     id: 'exp-1', 
     doctorId: 1, 
-    date: new Date(new Date().setDate(1)).toISOString().split('T')[0], // 1st of current month
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     description: 'Alquiler de consultorio', 
     amount: 500 
   },
   { 
     id: 'exp-2', 
     doctorId: 1, 
-    date: new Date(new Date().setDate(5)).toISOString().split('T')[0], // 5th of current month
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 5).toISOString().split('T')[0],
     description: 'Materiales médicos', 
     amount: 150 
   },
   { 
     id: 'exp-3', 
     doctorId: 1, 
-    date: new Date(new Date().setMonth(new Date().getMonth() - 1, 10)).toISOString().split('T')[0], // 10th of last month
+    date: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 10).toISOString().split('T')[0],
     description: 'Pago de servicios (luz, agua)', 
     amount: 80 
   },
   { 
     id: 'exp-4', 
     doctorId: 1, 
-    date: new Date(new Date().setDate(12)).toISOString().split('T')[0], // 12th of current month
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString().split('T')[0],
     description: 'Suscripción software médico', 
     amount: 45 
   },
   { 
     id: 'exp-5', 
     doctorId: 1, 
-    date: new Date(new Date().setMonth(new Date().getMonth() - 1, 20)).toISOString().split('T')[0], // 20th of last month
+    date: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 20).toISOString().split('T')[0],
     description: 'Insumos de oficina', 
     amount: 35 
   },
