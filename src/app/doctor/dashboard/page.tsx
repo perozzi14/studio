@@ -204,8 +204,7 @@ export default function DoctorDashboardPage() {
     const past: Appointment[] = [];
 
     appointments.forEach(appt => {
-        const apptDate = new Date(appt.date);
-        apptDate.setHours(0,0,0,0);
+        const apptDate = new Date(appt.date + 'T00:00:00');
         if (apptDate >= today) {
             upcoming.push(appt);
         } else {
@@ -977,7 +976,7 @@ export default function DoctorDashboardPage() {
                                         </Badge>
                                     </div>
                                 </CardContent>
-                                {(new Date(selectedAppointment.date + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)) && selectedAppointment.attendance === 'Pendiente') && (
+                                {(new Date(selectedAppointment.date + 'T00:00:00') <= new Date(new Date().setHours(0,0,0,0)) && selectedAppointment.attendance === 'Pendiente') && (
                                     <CardFooter className="justify-end gap-2">
                                         <Button
                                             variant="outline"
