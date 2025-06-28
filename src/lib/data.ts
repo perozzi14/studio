@@ -318,7 +318,7 @@ export const appointments: Appointment[] = [
     patientName: "Elena Ríos",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-09-15",
+    date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0], // In 2 days
     time: "10:00",
     services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
@@ -332,9 +332,37 @@ export const appointments: Appointment[] = [
     patientName: "Maria Castillo",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-09-18",
+    date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], // In 5 days
     time: "09:00",
     services: [ { id: 103, name: "Ecocardiograma", price: 80 } ],
+    totalPrice: 80,
+    paymentMethod: 'transferencia',
+    paymentStatus: 'Pagado',
+    paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Pendiente'
+  },
+  {
+    id: "appt-7",
+    patientName: "Carlos Briceño",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: new Date().toISOString().split('T')[0], // Today
+    time: "14:00",
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
+    totalPrice: 50,
+    paymentMethod: 'efectivo',
+    paymentStatus: 'Pendiente',
+    paymentProof: null,
+    attendance: 'Pendiente'
+  },
+  {
+    id: "appt-8",
+    patientName: "Lucia Méndez",
+    doctorName: "Dr. Ana Rodriguez",
+    doctorId: 1,
+    date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0], // Tomorrow
+    time: "11:00",
+    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
@@ -347,7 +375,7 @@ export const appointments: Appointment[] = [
     patientName: "Jorge Paez",
     doctorName: "Dr. Carlos Sanchez",
     doctorId: 2,
-    date: "2024-09-15",
+    date: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString().split('T')[0], // In 3 days
     time: "14:00",
     services: [ { id: 201, name: "Consulta Dermatológica", price: 45 } ],
     totalPrice: 45,
@@ -397,7 +425,7 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
     paymentProof: null,
-    attendance: 'Pendiente'
+    attendance: 'Atendido'
   }
 ];
 

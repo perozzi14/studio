@@ -471,6 +471,7 @@ export default function DoctorDashboardPage() {
                                     <TableRow>
                                         <TableHead>Paciente</TableHead>
                                         <TableHead>Fecha</TableHead>
+                                        <TableHead>Método</TableHead>
                                         <TableHead>Pago</TableHead>
                                         <TableHead className="text-center">Asistencia</TableHead>
                                     </TableRow>
@@ -480,6 +481,7 @@ export default function DoctorDashboardPage() {
                                         <TableRow key={appt.id}>
                                             <TableCell className="font-medium">{appt.patientName}</TableCell>
                                             <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                            <TableCell className="capitalize">{appt.paymentMethod}</TableCell>
                                             <TableCell>
                                                 <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
                                                     {appt.paymentStatus}
@@ -511,7 +513,7 @@ export default function DoctorDashboardPage() {
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                            <TableCell colSpan={5} className="text-center h-24">No hay citas en el historial.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
