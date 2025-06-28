@@ -226,11 +226,11 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
     <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-xl">
       <CardContent className="p-0">
-        <div className="aspect-w-1 aspect-h-1">
+        <div className="aspect-w-4 aspect-h-3">
           <Image
-            src={doctor.image}
+            src={doctor.profileImage}
             alt={`Dr. ${doctor.name}`}
-            width={300}
+            width={400}
             height={300}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
             data-ai-hint={doctor.aiHint}

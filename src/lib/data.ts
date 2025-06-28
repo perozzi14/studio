@@ -41,7 +41,8 @@ export type Doctor = {
   description: string;
   rating: number;
   reviewCount: number;
-  image: string;
+  profileImage: string;
+  bannerImage: string;
   aiHint: string;
   services: Service[];
   bankDetails: BankDetail[];
@@ -59,7 +60,8 @@ export const doctors: Doctor[] = [
     description: "Cardióloga con más de 15 años de experiencia en prevención y tratamiento de enfermedades cardiovasculares. Comprometida con el bienestar de mis pacientes.",
     rating: 4.9, 
     reviewCount: 120, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "woman doctor",
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
@@ -97,7 +99,8 @@ export const doctors: Doctor[] = [
     description: "Especialista en dermatología clínica y estética. Dedicado a la salud de la piel con tratamientos de vanguardia y atención personalizada.",
     rating: 4.8, 
     reviewCount: 98, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "man doctor",
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
@@ -123,7 +126,8 @@ export const doctors: Doctor[] = [
     description: "Neuróloga apasionada por el diagnóstico y tratamiento de trastornos del sistema nervioso. Mi objetivo es mejorar la calidad de vida de mis pacientes.",
     rating: 4.9, 
     reviewCount: 150, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor smile",
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
@@ -148,7 +152,8 @@ export const doctors: Doctor[] = [
     description: "Pediatra dedicado al cuidado integral de niños y adolescentes. Creo en una medicina preventiva y cercana a las familias.",
     rating: 5.0, 
     reviewCount: 210, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor",
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
@@ -173,7 +178,8 @@ export const doctors: Doctor[] = [
     description: "Oncóloga con enfoque en el tratamiento multidisciplinario del cáncer, ofreciendo apoyo y las mejores terapias disponibles a mis pacientes.",
     rating: 4.7, 
     reviewCount: 75, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor",
     services: [
       { id: 501, name: "Consulta Oncológica", price: 70 },
@@ -198,7 +204,8 @@ export const doctors: Doctor[] = [
     description: "Traumatólogo y Ortopedista especializado en lesiones deportivas y cirugía artroscópica. Mi misión es devolver el movimiento sin dolor.",
     rating: 4.8, 
     reviewCount: 112, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor portrait",
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
@@ -223,7 +230,8 @@ export const doctors: Doctor[] = [
     description: "Me especializo en el diagnóstico no invasivo de enfermedades cardíacas, utilizando tecnología de punta para una evaluación precisa.",
     rating: 4.9, 
     reviewCount: 135, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor professional",
     services: [
       { id: 701, name: "Consulta Cardiológica", price: 50 },
@@ -248,7 +256,8 @@ export const doctors: Doctor[] = [
     description: "Dermatólogo con amplia experiencia en acné, rosácea y cáncer de piel. Ofrezco soluciones efectivas para todo tipo de pieles.",
     rating: 4.7, 
     reviewCount: 88, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor smile",
     services: [
       { id: 801, name: "Consulta Dermatológica", price: 45 },
@@ -273,7 +282,8 @@ export const doctors: Doctor[] = [
     description: "Ginecóloga-Obstetra dedicada a la salud integral de la mujer en todas sus etapas, desde la adolescencia hasta la menopausia.",
     rating: 4.9, 
     reviewCount: 180, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor woman",
     services: [
       { id: 901, name: "Consulta Ginecológica", price: 50 },
@@ -299,7 +309,8 @@ export const doctors: Doctor[] = [
     description: "Neumonólogo experto en asma, EPOC y trastornos del sueño. Mi enfoque es mejorar la función respiratoria y la calidad de vida.",
     rating: 4.8, 
     reviewCount: 95, 
-    image: "https://placehold.co/400x400.png", 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor young",
     services: [
       { id: 1001, name: "Consulta Neumonológica", price: 55 },

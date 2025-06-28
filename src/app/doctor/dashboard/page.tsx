@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 // A simple mock for available times. In a real app, this would be more complex.
@@ -141,7 +142,7 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails 
 
 
 export default function DoctorDashboardPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const view = searchParams.get('view') || 'appointments';
@@ -297,7 +298,15 @@ export default function DoctorDashboardPage() {
         address: formData.get('address') as string,
         description: formData.get('description') as string,
     };
+    
+    // In a real application, you would handle file uploads here
+    // For this prototype, we'll just acknowledge the form data
     setDoctorData(updatedData);
+
+    if (user?.name !== updatedData.name) {
+      updateUser({ name: updatedData.name });
+    }
+
     toast({
         title: "¡Perfil Actualizado!",
         description: "Tu información pública ha sido guardada.",
@@ -711,7 +720,29 @@ export default function DoctorDashboardPage() {
                     <CardDescription>Actualiza tu información pública. Estos datos serán visibles para los pacientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg">
+                    <form onSubmit={handleProfileUpdate} className="space-y-6 max-w-lg">
+                        <div className="space-y-4">
+                            <div>
+                                <Label>Foto de Perfil</Label>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <Avatar className="h-20 w-20">
+                                        <AvatarImage src={doctorData.profileImage} alt="Foto de perfil" />
+                                        <AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <Input id="profileImage" name="profileImage" type="file" className="flex-1" />
+                                </div>
+                            </div>
+                            <div>
+                                <Label>Foto de Banner (Consultorio)</Label>
+                                <div className="mt-2">
+                                    <div className="aspect-video w-full rounded-md border overflow-hidden mb-2 bg-muted">
+                                    <Image src={doctorData.bannerImage} alt="Banner del consultorio" width={1280} height={720} className="object-cover w-full h-full" />
+                                    </div>
+                                    <Input id="bannerImage" name="bannerImage" type="file" />
+                                </div>
+                            </div>
+                        </div>
+                        <Separator />
                         <div className="space-y-2">
                            <Label htmlFor="name">Nombre Completo</Label>
                            <Input id="name" name="name" defaultValue={doctorData.name} />

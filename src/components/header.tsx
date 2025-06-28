@@ -73,6 +73,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8">
+                    {user.profileImage && <AvatarImage src={user.profileImage} alt={user.name} />}
                     <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -156,6 +157,7 @@ export function Header() {
                     <div className="space-y-4">
                        <div className="flex items-center gap-3">
                          <Avatar>
+                           {user.profileImage && <AvatarImage src={user.profileImage} alt={user.name} />}
                            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                          </Avatar>
                          <div>

@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { doctors } from './data';
 
 interface User {
   name: string;
@@ -10,6 +11,7 @@ interface User {
   role: 'patient' | 'doctor';
   age: number | null;
   gender: 'masculino' | 'femenino' | 'otro' | null;
+  profileImage: string | null;
 }
 
 interface AuthContextType {
@@ -41,12 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, name: string = 'Nuevo Usuario') => {
     let loggedInUser: User;
     if (email.toLowerCase() === 'doctor@admin.com') {
-      loggedInUser = { email, name: 'Doctor Admin', role: 'doctor', age: null, gender: null };
+      const doctorInfo = doctors.find(d => d.id === 1);
+      loggedInUser = { 
+        email, 
+        name: 'Doctor Admin', 
+        role: 'doctor', 
+        age: null, 
+        gender: null,
+        profileImage: doctorInfo?.profileImage || null
+      };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/doctor/dashboard');
     } else {
-      loggedInUser = { email, name, role: 'patient', age: null, gender: null };
+      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/dashboard');

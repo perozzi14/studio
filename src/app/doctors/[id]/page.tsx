@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DoctorProfilePage() {
   const params = useParams();
@@ -67,7 +68,6 @@ export default function DoctorProfilePage() {
         discount = coupon.value;
       }
       
-      // Ensure discount doesn't exceed subtotal
       const finalDiscount = Math.min(discount, subtotal);
 
       setDiscountAmount(finalDiscount);
@@ -415,55 +415,54 @@ export default function DoctorProfilePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 py-8 md:py-12">
+      <main className="flex-1 py-8 md:py-12 bg-muted/40">
         <div className="container max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-             <div className="md:col-span-1">
-                <Card className="overflow-hidden sticky top-24">
-                    <div className="aspect-w-1 aspect-h-1">
-                      <Image
-                        src={doctor.image}
-                        alt={`Dr. ${doctor.name}`}
-                        width={400}
-                        height={400}
-                        className="w-full h-full object-cover"
-                        data-ai-hint={doctor.aiHint}
-                      />
+          
+          <Card className="mb-8 overflow-hidden">
+            <div className="relative">
+                <Image
+                    src={doctor.bannerImage}
+                    alt={`Consultorio de ${doctor.name}`}
+                    width={1200}
+                    height={400}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint="medical office"
+                />
+                <div className="absolute -bottom-16 left-8">
+                    <Avatar className="h-32 w-32 border-4 border-background bg-muted">
+                        <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                        <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                </div>
+            </div>
+            <div className="pt-20 px-8 pb-6">
+                 <h2 className="text-3xl font-bold font-headline">{doctor.name}</h2>
+                 <p className="text-primary font-medium text-xl">{doctor.specialty}</p>
+                  <div className="flex items-center gap-1.5 mt-2 text-sm">
+                    <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                    <span className="font-bold">{doctor.rating}</span>
+                    <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>
+                </div>
+            </div>
+             <Separator/>
+              <div className="p-8 space-y-4">
+                  <p className="text-sm text-muted-foreground">{doctor.description}</p>
+                   <div className="flex items-start gap-2 text-muted-foreground mt-2 text-sm">
+                        <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+                        <div>
+                            <p className="font-medium text-foreground">{doctor.address}</p>
+                            <p>{doctor.sector}, {doctor.city}</p>
+                        </div>
                     </div>
-                     <div className="p-4 border-t">
-                        <h2 className="text-xl font-bold font-headline">{doctor.name}</h2>
-                        <p className="text-primary font-medium text-lg">{doctor.specialty}</p>
-                        
-                        <p className="text-sm text-muted-foreground mt-2">{doctor.description}</p>
-                        
-                        <Separator className="my-3"/>
-                        
-                        <div className="flex items-start gap-2 text-muted-foreground mt-2 text-sm">
-                            <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">{doctor.address}</p>
-                                <p>{doctor.sector}, {doctor.city}</p>
-                            </div>
-                        </div>
+              </div>
+          </Card>
+          
+          <Card>
+              {renderStepContent()}
+          </Card>
 
-                        <div className="flex items-center gap-1.5 mt-2 text-sm">
-                            <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                            <span className="font-bold">{doctor.rating}</span>
-                            <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>
-                        </div>
-                     </div>
-                </Card>
-             </div>
-             <div className="md:col-span-2">
-                <Card>
-                    {renderStepContent()}
-                </Card>
-             </div>
-          </div>
         </div>
       </main>
     </div>
   );
 }
-
-    
