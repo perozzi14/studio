@@ -11,6 +11,14 @@ export const specialties = [
   "Neumonología",
 ];
 
+export const locations: Record<string, string[]> = {
+  "Caracas": ["Chacao", "Las Mercedes", "San Bernardino", "Altamira"],
+  "Maracaibo": ["Tierra Negra", "La Lago", "Indio Mara"],
+  "Valencia": ["El Viñedo", "Prebo", "La Trigaleña"],
+};
+
+export const cities = Object.keys(locations);
+
 export type BankDetail = {
   id: number;
   bank: string;

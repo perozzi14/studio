@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties, cities, locations } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload } from 'lucide-react';
 import {
@@ -385,8 +385,6 @@ export default function DoctorDashboardPage() {
     const updatedData = {
         ...doctorData,
         name: formData.get('name') as string,
-        city: formData.get('city') as string,
-        sector: formData.get('sector') as string,
         address: formData.get('address') as string,
         description: formData.get('description') as string,
     };
@@ -989,14 +987,51 @@ export default function DoctorDashboardPage() {
                              </SelectContent>
                            </Select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                               <Label htmlFor="city">Ciudad</Label>
-                               <Input id="city" name="city" defaultValue={doctorData.city} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="city">Ciudad</Label>
+                                <Select
+                                    value={doctorData.city}
+                                    onValueChange={(value) => {
+                                        if (doctorData) {
+                                            setDoctorData({ ...doctorData, city: value, sector: '' });
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger id="city">
+                                        <SelectValue placeholder="Selecciona una ciudad" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cities.map(c => (
+                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                             <div className="space-y-2">
-                               <Label htmlFor="sector">Sector</Label>
-                               <Input id="sector" name="sector" defaultValue={doctorData.sector} />
+                            <div className="space-y-2">
+                                <Label htmlFor="sector">Sector</Label>
+                                <Select
+                                    value={doctorData.sector}
+                                    onValueChange={(value) => {
+                                        if (doctorData) {
+                                            setDoctorData({ ...doctorData, sector: value });
+                                        }
+                                    }}
+                                    disabled={!doctorData.city}
+                                >
+                                    <SelectTrigger id="sector">
+                                        <SelectValue placeholder="Selecciona un sector" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {doctorData.city && locations[doctorData.city] ? (
+                                            locations[doctorData.city].map(s => (
+                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="" disabled>Selecciona una ciudad primero</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                          <div className="space-y-2">
