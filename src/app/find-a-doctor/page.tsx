@@ -201,7 +201,7 @@ export default function FindDoctorPage() {
               : "médicos encontrados"}
           </h2>
           {filteredDoctors.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDoctors.map((doctor) => (
                 <DoctorCard key={doctor.id} doctor={doctor} />
               ))}
@@ -224,33 +224,33 @@ export default function FindDoctorPage() {
 
 function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
-    <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-xl">
-      <CardContent className="p-0">
-        <div className="aspect-w-4 aspect-h-3">
+    <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-lg w-full">
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
           <Image
             src={doctor.profileImage}
             alt={`Dr. ${doctor.name}`}
-            width={400}
-            height={300}
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 96px, 112px"
+            className="rounded-lg object-cover"
             data-ai-hint={doctor.aiHint}
           />
         </div>
-        <div className="p-6">
-          <h3 className="text-xl font-bold font-headline">{doctor.name}</h3>
-          <p className="text-primary font-medium">{doctor.specialty}</p>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
-            <MapPin className="h-4 w-4" />
+        <div className="flex flex-col flex-grow h-full">
+          <h3 className="text-lg font-bold font-headline leading-tight">{doctor.name}</h3>
+          <p className="text-primary font-medium text-sm">{doctor.specialty}</p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <MapPin className="h-3 w-3" />
             <span>{doctor.city}</span>
           </div>
-          <div className="flex items-center gap-1 text-sm mt-2">
+          <div className="flex items-center gap-1 text-xs mt-1">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
             <span className="font-bold">{doctor.rating}</span>
             <span className="text-muted-foreground">
               ({doctor.reviewCount} reseñas)
             </span>
           </div>
-          <Button className="w-full mt-6" asChild>
+          <Button className="w-full mt-auto" size="sm" asChild>
             <Link href={`/doctors/${doctor.id}`}>Reservar Cita</Link>
           </Button>
         </div>
