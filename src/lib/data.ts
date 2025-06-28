@@ -77,6 +77,8 @@ export type Doctor = {
   lastPaymentDate: string;
   email: string;
   whatsapp: string;
+  lat: number;
+  lng: number;
 };
 
 export type Seller = {
@@ -173,7 +175,9 @@ export const doctors: Doctor[] = [
     status: 'active',
     lastPaymentDate: '2024-05-28',
     email: 'ana.rodriguez.dr@email.com',
-    whatsapp: '0414-1234567'
+    whatsapp: '0414-1234567',
+    lat: 10.4996,
+    lng: -66.8528
   },
   { 
     id: 2, 
@@ -207,7 +211,9 @@ export const doctors: Doctor[] = [
     status: 'active',
     lastPaymentDate: '2024-05-25',
     email: 'carlos.sanchez.dr@email.com',
-    whatsapp: '0412-2345678'
+    whatsapp: '0412-2345678',
+    lat: 10.6667,
+    lng: -71.6125
   },
   { 
     id: 3, 
@@ -240,7 +246,9 @@ export const doctors: Doctor[] = [
     status: 'inactive',
     lastPaymentDate: '2024-03-15',
     email: 'sofia.gomez.dr@email.com',
-    whatsapp: '0424-3456789'
+    whatsapp: '0424-3456789',
+    lat: 10.2117,
+    lng: -68.0019
   },
   { 
     id: 4, 
@@ -273,7 +281,9 @@ export const doctors: Doctor[] = [
     status: 'active',
     lastPaymentDate: '2024-05-29',
     email: 'luis.fernandez.dr@email.com',
-    whatsapp: '0416-4567890'
+    whatsapp: '0416-4567890',
+    lat: 10.4789,
+    lng: -66.8533
   },
   { 
     id: 6, 
@@ -306,8 +316,46 @@ export const doctors: Doctor[] = [
     status: 'inactive',
     lastPaymentDate: '2024-04-30',
     email: 'javier.torres.dr@email.com',
-    whatsapp: '0414-6789012'
+    whatsapp: '0414-6789012',
+    lat: 10.5120,
+    lng: -66.9037
   },
+  { 
+    id: 7, 
+    name: "Dra. Laura Montes", 
+    specialty: "Medicina Estética", 
+    city: "Caracas", 
+    address: "Av. Principal de Santa Fe, CC Santa Fe, Nivel C3",
+    sector: "Santa Fe",
+    rating: 5.0, 
+    reviewCount: 85, 
+    profileImage: "https://placehold.co/400x400.png",
+    bannerImage: "https://placehold.co/1200x400.png",
+    aiHint: "aesthetic doctor",
+    description: "Médico estético especializada en rejuvenecimiento facial y tratamientos corporales no invasivos. Apasionada por realzar la belleza natural de cada paciente.",
+    services: [
+      { id: 701, name: "Aplicación de Toxina Botulínica", price: 250 },
+      { id: 702, name: "Relleno con Ácido Hialurónico", price: 300 },
+      { id: 703, name: "Plasma Rico en Plaquetas (PRP)", price: 150 },
+    ],
+    bankDetails: [{
+      id: 7001,
+      bank: "Banesco",
+      accountNumber: "0134-0007-0007-0007-0007",
+      accountHolder: "Laura Montes",
+      idNumber: "V-17.111.222"
+    }],
+    coupons: [],
+    slotDuration: 60,
+    schedule: defaultSchedule,
+    sellerId: null,
+    status: 'active',
+    lastPaymentDate: '2024-05-22',
+    email: 'laura.montes.dr@email.com',
+    whatsapp: '0412-7890123',
+    lat: 10.4515,
+    lng: -66.8505
+  }
 ];
 
 
@@ -533,6 +581,8 @@ export type SellerPayment = {
   amount: number;
   period: string; // e.g., "Mayo 2024"
   includedDoctors: { id: number; name: string }[];
+  paymentProofUrl: string;
+  transactionId: string;
 };
 
 export const mockSellerPayments: SellerPayment[] = [
@@ -546,7 +596,9 @@ export const mockSellerPayments: SellerPayment[] = [
       { id: 1, name: "Dr. Ana Rodriguez" },
       { id: 2, name: "Dr. Carlos Sanchez" },
       { id: 4, name: "Dr. Luis Fernandez" },
-    ]
+    ],
+    paymentProofUrl: 'https://placehold.co/400x200.png',
+    transactionId: 'TXN-SUMA-20240516-001'
   },
   {
     id: 'pay-2',
@@ -557,7 +609,9 @@ export const mockSellerPayments: SellerPayment[] = [
     includedDoctors: [
       { id: 1, name: "Dr. Ana Rodriguez" },
       { id: 2, name: "Dr. Carlos Sanchez" },
-    ]
+    ],
+    paymentProofUrl: 'https://placehold.co/400x200.png',
+    transactionId: 'TXN-SUMA-20240416-001'
   },
     {
     id: 'pay-3',
@@ -568,7 +622,9 @@ export const mockSellerPayments: SellerPayment[] = [
     includedDoctors: [
         { id: 1, name: "Dr. Ana Rodriguez" },
         { id: 2, name: "Dr. Carlos Sanchez" },
-    ]
+    ],
+    paymentProofUrl: 'https://placehold.co/400x200.png',
+    transactionId: 'TXN-SUMA-20240316-001'
   }
 ];
 

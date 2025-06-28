@@ -22,11 +22,6 @@ import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -102,6 +97,9 @@ export default function SellerDashboardPage() {
   const [idNumber, setIdNumber] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   
+  const [isPaymentDetailDialogOpen, setIsPaymentDetailDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<SellerPayment | null>(null);
+
   useEffect(() => {
     if (user === undefined) return;
     if (user === null) {
@@ -195,6 +193,10 @@ export default function SellerDashboardPage() {
     setSellerData({ ...sellerData, bankDetails: updatedBankDetails });
   };
 
+  const handleViewPaymentDetails = (payment: SellerPayment) => {
+    setSelectedPayment(payment);
+    setIsPaymentDetailDialogOpen(true);
+  };
 
   if (isLoading || !user || user.role !== 'seller' || !sellerData) {
     return (
@@ -364,8 +366,9 @@ export default function SellerDashboardPage() {
                                         <TableRow>
                                             <TableHead>Fecha de Pago</TableHead>
                                             <TableHead>Período de Comisión</TableHead>
-                                            <TableHead className="text-center">Médicos Pagados</TableHead>
+                                            <TableHead>Médicos Pagados</TableHead>
                                             <TableHead className="text-right">Monto Recibido</TableHead>
+                                            <TableHead className="text-center">Acciones</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -373,29 +376,18 @@ export default function SellerDashboardPage() {
                                             <TableRow key={payment.id}>
                                                 <TableCell className="font-medium">{format(new Date(payment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                                 <TableCell>{payment.period}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="link" className="text-sm p-0 h-auto">
-                                                                <Eye className="mr-2 h-4 w-4"/>
-                                                                Ver {payment.includedDoctors.length} médicos
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-64 p-2">
-                                                            <div className="space-y-1">
-                                                                <p className="font-semibold text-sm px-2">Médicos incluidos:</p>
-                                                                <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                                                    {payment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}
-                                                                </ul>
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                </TableCell>
+                                                <TableCell>{payment.includedDoctors.length}</TableCell>
                                                 <TableCell className="text-right font-mono text-green-600 font-semibold">${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button variant="outline" size="sm" onClick={() => handleViewPaymentDetails(payment)}>
+                                                        <Eye className="mr-2 h-4 w-4"/>
+                                                        Ver Detalles
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">No has recibido pagos aún.</TableCell>
+                                                <TableCell colSpan={5} className="h-24 text-center">No has recibido pagos aún.</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
@@ -412,22 +404,10 @@ export default function SellerDashboardPage() {
                                                 <p className="text-lg font-bold font-mono text-green-600">${payment.amount.toFixed(2)}</p>
                                             </div>
                                             <Separator/>
-                                             <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="w-full">
-                                                        <Eye className="mr-2 h-4 w-4"/>
-                                                        Ver {payment.includedDoctors.length} médicos incluidos
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-64 p-2">
-                                                    <div className="space-y-1">
-                                                        <p className="font-semibold text-sm px-2">Médicos incluidos:</p>
-                                                        <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                                            {payment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}
-                                                        </ul>
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewPaymentDetails(payment)}>
+                                                <Eye className="mr-2 h-4 w-4"/>
+                                                Ver Detalles del Pago
+                                            </Button>
                                         </div>
                                      )) : (
                                         <div className="h-24 text-center flex items-center justify-center text-muted-foreground">No has recibido pagos aún.</div>
@@ -663,8 +643,46 @@ export default function SellerDashboardPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        <Dialog open={isPaymentDetailDialogOpen} onOpenChange={setIsPaymentDetailDialogOpen}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Detalles del Pago</DialogTitle>
+                    <DialogDescription>
+                        Resumen del pago de comisiones para el período {selectedPayment?.period}.
+                    </DialogDescription>
+                </DialogHeader>
+                {selectedPayment && (
+                    <div className="py-2 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+                        <div className="space-y-1">
+                            <p><span className="font-semibold">Fecha de Pago:</span> {format(new Date(selectedPayment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                            <p><span className="font-semibold">Monto:</span> <span className="font-bold text-green-600">${selectedPayment.amount.toFixed(2)}</span></p>
+                            <p><span className="font-semibold">ID de Transacción:</span> <span className="font-mono text-xs">{selectedPayment.transactionId}</span></p>
+                        </div>
+                        <Separator/>
+                        <div>
+                            <h4 className="font-semibold mb-2">Comprobante de Pago de SUMA</h4>
+                            <div className="relative aspect-video">
+                                <Image src={selectedPayment.paymentProofUrl} alt="Comprobante de pago" fill className="rounded-md border object-contain" data-ai-hint="payment receipt"/>
+                            </div>
+                        </div>
+                        <Separator/>
+                        <div>
+                            <h4 className="font-semibold mb-2">Médicos Incluidos ({selectedPayment.includedDoctors.length})</h4>
+                            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                                {selectedPayment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}
+                            </ul>
+                        </div>
+                    </div>
+                )}
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline">Cerrar</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 }
-
-    
