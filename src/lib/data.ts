@@ -510,3 +510,50 @@ export const mockExpenses: Expense[] = [
     amount: 35 
   },
 ];
+
+
+export type SellerPayment = {
+  id: string;
+  sellerId: number;
+  paymentDate: string; // YYYY-MM-DD
+  amount: number;
+  period: string; // e.g., "Mayo 2024"
+  includedDoctors: { id: number; name: string }[];
+};
+
+export const mockSellerPayments: SellerPayment[] = [
+  {
+    id: 'pay-1',
+    sellerId: 1,
+    paymentDate: '2024-05-16',
+    amount: 30.00, // 3 active doctors * $10
+    period: 'Abril 2024',
+    includedDoctors: [
+      { id: 1, name: "Dr. Ana Rodriguez" },
+      { id: 2, name: "Dr. Carlos Sanchez" },
+      { id: 4, name: "Dr. Luis Fernandez" },
+    ]
+  },
+  {
+    id: 'pay-2',
+    sellerId: 1,
+    paymentDate: '2024-04-16',
+    amount: 20.00, // 2 active doctors that month
+    period: 'Marzo 2024',
+    includedDoctors: [
+      { id: 1, name: "Dr. Ana Rodriguez" },
+      { id: 2, name: "Dr. Carlos Sanchez" },
+    ]
+  },
+    {
+    id: 'pay-3',
+    sellerId: 1,
+    paymentDate: '2024-03-16',
+    amount: 20.00,
+    period: 'Febrero 2024',
+    includedDoctors: [
+        { id: 1, name: "Dr. Ana Rodriguez" },
+        { id: 2, name: "Dr. Carlos Sanchez" },
+    ]
+  }
+];
