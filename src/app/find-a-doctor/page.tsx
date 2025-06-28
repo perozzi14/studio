@@ -8,50 +8,75 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, MapPin, Star, Search } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  MapPin,
+  Star,
+  Search,
+  HeartPulse,
+  Scan,
+  BrainCircuit,
+  Baby,
+  Shield,
+  Bone,
+  ChevronDown,
+  List,
+} from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { specialties, doctors, type Doctor } from "@/lib/data";
+
+const specialtyIcons: Record<string, React.ElementType> = {
+  "Cardiología": HeartPulse,
+  "Dermatología": Scan,
+  "Neurología": BrainCircuit,
+  "Pediatría": Baby,
+  "Oncología": Shield,
+  "Ortopedia": Bone,
+};
 
 export default function FindDoctorPage() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [specialty, setSpecialty] = useState("all");
   const [location, setLocation] = useState("");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
+  const [showAllSpecialties, setShowAllSpecialties] = useState(false);
 
   const handleSearch = () => {
-     let results = doctors;
+    let results = doctors;
 
     if (specialty && specialty !== "all") {
-      results = results.filter(d => d.specialty.toLowerCase() === specialty.toLowerCase());
+      results = results.filter(
+        (d) => d.specialty.toLowerCase() === specialty.toLowerCase()
+      );
     }
 
     if (location.trim()) {
-      results = results.filter(d => d.location.toLowerCase().includes(location.toLowerCase().trim()));
+      results = results.filter((d) =>
+        d.location.toLowerCase().includes(location.toLowerCase().trim())
+      );
     }
 
     setFilteredDoctors(results);
   };
-  
+
   // Trigger search on filter change
   useEffect(() => {
     handleSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specialty, location]);
 
+  const visibleSpecialties = showAllSpecialties
+    ? specialties
+    : specialties.slice(0, 5);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -59,69 +84,118 @@ export default function FindDoctorPage() {
       <main className="flex-1">
         <div className="bg-muted/50 border-b">
           <div className="container py-8">
-            <h1 className="text-3xl font-bold font-headline mb-4">
+            <h1 className="text-3xl font-bold font-headline mb-2">
               Encuentra a Tu Especialista
             </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div className="space-y-2">
-                <label className="font-medium text-sm">Especialidad</label>
-                <Select value={specialty} onValueChange={setSpecialty}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="ej., Cardiología" />
-                  </SelectTrigger>
-                  <SelectContent>
-                     <SelectItem value="all">Todas las Especialidades</SelectItem>
-                    {specialties.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="font-medium text-sm">Ubicación</label>
-                <Input 
-                  placeholder="ej., Caracas" 
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="font-medium text-sm">Disponibilidad</label>
-                <Popover>
-                  <PopoverTrigger asChild>
+            <p className="text-muted-foreground mb-6">
+              Selecciona una especialidad o usa los filtros para refinar tu búsqueda.
+            </p>
+
+            <div className="space-y-6">
+              <div>
+                <label className="font-medium text-sm mb-3 block">
+                  Especialidades
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant={specialty === "all" ? "default" : "outline"}
+                    onClick={() => setSpecialty("all")}
+                    className="flex-col h-auto p-3 gap-1.5"
+                  >
+                    <List className="h-6 w-6" />
+                    <span className="text-xs font-normal">Todas</span>
+                  </Button>
+                  {visibleSpecialties.map((s) => {
+                    const Icon = specialtyIcons[s] || Search;
+                    return (
+                      <Button
+                        key={s}
+                        variant={specialty === s ? "default" : "outline"}
+                        onClick={() => setSpecialty(s)}
+                        className="flex-col h-auto p-3 gap-1.5"
+                      >
+                        <Icon className="h-6 w-6" />
+                        <span className="text-xs font-normal">{s}</span>
+                      </Button>
+                    );
+                  })}
+                  {specialties.length > 5 && (
                     <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal bg-card",
-                        !date && "text-muted-foreground"
-                      )}
+                      variant="outline"
+                      onClick={() => setShowAllSpecialties(!showAllSpecialties)}
+                      className="flex-col h-auto p-3 gap-1.5"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : <span>Elige una fecha</span>}
+                      <ChevronDown
+                        className={cn(
+                          "h-6 w-6 transition-transform",
+                          showAllSpecialties && "rotate-180"
+                        )}
+                      />
+                      <span className="text-xs font-normal">
+                        {showAllSpecialties ? "Ver menos" : "Ver más"}
+                      </span>
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                  )}
+                </div>
               </div>
-              <Button size="lg" className="h-10" onClick={handleSearch}>
-                <Search className="mr-2 h-4 w-4"/> Buscar
-              </Button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2">
+                  <label className="font-medium text-sm">Ubicación</label>
+                  <Input
+                    placeholder="ej., Caracas"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="font-medium text-sm">Disponibilidad</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-card",
+                          !date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? (
+                          format(date, "PPP", { locale: es })
+                        ) : (
+                          <span>Elige una fecha</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                        locale={es}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Button
+                  size="lg"
+                  className="h-10 w-full lg:w-auto"
+                  onClick={handleSearch}
+                >
+                  <Search className="mr-2 h-4 w-4" /> Buscar
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="container py-12">
           <h2 className="text-2xl font-bold mb-6">
-            {filteredDoctors.length} médicos encontrados
+            {filteredDoctors.length}{" "}
+            {filteredDoctors.length === 1
+              ? "médico encontrado"
+              : "médicos encontrados"}
           </h2>
           {filteredDoctors.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -130,10 +204,14 @@ export default function FindDoctorPage() {
               ))}
             </div>
           ) : (
-             <div className="text-center py-20 bg-muted/50 rounded-lg">
-                <p className="text-lg text-muted-foreground">No se encontraron médicos que coincidan con tus criterios.</p>
-                <p className="text-sm text-muted-foreground mt-2">Intenta ajustar tus filtros.</p>
-             </div>
+            <div className="text-center py-20 bg-muted/50 rounded-lg">
+              <p className="text-lg text-muted-foreground">
+                No se encontraron médicos que coincidan con tus criterios.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Intenta ajustar tus filtros.
+              </p>
+            </div>
           )}
         </div>
       </main>
