@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +25,8 @@ import {
   Bone,
   ChevronDown,
   List,
+  Stethoscope,
+  Wind,
 } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -35,12 +36,14 @@ import Link from "next/link";
 import { specialties, doctors, type Doctor } from "@/lib/data";
 
 const specialtyIcons: Record<string, React.ElementType> = {
-  "Cardiología": HeartPulse,
-  "Dermatología": Scan,
-  "Neurología": BrainCircuit,
-  "Pediatría": Baby,
-  "Oncología": Shield,
-  "Ortopedia": Bone,
+  Cardiología: HeartPulse,
+  Dermatología: Scan,
+  Neurología: BrainCircuit,
+  Pediatría: Baby,
+  Oncología: Shield,
+  Ortopedia: Bone,
+  Ginecología: Stethoscope,
+  Neumonología: Wind,
 };
 
 export default function FindDoctorPage() {
@@ -68,15 +71,15 @@ export default function FindDoctorPage() {
     setFilteredDoctors(results);
   };
 
-  // Trigger search on filter change
   useEffect(() => {
     handleSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [specialty, location]);
+  }, [specialty]);
+
 
   const visibleSpecialties = showAllSpecialties
     ? specialties
-    : specialties.slice(0, 5);
+    : specialties.slice(0, 7);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -119,7 +122,7 @@ export default function FindDoctorPage() {
                       </Button>
                     );
                   })}
-                  {specialties.length > 5 && (
+                  {specialties.length > 7 && (
                     <Button
                       variant="outline"
                       onClick={() => setShowAllSpecialties(!showAllSpecialties)}
@@ -139,8 +142,8 @@ export default function FindDoctorPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-end gap-4">
+                <div className="space-y-2 lg:flex-1">
                   <label className="font-medium text-sm">Ubicación</label>
                   <Input
                     placeholder="ej., Caracas"
@@ -148,7 +151,7 @@ export default function FindDoctorPage() {
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 lg:flex-1">
                   <label className="font-medium text-sm">Disponibilidad</label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -215,7 +218,6 @@ export default function FindDoctorPage() {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
@@ -224,7 +226,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
     <Card className="overflow-hidden transition-shadow duration-300 hover:shadow-xl">
       <CardContent className="p-0">
-        <div className="aspect-square overflow-hidden">
+        <div className="aspect-w-1 aspect-h-1">
           <Image
             src={doctor.image}
             alt={`Dr. ${doctor.name}`}

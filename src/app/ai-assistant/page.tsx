@@ -7,7 +7,6 @@ import {
   type WhatsAppAssistantOutput,
 } from "@/ai/flows/whatsapp-assistant";
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,8 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Bot, Loader2, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Bot, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AiAssistantPage() {
@@ -52,7 +50,7 @@ export default function AiAssistantPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1 py-12">
+      <main className="flex-1 flex items-center justify-center py-12">
         <div className="container max-w-2xl">
           <Card>
             <CardHeader>
@@ -101,7 +99,7 @@ export default function AiAssistantPage() {
                   <h3 className="font-bold text-lg">Respuesta del Asistente:</h3>
                   <div className="p-4 bg-muted rounded-lg flex gap-4 items-start">
                     <Bot className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                    <p className="text-foreground/80 leading-relaxed">
+                    <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap">
                       {result.response}
                     </p>
                   </div>
@@ -111,7 +109,6 @@ export default function AiAssistantPage() {
           </Card>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

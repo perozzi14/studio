@@ -5,9 +5,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { CalendarPlus, ClipboardList } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -31,8 +33,17 @@ export default function DashboardPage() {
             <Skeleton className="h-8 w-1/4" />
             <Skeleton className="h-4 w-1/2" />
            </div>
-           <div className="mt-8">
+           <div className="mt-8 grid md:grid-cols-2 gap-8">
             <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+              </CardHeader>
+              <CardContent>
+                 <Skeleton className="h-40 w-full" />
+              </CardContent>
+            </Card>
+             <Card>
               <CardHeader>
                 <Skeleton className="h-6 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
@@ -43,7 +54,6 @@ export default function DashboardPage() {
             </Card>
            </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -56,15 +66,19 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
           <p className="text-muted-foreground mb-8">Este es tu panel médico personal.</p>
           
-          <div className="grid gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             <Card>
               <CardHeader>
                 <CardTitle>Próximas Citas</CardTitle>
-                <CardDescription>No tienes próximas citas.</CardDescription>
+                <CardDescription>No tienes próximas citas agendadas.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Reserva una nueva cita para verla aquí.</p>
+                <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
+                  <CalendarPlus className="h-12 w-12" />
+                  <p>¿Listo para tu próxima consulta?</p>
+                   <Button asChild>
+                    <Link href="/find-a-doctor">Reservar una Cita</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -75,15 +89,15 @@ export default function DashboardPage() {
                  <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
               </CardHeader>
               <CardContent>
-                 <div className="text-center py-12 text-muted-foreground">
-                  <p>Tu historial médico está vacío.</p>
+                 <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
+                  <ClipboardList className="h-12 w-12" />
+                  <p>Tu historial médico aparecerá aquí después de tu primera cita.</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
