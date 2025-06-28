@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +30,21 @@ import {
   List,
   Stethoscope,
   Wind,
+  Star,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { specialties, doctors, cities, type Doctor } from "@/lib/data";
 import { DoctorCard } from "@/components/doctor-card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -46,6 +55,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
   Ortopedia: Bone,
   Ginecología: Stethoscope,
   Neumonología: Wind,
+  "Medicina Estética": Sparkles,
 };
 
 export default function FindDoctorPage() {
@@ -54,6 +64,17 @@ export default function FindDoctorPage() {
   const [location, setLocation] = useState("all");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+
+  const topRatedDoctors = useMemo(() => {
+    return [...doctors]
+      .filter((d) => d.rating >= 4.9)
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 6);
+  }, []);
+
+  const aestheticDoctors = useMemo(() => {
+    return doctors.filter((d) => d.specialty === "Medicina Estética");
+  }, []);
 
   const handleSearch = () => {
     let results = doctors;
@@ -80,7 +101,6 @@ export default function FindDoctorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specialty, location]);
 
-
   const visibleSpecialties = showAllSpecialties
     ? specialties
     : specialties.slice(0, 7);
@@ -95,7 +115,8 @@ export default function FindDoctorPage() {
               Encuentra a Tu Especialista
             </h1>
             <p className="text-muted-foreground mb-6">
-              Selecciona una especialidad o usa los filtros para refinar tu búsqueda.
+              Selecciona una especialidad o usa los filtros para refinar tu
+              búsqueda.
             </p>
 
             <div className="space-y-6">
@@ -148,7 +169,9 @@ export default function FindDoctorPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-end gap-4">
                 <div className="space-y-2 lg:flex-1">
-                  <label className="font-medium text-sm">Ubicación (Ciudad)</label>
+                  <label className="font-medium text-sm">
+                    Ubicación (Ciudad)
+                  </label>
                   <Select value={location} onValueChange={setLocation}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todas las ciudades" />
@@ -205,17 +228,18 @@ export default function FindDoctorPage() {
           </div>
         </div>
 
-        <div className="container py-12">
-           <div className="mb-6">
-            <h2 className="text-2xl font-bold">
-              {filteredDoctors.length}{" "}
-              {filteredDoctors.length === 1
-                ? "médico encontrado"
-                : "médicos encontrados"}
-            </h2>
-          </div>
-
+        <div className="container py-12 space-y-16">
           <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold">Resultados de la Búsqueda</h2>
+              <p className="text-muted-foreground">
+                {filteredDoctors.length}{" "}
+                {filteredDoctors.length === 1
+                  ? "médico encontrado"
+                  : "médicos encontrados"}
+              </p>
+            </div>
+
             {filteredDoctors.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredDoctors.map((doctor) => (
@@ -233,6 +257,61 @@ export default function FindDoctorPage() {
               </div>
             )}
           </div>
+
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Star className="text-yellow-400 fill-yellow-400" /> Médicos
+              Mejor Valorados
+            </h2>
+            <Carousel
+              opts={{
+                align: "start",
+                loop: false,
+              }}
+              className="w-full"
+            >
+              <CarouselContent>
+                {topRatedDoctors.map((doctor) => (
+                  <CarouselItem
+                    key={doctor.id}
+                    className="md:basis-1/2 lg:basis-1/3"
+                  >
+                    <DoctorCard doctor={doctor} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex" />
+              <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+          </section>
+
+          {aestheticDoctors.length > 0 && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Sparkles className="text-pink-400" /> Medicina Estética
+              </h2>
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: false,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {aestheticDoctors.map((doctor) => (
+                    <CarouselItem
+                      key={doctor.id}
+                      className="md:basis-1/2 lg:basis-1/3"
+                    >
+                      <DoctorCard doctor={doctor} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+              </Carousel>
+            </section>
+          )}
         </div>
       </main>
       <BottomNav />
