@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -10,6 +11,40 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { doctors } from '@/lib/data';
+
+// Tool to find doctors
+const findDoctorsTool = ai.defineTool(
+  {
+    name: 'findDoctors',
+    description: 'Get a list of doctors, optionally filtering by specialty and/or location.',
+    inputSchema: z.object({
+      specialty: z.string().optional().describe('The specialty to filter by, e.g., Cardiology'),
+      location: z.string().optional().describe('The location to filter by, e.g., Mexico City'),
+    }),
+    outputSchema: z.array(z.object({
+        name: z.string(),
+        specialty: z.string(),
+        location: z.string(),
+        rating: z.number(),
+    })),
+  },
+  async ({ specialty, location }) => {
+    let filteredDoctors = doctors;
+    if (specialty) {
+      filteredDoctors = filteredDoctors.filter(
+        (doc) => doc.specialty.toLowerCase() === specialty.toLowerCase()
+      );
+    }
+    if (location) {
+      filteredDoctors = filteredDoctors.filter(
+        (doc) => doc.location.toLowerCase() === location.toLowerCase()
+      );
+    }
+    return filteredDoctors.map(({ name, specialty, location, rating }) => ({ name, specialty, location, rating }));
+  }
+);
+
 
 const WhatsAppAssistantInputSchema = z.object({
   query: z.string().describe('The query from the user via WhatsApp.'),
@@ -29,16 +64,14 @@ const prompt = ai.definePrompt({
   name: 'whatsappAssistantPrompt',
   input: {schema: WhatsAppAssistantInputSchema},
   output: {schema: WhatsAppAssistantOutputSchema},
-  prompt: `You are a helpful AI assistant interacting with patients via WhatsApp.
+  tools: [findDoctorsTool],
+  prompt: `You are a helpful AI assistant for MedAgenda, interacting with patients via WhatsApp.
 
   Your goal is to answer their questions about medical procedures, recommend appropriate specialists based on their symptoms, and help them confirm and manage their appointment bookings.
 
-  You have access to the following information:
-  - Available medical procedures and their descriptions
-  - List of specialists and their areas of expertise
-  - Patient's appointment booking history
-
-  Based on the user's query, provide a clear and concise response. If the query relates to specialist recommendations ask the user for a list of their symptoms before suggesting a specialist.
+  - If the user asks for a doctor or specialist, you MUST use the 'findDoctors' tool to find relevant doctors. You can ask for symptoms to infer a specialty if needed. Present the results to the user in a friendly, readable list.
+  - If you find doctors, mention their name, specialty, location, and rating.
+  - Be conversational and helpful.
 
   Query: {{{query}}}
   `,
@@ -55,4 +88,3 @@ const whatsappAssistantFlow = ai.defineFlow(
     return output!;
   }
 );
-

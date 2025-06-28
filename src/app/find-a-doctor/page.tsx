@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Input } from "@/components/ui/input";
@@ -19,34 +20,38 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, MapPin, Star } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Star, Search } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-
-const specialties = [
-  "Cardiology",
-  "Dermatology",
-  "Neurology",
-  "Pediatrics",
-  "Oncology",
-  "Orthopedics",
-];
-
-const doctors = [
-  { id: 1, name: "Dr. Ana Rodriguez", specialty: "Cardiology", location: "Mexico City", rating: 4.9, reviewCount: 120, image: "https://placehold.co/300x300.png", aiHint: "woman doctor" },
-  { id: 2, name: "Dr. Carlos Sanchez", specialty: "Dermatology", location: "Guadalajara", rating: 4.8, reviewCount: 98, image: "https://placehold.co/300x300.png", aiHint: "man doctor" },
-  { id: 3, name: "Dr. Sofia Gomez", specialty: "Neurology", location: "Monterrey", rating: 4.9, reviewCount: 150, image: "https://placehold.co/300x300.png", aiHint: "doctor smile" },
-  { id: 4, name: "Dr. Luis Fernandez", specialty: "Pediatrics", location: "Mexico City", rating: 5.0, reviewCount: 210, image: "https://placehold.co/300x300.png", aiHint: "male doctor" },
-  { id: 5, name: "Dr. Maria Hernandez", specialty: "Oncology", location: "Guadalajara", rating: 4.7, reviewCount: 75, image: "https://placehold.co/300x300.png", aiHint: "female doctor" },
-  { id: 6, name: "Dr. Javier Torres", specialty: "Orthopedics", location: "Mexico City", rating: 4.8, reviewCount: 112, image: "https://placehold.co/300x300.png", aiHint: "doctor portrait" },
-];
-
-type Doctor = (typeof doctors)[0];
+import { specialties, doctors, type Doctor } from "@/lib/data";
 
 export default function FindDoctorPage() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [specialty, setSpecialty] = useState("");
+  const [location, setLocation] = useState("");
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
+
+  const handleSearch = () => {
+     let results = doctors;
+
+    if (specialty) {
+      results = results.filter(d => d.specialty.toLowerCase() === specialty.toLowerCase());
+    }
+
+    if (location.trim()) {
+      results = results.filter(d => d.location.toLowerCase().includes(location.toLowerCase().trim()));
+    }
+
+    setFilteredDoctors(results);
+  };
+  
+  // Trigger search on filter change
+  useEffect(() => {
+    handleSearch();
+  }, [specialty, location]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -60,13 +65,14 @@ export default function FindDoctorPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
                 <label className="font-medium text-sm">Specialty</label>
-                <Select>
+                <Select value={specialty} onValueChange={setSpecialty}>
                   <SelectTrigger>
                     <SelectValue placeholder="e.g., Cardiology" />
                   </SelectTrigger>
                   <SelectContent>
+                     <SelectItem value="">All Specialties</SelectItem>
                     {specialties.map((s) => (
-                      <SelectItem key={s} value={s.toLowerCase()}>
+                      <SelectItem key={s} value={s}>
                         {s}
                       </SelectItem>
                     ))}
@@ -75,7 +81,11 @@ export default function FindDoctorPage() {
               </div>
               <div className="space-y-2">
                 <label className="font-medium text-sm">Location</label>
-                <Input placeholder="e.g., Mexico City" />
+                <Input 
+                  placeholder="e.g., Mexico City" 
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <label className="font-medium text-sm">Availability</label>
@@ -102,20 +112,29 @@ export default function FindDoctorPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <Button size="lg" className="h-10">Search</Button>
+              <Button size="lg" className="h-10" onClick={handleSearch}>
+                <Search className="mr-2 h-4 w-4"/> Search
+              </Button>
             </div>
           </div>
         </div>
 
         <div className="container py-12">
           <h2 className="text-2xl font-bold mb-6">
-            {doctors.length} doctors found
+            {filteredDoctors.length} doctors found
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {doctors.map((doctor) => (
-              <DoctorCard key={doctor.id} doctor={doctor} />
-            ))}
-          </div>
+          {filteredDoctors.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredDoctors.map((doctor) => (
+                <DoctorCard key={doctor.id} doctor={doctor} />
+              ))}
+            </div>
+          ) : (
+             <div className="text-center py-20 bg-muted/50 rounded-lg">
+                <p className="text-lg text-muted-foreground">No doctors found matching your criteria.</p>
+                <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters.</p>
+             </div>
+          )}
         </div>
       </main>
       <Footer />
