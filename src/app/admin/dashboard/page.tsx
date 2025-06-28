@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -223,7 +224,7 @@ export default function AdminDashboardPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
-                             <Table>
+                            <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Médico</TableHead>
@@ -268,6 +269,61 @@ export default function AdminDashboardPage() {
                                     ))}
                                 </TableBody>
                             </Table>
+                            <div className="space-y-4 md:hidden">
+                                {doctors.map((doctor) => (
+                                    <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                    <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-semibold">{doctor.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{doctor.email}</p>
+                                                </div>
+                                            </div>
+                                            <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                                {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Especialidad</p>
+                                                <p>{doctor.specialty}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Ubicación</p>
+                                                <p>{doctor.city}</p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-xs text-muted-foreground">Referido por</p>
+                                                <p>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</p>
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <Label htmlFor={`switch-${doctor.id}`} className="text-sm font-medium">Estado</Label>
+                                                <Switch 
+                                                id={`switch-${doctor.id}`}
+                                                checked={doctor.status === 'active'} 
+                                                onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
+                                            />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {doctors.length === 0 && <p className="text-center text-muted-foreground py-8">No hay médicos registrados.</p>}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -286,7 +342,7 @@ export default function AdminDashboardPage() {
                            </Button>
                       </CardHeader>
                       <CardContent>
-                          <Table>
+                          <Table className="hidden md:table">
                               <TableHeader>
                                   <TableRow>
                                       <TableHead>Vendedora</TableHead>
@@ -323,6 +379,43 @@ export default function AdminDashboardPage() {
                                   })}
                               </TableBody>
                           </Table>
+                          <div className="space-y-4 md:hidden">
+                                {sellers.map((seller) => {
+                                    const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
+                                    const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
+                                    return (
+                                        <div key={seller.id} className="p-4 border rounded-lg space-y-4">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={seller.profileImage} alt={seller.name} />
+                                                    <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-semibold">{seller.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{seller.email}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Referidos (Activos)</p>
+                                                    <p>{sellerDoctors.length} ({activeDoctorsCount})</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Comisión</p>
+                                                    <p>{(seller.commissionRate * 100).toFixed(0)}%</p>
+                                                </div>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2" /> Ver</Button>
+                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2" /> Editar</Button>
+                                                <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2" /> Eliminar</Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {sellers.length === 0 && <p className="text-center text-muted-foreground py-8">No hay vendedoras registradas.</p>}
+                            </div>
                       </CardContent>
                     </Card>
                 </div>
@@ -336,7 +429,7 @@ export default function AdminDashboardPage() {
                           <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                         <Table>
+                         <Table className="hidden md:table">
                               <TableHeader>
                                   <TableRow>
                                       <TableHead>Paciente</TableHead>
@@ -363,6 +456,33 @@ export default function AdminDashboardPage() {
                                   ))}
                               </TableBody>
                           </Table>
+                          <div className="space-y-4 md:hidden">
+                                {patients.map((patient) => (
+                                    <div key={patient.id} className="p-4 border rounded-lg space-y-3">
+                                        <div>
+                                            <p className="font-semibold">{patient.name}</p>
+                                            <p className="text-xs text-muted-foreground">{patient.email}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Cédula</p>
+                                                <p>{patient.cedula || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Teléfono</p>
+                                                <p>{patient.phone || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                        <Separator />
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2" /> Ver</Button>
+                                            <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2" /> Editar</Button>
+                                            <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2" /> Eliminar</Button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {patients.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pacientes registrados.</p>}
+                            </div>
                       </CardContent>
                     </Card>
                 </div>
@@ -409,7 +529,7 @@ export default function AdminDashboardPage() {
                             <CardDescription>Historial de pagos de mensualidades de los médicos.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <Table>
+                             <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Fecha</TableHead>
@@ -433,6 +553,23 @@ export default function AdminDashboardPage() {
                                     ))}
                                 </TableBody>
                             </Table>
+                            <div className="space-y-4 md:hidden">
+                                {doctorPayments.map((payment) => (
+                                    <div key={payment.id} className="p-4 border rounded-lg space-y-3">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <p className="font-semibold">{payment.doctorName}</p>
+                                                <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                                            </div>
+                                            <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
+                                                {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-right font-mono text-lg">${payment.amount.toFixed(2)}</p>
+                                    </div>
+                                ))}
+                                {doctorPayments.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>}
+                            </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -447,7 +584,7 @@ export default function AdminDashboardPage() {
                           <CardDescription>Gestiona las solicitudes de soporte de médicos y vendedoras.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                         <Table>
+                         <Table className="hidden md:table">
                               <TableHeader>
                                   <TableRow>
                                       <TableHead>Fecha</TableHead>
@@ -479,6 +616,30 @@ export default function AdminDashboardPage() {
                                   ))}
                               </TableBody>
                           </Table>
+                          <div className="space-y-4 md:hidden">
+                                {supportTickets.map((ticket) => (
+                                    <div key={ticket.id} className="p-4 border rounded-lg space-y-3">
+                                        <div>
+                                            <p className="font-semibold">{ticket.subject}</p>
+                                            <p className="text-sm text-muted-foreground">{ticket.userName} <span className="capitalize">({ticket.userRole})</span></p>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center text-sm">
+                                            <p className="text-xs text-muted-foreground">{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
+                                            <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                {ticket.status}
+                                            </Badge>
+                                        </div>
+
+                                        <Separator />
+                                        
+                                        <Button variant="outline" size="sm" className="w-full">
+                                            <Eye className="mr-2 h-4 w-4" /> Ver Ticket
+                                        </Button>
+                                    </div>
+                                ))}
+                                {supportTickets.length === 0 && <p className="text-center text-muted-foreground py-8">No hay tickets de soporte.</p>}
+                            </div>
                       </CardContent>
                     </Card>
                 </div>
@@ -612,3 +773,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
