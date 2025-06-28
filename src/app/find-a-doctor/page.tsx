@@ -60,17 +60,17 @@ export default function FindDoctorPage() {
         <div className="bg-muted/50 border-b">
           <div className="container py-8">
             <h1 className="text-3xl font-bold font-headline mb-4">
-              Find Your Specialist
+              Encuentra a Tu Especialista
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
-                <label className="font-medium text-sm">Specialty</label>
+                <label className="font-medium text-sm">Especialidad</label>
                 <Select value={specialty} onValueChange={setSpecialty}>
                   <SelectTrigger>
-                    <SelectValue placeholder="e.g., Cardiology" />
+                    <SelectValue placeholder="ej., Cardiología" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="all">All Specialties</SelectItem>
+                     <SelectItem value="all">Todas las Especialidades</SelectItem>
                     {specialties.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
@@ -80,15 +80,15 @@ export default function FindDoctorPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="font-medium text-sm">Location</label>
+                <label className="font-medium text-sm">Ubicación</label>
                 <Input 
-                  placeholder="e.g., Mexico City" 
+                  placeholder="ej., Ciudad de México" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="font-medium text-sm">Availability</label>
+                <label className="font-medium text-sm">Disponibilidad</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -99,7 +99,7 @@ export default function FindDoctorPage() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      {date ? format(date, "PPP") : <span>Elige una fecha</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -113,7 +113,7 @@ export default function FindDoctorPage() {
                 </Popover>
               </div>
               <Button size="lg" className="h-10" onClick={handleSearch}>
-                <Search className="mr-2 h-4 w-4"/> Search
+                <Search className="mr-2 h-4 w-4"/> Buscar
               </Button>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function FindDoctorPage() {
 
         <div className="container py-12">
           <h2 className="text-2xl font-bold mb-6">
-            {filteredDoctors.length} doctors found
+            {filteredDoctors.length} médicos encontrados
           </h2>
           {filteredDoctors.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -131,8 +131,8 @@ export default function FindDoctorPage() {
             </div>
           ) : (
              <div className="text-center py-20 bg-muted/50 rounded-lg">
-                <p className="text-lg text-muted-foreground">No doctors found matching your criteria.</p>
-                <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters.</p>
+                <p className="text-lg text-muted-foreground">No se encontraron médicos que coincidan con tus criterios.</p>
+                <p className="text-sm text-muted-foreground mt-2">Intenta ajustar tus filtros.</p>
              </div>
           )}
         </div>
@@ -167,11 +167,11 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
             <span className="font-bold">{doctor.rating}</span>
             <span className="text-muted-foreground">
-              ({doctor.reviewCount} reviews)
+              ({doctor.reviewCount} reseñas)
             </span>
           </div>
           <Button className="w-full mt-6" asChild>
-            <Link href={`/doctors/${doctor.id}`}>Book Appointment</Link>
+            <Link href={`/doctors/${doctor.id}`}>Reservar Cita</Link>
           </Button>
         </div>
       </CardContent>

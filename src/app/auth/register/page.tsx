@@ -39,17 +39,17 @@ export default function RegisterPage() {
             <Stethoscope className="h-10 w-10 text-primary" />
           </Link>
           <CardTitle className="text-2xl font-headline">
-            Patient Registration
+            Registro de Paciente
           </CardTitle>
           <CardDescription>
-            Enter your information to create an account
+            Ingresa tu información para crear una cuenta
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="full-name">Full Name</Label>
+                <Label htmlFor="full-name">Nombre Completo</Label>
                 <Input
                   id="full-name"
                   placeholder="Juan Perez"
@@ -59,7 +59,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
                   id="email"
                   type="email"
@@ -70,7 +70,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Contraseña</Label>
                 <Input
                   id="password"
                   type="password"
@@ -80,14 +80,14 @@ export default function RegisterPage() {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Create an account
+                Crear una cuenta
               </Button>
             </div>
           </form>
           <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
+            ¿Ya tienes una cuenta?{" "}
             <Link href="/auth/login" className="underline">
-              Sign in
+              Inicia sesión
             </Link>
           </div>
         </CardContent>

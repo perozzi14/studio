@@ -12,20 +12,20 @@ export function Footer() {
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <Link href="#" className="hover:text-primary">
-              About
+              Acerca de
             </Link>
             <Link href="#" className="hover:text-primary">
-              Contact
+              Contacto
             </Link>
             <Link href="#" className="hover:text-primary">
-              Privacy Policy
+              Política de Privacidad
             </Link>
             <Link href="#" className="hover:text-primary">
-              Terms of Service
+              Términos de Servicio
             </Link>
           </nav>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MedAgenda. All rights reserved.
+            &copy; {new Date().getFullYear()} MedAgenda. Todos los derechos reservados.
           </p>
         </div>
       </div>

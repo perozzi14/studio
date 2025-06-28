@@ -26,7 +26,7 @@ export default function DoctorProfilePage() {
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <p>Doctor not found.</p>
+          <p>Médico no encontrado.</p>
         </main>
         <Footer />
       </div>
@@ -69,7 +69,7 @@ export default function DoctorProfilePage() {
                   <div className="flex items-center gap-1 mt-2">
                     <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
                     <span className="font-bold text-lg">{doctor.rating}</span>
-                    <span className="text-muted-foreground">({doctor.reviewCount} reviews)</span>
+                    <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>
                   </div>
                 </div>
               </CardContent>
@@ -78,24 +78,24 @@ export default function DoctorProfilePage() {
           <div className="md:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">Book an Appointment</CardTitle>
-                <CardDescription>Select a date and time that works for you.</CardDescription>
+                <CardTitle className="text-2xl">Reservar una Cita</CardTitle>
+                <CardDescription>Selecciona una fecha y hora que te funcione.</CardDescription>
               </CardHeader>
               <CardContent>
                 {isBooked ? (
                   <div className="flex flex-col items-center justify-center text-center h-96">
                     <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                    <h3 className="text-2xl font-bold">Appointment Confirmed!</h3>
+                    <h3 className="text-2xl font-bold">¡Cita Confirmada!</h3>
                     <p className="text-muted-foreground mt-2">
-                      Your appointment with {doctor.name} on{" "}
-                      {selectedDate?.toLocaleDateString()} at {selectedTime} is booked.
+                      Tu cita con {doctor.name} el{" "}
+                      {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedTime} está reservada.
                     </p>
-                    <Button onClick={() => setIsBooked(false)} className="mt-6">Book Another Appointment</Button>
+                    <Button onClick={() => setIsBooked(false)} className="mt-6">Reservar Otra Cita</Button>
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-8">
                     <div>
-                      <h4 className="font-semibold mb-4">1. Select a Date</h4>
+                      <h4 className="font-semibold mb-4">1. Selecciona una Fecha</h4>
                       <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -105,7 +105,7 @@ export default function DoctorProfilePage() {
                       />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-4">2. Select a Time</h4>
+                      <h4 className="font-semibold mb-4">2. Selecciona una Hora</h4>
                       <div className="grid grid-cols-2 gap-2">
                         {availableTimes.map((time) => (
                           <Button
@@ -125,7 +125,7 @@ export default function DoctorProfilePage() {
                         className="w-full mt-8"
                         size="lg"
                       >
-                        Confirm Appointment
+                        Confirmar Cita
                       </Button>
                     </div>
                   </div>

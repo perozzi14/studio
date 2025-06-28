@@ -53,30 +53,30 @@ export default function DashboardPage() {
       <Header />
       <main className="flex-1 bg-muted/40">
         <div className="container py-12">
-          <h1 className="text-3xl font-bold font-headline mb-2">Welcome back, {user.name}!</h1>
-          <p className="text-muted-foreground mb-8">Here's your personal medical dashboard.</p>
+          <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
+          <p className="text-muted-foreground mb-8">Este es tu panel médico personal.</p>
           
           <div className="grid gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                <CardDescription>You have no upcoming appointments.</CardDescription>
+                <CardTitle>Próximas Citas</CardTitle>
+                <CardDescription>No tienes próximas citas.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12 text-muted-foreground">
-                  <p>Book a new appointment to see it here.</p>
+                  <p>Reserva una nueva cita para verla aquí.</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Medical History</CardTitle>
-                 <CardDescription>A summary of your past consultations.</CardDescription>
+                <CardTitle>Historial Médico</CardTitle>
+                 <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
               </CardHeader>
               <CardContent>
                  <div className="text-center py-12 text-muted-foreground">
-                  <p>Your medical history is empty.</p>
+                  <p>Tu historial médico está vacío.</p>
                 </div>
               </CardContent>
             </Card>

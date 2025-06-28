@@ -17,10 +17,10 @@ import { doctors } from '@/lib/data';
 const findDoctorsTool = ai.defineTool(
   {
     name: 'findDoctors',
-    description: 'Get a list of doctors, optionally filtering by specialty and/or location.',
+    description: 'Obtiene una lista de doctores, opcionalmente filtrando por especialidad y/o ubicación.',
     inputSchema: z.object({
-      specialty: z.string().optional().describe('The specialty to filter by, e.g., Cardiology'),
-      location: z.string().optional().describe('The location to filter by, e.g., Mexico City'),
+      specialty: z.string().optional().describe('La especialidad por la que filtrar, ej., Cardiología'),
+      location: z.string().optional().describe('La ubicación por la que filtrar, ej., Ciudad de México'),
     }),
     outputSchema: z.array(z.object({
         name: z.string(),
@@ -47,12 +47,12 @@ const findDoctorsTool = ai.defineTool(
 
 
 const WhatsAppAssistantInputSchema = z.object({
-  query: z.string().describe('The query from the user via WhatsApp.'),
+  query: z.string().describe('La consulta del usuario a través de WhatsApp.'),
 });
 export type WhatsAppAssistantInput = z.infer<typeof WhatsAppAssistantInputSchema>;
 
 const WhatsAppAssistantOutputSchema = z.object({
-  response: z.string().describe('The response from the AI assistant.'),
+  response: z.string().describe('La respuesta del asistente de IA.'),
 });
 export type WhatsAppAssistantOutput = z.infer<typeof WhatsAppAssistantOutputSchema>;
 
@@ -65,15 +65,15 @@ const prompt = ai.definePrompt({
   input: {schema: WhatsAppAssistantInputSchema},
   output: {schema: WhatsAppAssistantOutputSchema},
   tools: [findDoctorsTool],
-  prompt: `You are a helpful AI assistant for MedAgenda, interacting with patients via WhatsApp.
+  prompt: `Eres un asistente de IA servicial para MedAgenda, interactuando con pacientes a través de WhatsApp.
 
-  Your goal is to answer their questions about medical procedures, recommend appropriate specialists based on their symptoms, and help them confirm and manage their appointment bookings.
+  Tu objetivo es responder sus preguntas sobre procedimientos médicos, recomendar especialistas apropiados según sus síntomas y ayudarlos a confirmar y gestionar sus reservas de citas.
 
-  - If the user asks for a doctor or specialist, you MUST use the 'findDoctors' tool to find relevant doctors. You can ask for symptoms to infer a specialty if needed. Present the results to the user in a friendly, readable list.
-  - If you find doctors, mention their name, specialty, location, and rating.
-  - Be conversational and helpful.
+  - Si el usuario pregunta por un médico o especialista, DEBES usar la herramienta 'findDoctors' para encontrar médicos relevantes. Puedes preguntar por síntomas para inferir una especialidad si es necesario. Presenta los resultados al usuario en una lista amigable y legible.
+  - Si encuentras doctores, menciona su nombre, especialidad, ubicación y calificación.
+  - Sé conversacional y servicial.
 
-  Query: {{{query}}}
+  Consulta: {{{query}}}
   `,
 });
 

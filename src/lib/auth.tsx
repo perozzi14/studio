@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
-  const login = (email: string, name: string = 'New User') => {
+  const login = (email: string, name: string = 'Nuevo Usuario') => {
     setUser({ email, name });
     router.push('/dashboard');
   };

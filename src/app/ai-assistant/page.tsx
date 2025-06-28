@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -39,9 +40,9 @@ export default function AiAssistantPage() {
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "An Error Occurred",
+        title: "Ocurrió un Error",
         description:
-          err instanceof Error ? err.message : "An unknown error occurred.",
+          err instanceof Error ? err.message : "Ocurrió un error desconocido.",
       });
     } finally {
       setIsLoading(false);
@@ -56,24 +57,24 @@ export default function AiAssistantPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl font-headline">
-                <Bot /> AI WhatsApp Assistant Tool
+                <Bot /> Herramienta de Asistente IA de WhatsApp
               </CardTitle>
               <CardDescription>
-                Test the AI assistant that helps patients with their questions,
-                recommends specialists, and manages bookings via WhatsApp.
+                Prueba el asistente de IA que ayuda a los pacientes con sus preguntas,
+                recomienda especialistas y gestiona reservas a través de WhatsApp.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="query" className="font-medium">
-                    Patient's Query
+                    Consulta del Paciente
                   </label>
                   <Textarea
                     id="query"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="e.g., 'I have chest pain, who should I see?' or 'I need to confirm my appointment for tomorrow.'"
+                    placeholder="ej., 'Tengo dolor en el pecho, ¿a quién debo ver?' o 'Necesito confirmar mi cita para mañana.'"
                     rows={4}
                     disabled={isLoading}
                     className="text-base"
@@ -87,17 +88,17 @@ export default function AiAssistantPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Getting response...
+                      Obteniendo respuesta...
                     </>
                   ) : (
-                    "Ask Assistant"
+                    "Preguntar al Asistente"
                   )}
                 </Button>
               </form>
 
               {result && (
                 <div className="mt-6 space-y-4">
-                  <h3 className="font-bold text-lg">Assistant's Response:</h3>
+                  <h3 className="font-bold text-lg">Respuesta del Asistente:</h3>
                   <div className="p-4 bg-muted rounded-lg flex gap-4 items-start">
                     <Bot className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                     <p className="text-foreground/80 leading-relaxed">

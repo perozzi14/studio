@@ -15,26 +15,26 @@ export default function Home() {
         <section className="container grid lg:grid-cols-2 gap-12 items-center py-20 md:py-32">
           <div className="space-y-6">
             <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tighter">
-              Unified System for Advanced Medicine
+              Sistema Unificado de Medicina Avanzada
             </h1>
             <p className="text-lg text-muted-foreground">
-              MedAgenda is an integrated platform for managing medical
-              appointments, connecting patients and health professionals in a
-              modern, automated, and easy-to-use environment.
+              MedAgenda es una plataforma integrada para la gestión de citas
+              médicas, conectando a pacientes y profesionales de la salud en un
+              entorno moderno, automatizado y fácil de usar.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" asChild>
-                <Link href="/find-a-doctor">Find Your Doctor</Link>
+                <Link href="/find-a-doctor">Busca tu Médico</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/dashboard">Join as a Professional</Link>
+                <Link href="/dashboard">Únete como Profesional</Link>
               </Button>
             </div>
           </div>
           <div>
             <Image
               src="https://placehold.co/600x400.png"
-              alt="Happy patient consulting with a doctor"
+              alt="Paciente feliz en consulta con un doctor"
               width={600}
               height={400}
               className="rounded-xl shadow-lg"
@@ -48,33 +48,34 @@ export default function Home() {
           <div className="container">
             <div className="text-center space-y-4 mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline">
-                Why Choose MedAgenda?
+                ¿Por Qué Elegir MedAgenda?
               </h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Digitizing healthcare from finding a doctor to managing clinical
-                history, offering efficiency for both patient and doctor.
+                Digitalizando la atención médica desde la búsqueda de un doctor
+                hasta la gestión del historial clínico, ofreciendo eficiencia
+                tanto para el paciente como para el médico.
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <FeatureCard
                 icon={<Search />}
-                title="Smart Doctor Search"
-                description="Find the right doctor by specialty, location, and availability."
+                title="Búsqueda Inteligente de Médicos"
+                description="Encuentra al médico adecuado por especialidad, ubicación y disponibilidad."
               />
               <FeatureCard
                 icon={<UserCheck />}
-                title="Easy Patient Registration"
-                description="A streamlined and secure registration process."
+                title="Registro Fácil de Pacientes"
+                description="Un proceso de registro ágil y seguro."
               />
               <FeatureCard
                 icon={<CalendarDays />}
-                title="Real-Time Booking"
-                description="Schedule appointments in just a few steps with real-time availability."
+                title="Reservas en Tiempo Real"
+                description="Agenda citas en pocos pasos con disponibilidad en tiempo real."
               />
               <FeatureCard
                 icon={<Bot />}
-                title="AI Assistant"
-                description="Get guidance on procedures and recommendations via our WhatsApp assistant."
+                title="Asistente con IA"
+                description="Obtén orientación sobre procedimientos y recomendaciones a través de nuestro asistente de WhatsApp."
               />
             </div>
           </div>
@@ -84,24 +85,24 @@ export default function Home() {
         <section className="container py-20 md:py-24">
           <div className="text-center space-y-4 mb-12">
             <h2 className="text-3xl md:text-4xl font-bold font-headline">
-              How It Works
+              Cómo Funciona
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <StepCard
               number="1"
-              title="Search"
-              description="Filter and find the perfect specialist for your needs."
+              title="Busca"
+              description="Filtra y encuentra al especialista perfecto para tus necesidades."
             />
             <StepCard
               number="2"
-              title="Book"
-              description="Select an available time slot and book your appointment instantly."
+              title="Reserva"
+              description="Selecciona un horario disponible y reserva tu cita al instante."
             />
             <StepCard
               number="3"
-              title="Manage"
-              description="Access your medical history and manage your appointments all in one place."
+              title="Gestiona"
+              description="Accede a tu historial médico y gestiona tus citas en un solo lugar."
             />
           </div>
         </section>

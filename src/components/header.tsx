@@ -26,8 +26,8 @@ export function Header() {
   const { user, logout } = useAuth();
 
   const navLinks = [
-    { href: "/find-a-doctor", label: "Find a Doctor" },
-    { href: "/ai-assistant", label: "AI Assistant" },
+    { href: "/find-a-doctor", label: "Buscar Médico" },
+    { href: "/ai-assistant", label: "Asistente IA" },
   ];
 
   return (
@@ -65,13 +65,13 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
+                    <span>Panel de Control</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>Cerrar Sesión</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -79,12 +79,12 @@ export function Header() {
             <div className="flex items-center gap-2 ml-4">
               <Button variant="ghost" asChild>
                 <Link href="/auth/login">
-                  <LogIn className="mr-2 h-4 w-4" /> Login
+                  <LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/auth/register">
-                  <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+                  <UserPlus className="mr-2 h-4 w-4" /> Regístrate
                 </Link>
               </Button>
             </div>
@@ -95,7 +95,7 @@ export function Header() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu />
-                <span className="sr-only">Open Menu</span>
+                <span className="sr-only">Abrir Menú</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
@@ -125,23 +125,23 @@ export function Header() {
                        </div>
                        <SheetClose asChild>
                           <Link href="/dashboard" className="flex items-center text-lg font-medium hover:text-primary">
-                            <LayoutDashboard className="mr-2 h-5 w-5" /> Dashboard
+                            <LayoutDashboard className="mr-2 h-5 w-5" /> Panel de Control
                           </Link>
                        </SheetClose>
                        <Button onClick={() => { logout(); }} className="w-full">
-                         <LogOut className="mr-2 h-4 w-4" /> Logout
+                         <LogOut className="mr-2 h-4 w-4" /> Cerrar Sesión
                        </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <SheetClose asChild>
                         <Button variant="outline" className="w-full" asChild>
-                          <Link href="/auth/login">Login</Link>
+                          <Link href="/auth/login">Iniciar Sesión</Link>
                         </Button>
                       </SheetClose>
                        <SheetClose asChild>
                         <Button className="w-full" asChild>
-                          <Link href="/auth/register">Sign Up</Link>
+                          <Link href="/auth/register">Regístrate</Link>
                         </Button>
                       </SheetClose>
                     </div>

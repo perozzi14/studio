@@ -38,16 +38,16 @@ export default function LoginPage() {
           <Link href="/" className="inline-block mx-auto mb-4">
             <Stethoscope className="h-10 w-10 text-primary" />
           </Link>
-          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Ingresa tu correo electrónico para iniciar sesión en tu cuenta
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
                   id="email"
                   type="email"
@@ -59,12 +59,12 @@ export default function LoginPage() {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Contraseña</Label>
                   <Link
                     href="#"
                     className="ml-auto inline-block text-sm underline"
                   >
-                    Forgot your password?
+                    ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
                 <Input
@@ -76,14 +76,14 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Login
+                Iniciar Sesión
               </Button>
             </div>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
+            ¿No tienes una cuenta?{" "}
             <Link href="/auth/register" className="underline">
-              Sign up
+              Regístrate
             </Link>
           </div>
         </CardContent>
