@@ -56,7 +56,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from '@/components/ui/calendar';
@@ -288,7 +288,7 @@ export default function DoctorDashboardPage() {
             break;
         case 'week':
             startDate = startOfWeek(now, { locale: es });
-            endDate = endOfDay(startOfWeek(now, { locale: es }));
+            endDate = endOfDay(now);
             break;
         case 'year':
             startDate = startOfYear(now);
