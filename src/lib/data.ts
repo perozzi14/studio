@@ -86,6 +86,7 @@ export type Seller = {
   phone: string;
   profileImage: string;
   referralCode: string;
+  bankDetails: BankDetail[];
 };
 
 const defaultSchedule: Schedule = {
@@ -106,6 +107,15 @@ export const sellers: Seller[] = [
     phone: "0412-9876543",
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "VENDE123",
+    bankDetails: [
+      {
+        id: 9001,
+        bank: "Bancamiga",
+        accountNumber: "0172-0009-0009-0009-0009",
+        accountHolder: "Vendedora Principal",
+        idNumber: "V-99.888.777"
+      }
+    ]
   }
 ];
 

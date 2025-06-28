@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket } from '@/lib/data';
+import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, sellers, type Seller, type BankDetail } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -93,6 +93,14 @@ export default function SellerDashboardPage() {
   const currentTab = searchParams.get('view') || 'referrals';
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [sellerData, setSellerData] = useState<Seller | null>(null);
+
+  const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
+  const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
+  const [bankName, setBankName] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [idNumber, setIdNumber] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   
   useEffect(() => {
     if (user === undefined) return;
@@ -101,6 +109,8 @@ export default function SellerDashboardPage() {
     } else if (user.role !== 'seller') {
       router.push('/');
     } else {
+      const currentSeller = sellers.find(s => s.email.toLowerCase() === user.email.toLowerCase());
+      setSellerData(currentSeller || null);
       setIsLoading(false);
     }
   }, [user, router]);
@@ -110,10 +120,9 @@ export default function SellerDashboardPage() {
   };
 
   const referredDoctors = useMemo(() => {
-    if (user?.role !== 'seller') return [];
-    const sellerId = 1; 
-    return allDoctors.filter(d => d.sellerId === sellerId);
-  }, [user]);
+    if (!sellerData) return [];
+    return allDoctors.filter(d => d.sellerId === sellerData.id);
+  }, [sellerData]);
 
   const financeStats = useMemo(() => {
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
@@ -152,7 +161,42 @@ export default function SellerDashboardPage() {
     });
   };
 
-  if (isLoading || !user || user.role !== 'seller') {
+  const handleOpenBankDetailDialog = (bankDetail: BankDetail | null) => {
+    setEditingBankDetail(bankDetail);
+    setBankName(bankDetail ? bankDetail.bank : '');
+    setAccountHolder(bankDetail ? bankDetail.accountHolder : '');
+    setIdNumber(bankDetail ? bankDetail.idNumber : '');
+    setAccountNumber(bankDetail ? bankDetail.accountNumber : '');
+    setIsBankDetailDialogOpen(true);
+  };
+  
+  const handleSaveBankDetail = () => {
+    if (!sellerData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
+    const newBankDetail: BankDetail = {
+      id: editingBankDetail ? editingBankDetail.id : Date.now(),
+      bank: bankName,
+      accountHolder: accountHolder,
+      idNumber: idNumber,
+      accountNumber: accountNumber,
+    };
+    let updatedBankDetails;
+    if (editingBankDetail) {
+      updatedBankDetails = sellerData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
+    } else {
+      updatedBankDetails = [...sellerData.bankDetails, newBankDetail];
+    }
+    setSellerData({ ...sellerData, bankDetails: updatedBankDetails });
+    setIsBankDetailDialogOpen(false);
+  };
+
+  const handleDeleteBankDetail = (bankDetailId: number) => {
+    if (!sellerData) return;
+    const updatedBankDetails = sellerData.bankDetails.filter(bd => bd.id !== bankDetailId);
+    setSellerData({ ...sellerData, bankDetails: updatedBankDetails });
+  };
+
+
+  if (isLoading || !user || user.role !== 'seller' || !sellerData) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -180,9 +224,10 @@ export default function SellerDashboardPage() {
             <p className="text-muted-foreground mb-8">Bienvenida de nuevo, {user.name}. Aquí puedes gestionar tus médicos y finanzas.</p>
 
              <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
                     <TabsTrigger value="referrals">Mis Referidos</TabsTrigger>
                     <TabsTrigger value="finances">Finanzas</TabsTrigger>
+                    <TabsTrigger value="accounts">Cuentas</TabsTrigger>
                     <TabsTrigger value="marketing">Marketing</TabsTrigger>
                     <TabsTrigger value="support">Soporte</TabsTrigger>
                 </TabsList>
@@ -392,6 +437,82 @@ export default function SellerDashboardPage() {
                         </Card>
                     </div>
                 </TabsContent>
+                <TabsContent value="accounts" className="mt-6">
+                    <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                              <CardTitle className="flex items-center gap-2"><Coins /> Mis Cuentas Bancarias</CardTitle>
+                              <CardDescription>Gestiona tus cuentas para recibir los pagos de comisiones.</CardDescription>
+                          </div>
+                          <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                      </CardHeader>
+                      <CardContent>
+                          <Table className="hidden md:table">
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Banco</TableHead>
+                                      <TableHead>Titular</TableHead>
+                                      <TableHead>Nro. de Cuenta</TableHead>
+                                      <TableHead>C.I./R.I.F.</TableHead>
+                                      <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {sellerData.bankDetails.map(bd => (
+                                      <TableRow key={bd.id}>
+                                          <TableCell className="font-medium">{bd.bank}</TableCell>
+                                          <TableCell>{bd.accountHolder}</TableCell>
+                                          <TableCell>{bd.accountNumber}</TableCell>
+                                          <TableCell>{bd.idNumber}</TableCell>
+                                          <TableCell className="text-center">
+                                              <div className="flex items-center justify-center gap-2">
+                                                  <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                              </div>
+                                          </TableCell>
+                                      </TableRow>
+                                  ))}
+                                  {sellerData.bankDetails.length === 0 && (
+                                      <TableRow>
+                                          <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
+                                      </TableRow>
+                                  )}
+                              </TableBody>
+                          </Table>
+                          <div className="space-y-4 md:hidden">
+                              {sellerData.bankDetails.length > 0 ? sellerData.bankDetails.map(bd => (
+                                  <div key={bd.id} className="p-4 border rounded-lg space-y-4">
+                                      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                          <div>
+                                              <p className="text-xs text-muted-foreground">Banco</p>
+                                              <p className="font-medium">{bd.bank}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-xs text-muted-foreground">Titular</p>
+                                              <p className="font-medium">{bd.accountHolder}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
+                                              <p className="font-mono text-sm">{bd.accountNumber}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
+                                              <p className="font-mono text-sm">{bd.idNumber}</p>
+                                          </div>
+                                      </div>
+                                      <Separator />
+                                      <div className="flex justify-end gap-2">
+                                          <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                          <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                      </div>
+                                  </div>
+                              )) : (
+                                  <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
+                              )}
+                          </div>
+                      </CardContent>
+                    </Card>
+                </TabsContent>
                 <TabsContent value="marketing" className="mt-6">
                     <Card>
                         <CardHeader>
@@ -507,6 +628,41 @@ export default function SellerDashboardPage() {
             </Tabs>
         </div>
       </main>
+
+        <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
+                    <DialogDescription>
+                        {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir tus comisiones."}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="bankName" className="text-right">Banco</Label>
+                        <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
+                        <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
+                        <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
+                        <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancelar</Button>
+                      </DialogClose>
+                    <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
