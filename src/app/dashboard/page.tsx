@@ -82,7 +82,7 @@ export default function DashboardPage() {
     upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime());
     past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    return { upcomingAppointments, pastAppointments };
+    return { upcomingAppointments: upcoming, pastAppointments: past };
   }, [user, appointments]);
 
   if (!user || user.role !== 'patient') {
