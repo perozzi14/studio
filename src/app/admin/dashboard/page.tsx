@@ -732,21 +732,61 @@ export default function AdminDashboardPage() {
       
       {/* Doctor View Details Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
             <DialogHeader>
                 <DialogTitle>Detalles del Médico</DialogTitle>
+                <DialogDescription>
+                    Información completa del perfil y su historial de pagos.
+                </DialogDescription>
             </DialogHeader>
             {selectedDoctor && (
-                <div className="py-4 space-y-2">
-                    <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
-                    <p><strong>Email:</strong> {selectedDoctor.email}</p>
-                    <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
-                    <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
-                    <p><strong>Ubicación:</strong> {selectedDoctor.address}, {selectedDoctor.sector}, {selectedDoctor.city}</p>
-                    <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
-                    <div className="flex items-center gap-2">
-                        <strong>Estado:</strong>
-                        <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <div className="space-y-2">
+                        <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
+                        <p><strong>Email:</strong> {selectedDoctor.email}</p>
+                        <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
+                        <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
+                        <p><strong>Ubicación:</strong> {selectedDoctor.address}, {selectedDoctor.sector}, {selectedDoctor.city}</p>
+                        <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
+                        <div className="flex items-center gap-2">
+                            <strong>Estado:</strong>
+                            <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600 text-white')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                        <h4 className="font-semibold mb-2">Historial de Pagos de Suscripción</h4>
+                         {doctorPayments.filter(p => p.doctorId === selectedDoctor.id).length > 0 ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Monto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {doctorPayments
+                                        .filter(p => p.doctorId === selectedDoctor.id)
+                                        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map(payment => (
+                                            <TableRow key={payment.id}>
+                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
+                                                        {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No hay pagos registrados para este médico.</p>
+                        )}
                     </div>
                 </div>
             )}
