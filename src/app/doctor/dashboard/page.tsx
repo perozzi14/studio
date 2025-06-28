@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, type Schedule, type DaySchedule, specialties } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, Percent, Upload } from 'lucide-react';
 import {
@@ -58,6 +58,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const chartConfig = {
@@ -384,7 +385,6 @@ export default function DoctorDashboardPage() {
     const updatedData = {
         ...doctorData,
         name: formData.get('name') as string,
-        specialty: formData.get('specialty') as string,
         city: formData.get('city') as string,
         sector: formData.get('sector') as string,
         address: formData.get('address') as string,
@@ -971,7 +971,23 @@ export default function DoctorDashboardPage() {
                         </div>
                          <div className="space-y-2">
                            <Label htmlFor="specialty">Especialidad</Label>
-                           <Input id="specialty" name="specialty" defaultValue={doctorData.specialty} />
+                           <Select 
+                                value={doctorData.specialty}
+                                onValueChange={(value) => {
+                                    if(doctorData) {
+                                        setDoctorData({...doctorData, specialty: value})
+                                    }
+                                }}
+                            >
+                             <SelectTrigger id="specialty">
+                               <SelectValue placeholder="Selecciona una especialidad" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {specialties.map(s => (
+                                 <SelectItem key={s} value={s}>{s}</SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
