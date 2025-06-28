@@ -54,7 +54,12 @@ export function Header() {
     { href: "/doctor/dashboard?view=support", label: "Soporte", view: "support" },
   ];
 
-  const dashboardHref = user?.role === 'doctor' ? '/doctor/dashboard' : '/dashboard';
+  const dashboardHref = user?.role === 'doctor' 
+    ? '/doctor/dashboard' 
+    : user?.role === 'seller'
+    ? '/seller/dashboard'
+    : '/dashboard';
+
   const currentView = searchParams.get('view') || 'appointments';
   const isPatient = user?.role === 'patient';
 
@@ -67,7 +72,7 @@ export function Header() {
           <span className="font-headline">SUMA</span>
         </Link>
         <nav className="hidden md:flex ml-auto items-center gap-2">
-          {user?.role !== 'doctor' && patientNavLinks.map((link) => (
+          {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
             <Button key={link.href} variant="ghost" asChild>
               <Link href={link.href}>{link.label}</Link>
             </Button>
@@ -250,7 +255,7 @@ export function Header() {
                   <Stethoscope className="h-6 w-6 text-primary" />
                   <span className="font-headline">SUMA</span>
                 </Link>
-                {user?.role !== 'doctor' && patientNavLinks.map((link) => (
+                {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
                   <SheetClose key={link.href} asChild>
                     <Link href={link.href} className="text-lg font-medium hover:text-primary">
                       {link.label}

@@ -3,18 +3,19 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctors } from './data';
+import { doctors, sellers } from './data';
 
 interface User {
   name: string;
   email: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'seller';
   age: number | null;
   gender: 'masculino' | 'femenino' | 'otro' | null;
   profileImage: string | null;
   cedula: string | null;
   phone: string | null;
   favoriteDoctorIds: number[];
+  referralCode?: string;
 }
 
 interface AuthContextType {
@@ -51,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, name: string = 'Nuevo Usuario') => {
     let loggedInUser: User;
-    if (email.toLowerCase() === 'doctor@admin.com') {
+    const lowerEmail = email.toLowerCase();
+
+    if (lowerEmail === 'doctor@admin.com') {
       const doctorInfo = doctors.find(d => d.id === 1);
       loggedInUser = { 
         email, 
@@ -67,7 +70,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       router.push('/doctor/dashboard');
-    } else {
+    } else if (lowerEmail === 'vendedora@venta.com') {
+      const sellerInfo = sellers.find(s => s.email.toLowerCase() === lowerEmail);
+      loggedInUser = { 
+        email, 
+        name: sellerInfo?.name || 'Vendedora', 
+        role: 'seller', 
+        age: null, 
+        gender: null,
+        cedula: null,
+        phone: null,
+        profileImage: 'https://placehold.co/100x100.png', // Generic avatar for seller
+        favoriteDoctorIds: [],
+        referralCode: sellerInfo?.referralCode
+      };
+      setUser(loggedInUser);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      router.push('/seller/dashboard');
+    }
+    else {
       loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));

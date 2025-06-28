@@ -44,6 +44,8 @@ export default function LoginPage() {
             <br />
             <span className="text-xs">(Médico, usa: doctor@admin.com / 1234)</span>
             <br />
+            <span className="text-xs">(Vendedora, usa: vendedora@venta.com / 1234)</span>
+            <br />
             <span className="text-xs">(Paciente, usa: paciente@example.com / 1234)</span>
           </CardDescription>
         </CardHeader>

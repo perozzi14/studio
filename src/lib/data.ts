@@ -104,6 +104,15 @@ export type Doctor = {
   status: 'active' | 'inactive';
   paymentReports: PaymentReport[];
   supportTickets: SupportTicket[];
+  sellerId: number | null;
+  lastPaymentDate: string; // YYYY-MM-DD
+};
+
+export type Seller = {
+  id: number;
+  name: string;
+  email: string;
+  referralCode: string;
 };
 
 const defaultSchedule: Schedule = {
@@ -115,6 +124,15 @@ const defaultSchedule: Schedule = {
     saturday: { active: false, slots: [] },
     sunday: { active: false, slots: [] },
 };
+
+export const sellers: Seller[] = [
+  {
+    id: 1,
+    name: "Vendedora Principal",
+    email: "vendedora@venta.com",
+    referralCode: "VENDE123",
+  }
+];
 
 
 export const doctors: Doctor[] = [
@@ -133,6 +151,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "woman doctor",
+    sellerId: 1,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
       { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
@@ -211,6 +231,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png", 
     aiHint: "man doctor",
+    sellerId: null,
+    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
       { id: 202, name: "Crioterapia (verrugas)", price: 60 },
@@ -245,6 +267,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor smile",
+    sellerId: 1,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 301, name: "Consulta Neurológica", price: 60 },
       { id: 302, name: "Electroencefalograma (EEG)", price: 120 },
@@ -278,6 +302,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor",
+    sellerId: null,
+    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString().split('T')[0],
     services: [
       { id: 401, name: "Consulta Pediátrica", price: 40 },
       { id: 402, name: "Vacunación", price: 25 },
@@ -311,6 +337,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor",
+    sellerId: null,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 501, name: "Consulta Oncológica", price: 70 },
       { id: 502, name: "Quimioterapia (por sesión)", price: 200 },
@@ -344,6 +372,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor portrait",
+    sellerId: 1,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 601, name: "Consulta Ortopédica", price: 55 },
       { id: 602, name: "Infiltración", price: 75 },
@@ -377,6 +407,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "female doctor professional",
+    sellerId: null,
+    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0],
     services: [
       { id: 701, name: "Consulta Cardiológica", price: 50 },
       { id: 702, name: "Prueba de Esfuerzo", price: 110 },
@@ -410,6 +442,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male doctor smile",
+    sellerId: null,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 801, name: "Consulta Dermatológica", price: 45 },
       { id: 802, name: "Peeling Químico", price: 90 },
@@ -443,6 +477,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor woman",
+    sellerId: 1,
+    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 901, name: "Consulta Ginecológica", price: 50 },
       { id: 902, name: "Citología", price: 35 },
@@ -477,6 +513,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "doctor young",
+    sellerId: null,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 1001, name: "Consulta Neumonológica", price: 55 },
       { id: 1002, name: "Espirometría", price: 70 },
@@ -510,6 +548,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "aesthetic doctor",
+    sellerId: 1,
+    lastPaymentDate: new Date().toISOString().split('T')[0],
     services: [
       { id: 1101, name: "Aplicación de Toxina Botulínica", price: 150 },
       { id: 1102, name: "Relleno con Ácido Hialurónico", price: 250 },
@@ -544,6 +584,8 @@ export const doctors: Doctor[] = [
     profileImage: "https://placehold.co/400x400.png",
     bannerImage: "https://placehold.co/1200x400.png",
     aiHint: "male aesthetic doctor",
+    sellerId: null,
+    lastPaymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     services: [
       { id: 1201, name: "Consulta de Medicina Estética", price: 60 },
       { id: 1202, name: "Depilación Láser (por zona)", price: 80 },
