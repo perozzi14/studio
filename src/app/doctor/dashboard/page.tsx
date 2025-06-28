@@ -356,6 +356,7 @@ export default function DoctorDashboardPage() {
         totalExpenses,
         netProfit,
         chartData,
+        paidAppointments,
         paidAppointmentsCount: paidAppointments.length,
     };
 }, [appointments, expenses, timeRange]);
@@ -806,6 +807,74 @@ export default function DoctorDashboardPage() {
                           )}
                       </CardContent>
                   </Card>
+
+                   <Card>
+                    <CardHeader>
+                        <CardTitle>Detalle de Ingresos ({timeRangeLabels[timeRange]})</CardTitle>
+                        <CardDescription>
+                            Lista de todas las citas pagadas en el período seleccionado.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table className="hidden md:table">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Paciente</TableHead>
+                                    <TableHead>Servicios</TableHead>
+                                    <TableHead className="text-right">Monto</TableHead>
+                                    <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
+                                    <TableRow key={appt.id}>
+                                        <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                        <TableCell className="font-medium">{appt.patientName}</TableCell>
+                                        <TableCell className="text-sm truncate max-w-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
+                                        <TableCell className="text-right font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center h-24">No hay ingresos registrados en este período.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+
+                        <div className="space-y-4 md:hidden">
+                            {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
+                                <div key={appt.id} className="p-4 border rounded-lg space-y-3">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <p className="font-bold">{appt.patientName}</p>
+                                            <p className="text-sm text-muted-foreground">{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                                        </div>
+                                        <p className="font-semibold text-lg font-mono">${appt.totalPrice.toFixed(2)}</p>
+                                    </div>
+                                    <div className="text-sm">
+                                        <span className="font-semibold">Servicios: </span>
+                                        {appt.services.map(s => s.name).join(', ')}
+                                    </div>
+                                    <Separator/>
+                                    <div className="flex justify-end">
+                                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(appt)}>
+                                            <Eye className="mr-2 h-4 w-4" /> Ver Detalles
+                                        </Button>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No hay ingresos registrados en este período.</div>
+                            )}
+                        </div>
+                    </CardContent>
+                  </Card>
+
                   <Card>
                         <CardHeader>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
