@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/header";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,6 +11,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -33,7 +39,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { specialties, doctors, type Doctor } from "@/lib/data";
+import { specialties, doctors, cities, type Doctor } from "@/lib/data";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -49,7 +55,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
 export default function FindDoctorPage() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [specialty, setSpecialty] = useState("all");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState("all");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
 
@@ -62,11 +68,13 @@ export default function FindDoctorPage() {
       );
     }
 
-    if (location.trim()) {
-      results = results.filter((d) =>
-        d.city.toLowerCase().includes(location.toLowerCase().trim())
+    if (location && location !== "all") {
+      results = results.filter(
+        (d) => d.city.toLowerCase() === location.toLowerCase()
       );
     }
+
+    // Note: Date filter is not implemented in this version
 
     setFilteredDoctors(results);
   };
@@ -74,7 +82,7 @@ export default function FindDoctorPage() {
   useEffect(() => {
     handleSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [specialty]);
+  }, [specialty, location]);
 
 
   const visibleSpecialties = showAllSpecialties
@@ -145,11 +153,19 @@ export default function FindDoctorPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-end gap-4">
                 <div className="space-y-2 lg:flex-1">
                   <label className="font-medium text-sm">Ubicación (Ciudad)</label>
-                  <Input
-                    placeholder="ej., Caracas"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas las ciudades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las ciudades</SelectItem>
+                      {cities.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 lg:flex-1">
                   <label className="font-medium text-sm">Disponibilidad</label>
