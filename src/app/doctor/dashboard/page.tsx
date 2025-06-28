@@ -1497,15 +1497,16 @@ const handleReplyToTicket = (ticketId: string) => {
                     </TabsList>
                     <TabsContent value="payments" className="mt-6">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <CardTitle>Historial de Pagos Reportados</CardTitle>
                                     <CardDescription>Aquí puedes ver el estado de tus pagos mensuales.</CardDescription>
                                 </div>
-                                <Button onClick={() => setIsReportPaymentOpen(true)}><PlusCircle className="mr-2"/> Reportar Nuevo Pago</Button>
+                                <Button onClick={() => setIsReportPaymentOpen(true)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Reportar Nuevo Pago</Button>
                             </CardHeader>
                             <CardContent>
-                                <Table>
+                                {/* Desktop Table */}
+                                <Table className="hidden md:table">
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Fecha</TableHead>
@@ -1532,6 +1533,31 @@ const handleReplyToTicket = (ticketId: string) => {
                                         )}
                                     </TableBody>
                                 </Table>
+                                {/* Mobile Cards */}
+                                <div className="space-y-4 md:hidden">
+                                    {paymentReports.length > 0 ? paymentReports.map(report => (
+                                        <div key={report.id} className="p-4 border rounded-lg space-y-3">
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div>
+                                                    <p className="font-semibold">Ref: <span className="font-mono">{report.referenceNumber}</span></p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {format(new Date(report.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}
+                                                    </p>
+                                                </div>
+                                                <p className="font-bold text-lg">${report.amount.toFixed(2)}</p>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-sm">Estado:</p>
+                                                <Badge variant={report.status === 'Verificado' ? 'default' : report.status === 'Rechazado' ? 'destructive' : 'secondary'} className={cn(report.status === 'Verificado' && 'bg-green-600 text-white')}>
+                                                    {report.status}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No has reportado pagos.</div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
