@@ -9,46 +9,83 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
 import type { Appointment } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
-function AppointmentCard({ appointment, isPast = false }: { appointment: Appointment, isPast?: boolean }) {
+function AppointmentCard({ 
+  appointment, 
+  isPast = false,
+  onUpdateConfirmation
+}: { 
+  appointment: Appointment, 
+  isPast?: boolean,
+  onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void
+}) {
   return (
-    <div className="border rounded-lg p-4 flex flex-col sm:flex-row gap-4 hover:shadow-md transition-shadow">
-      <div className="flex-1 space-y-2">
-        <p className="font-bold text-lg">{appointment.doctorName}</p>
-        <p className="text-sm text-muted-foreground">{appointment.services.map(s => s.name).join(', ')}</p>
-        <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
-          <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-          <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 space-y-2">
+          <p className="font-bold text-lg">{appointment.doctorName}</p>
+          <p className="text-sm text-muted-foreground">{appointment.services.map(s => s.name).join(', ')}</p>
+          <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
+            <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
+          </div>
         </div>
-      </div>
-      <Separator orientation="vertical" className="h-auto hidden sm:block mx-2" />
-       <Separator orientation="horizontal" className="w-full block sm:hidden my-2" />
-      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
-         <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
-         {isPast ? (
-            <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={appointment.attendance === 'Atendido' ? 'bg-green-600 text-white' : ''}>
-                {appointment.attendance}
-            </Badge>
-         ) : (
-            <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={appointment.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : ''}>
-                {appointment.paymentStatus}
-            </Badge>
-         )}
-      </div>
-    </div>
+        <Separator orientation="vertical" className="h-auto hidden sm:block mx-2" />
+        <Separator orientation="horizontal" className="w-full block sm:hidden my-2" />
+        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
+          <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
+          {isPast ? (
+              <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={appointment.attendance === 'Atendido' ? 'bg-green-600 text-white' : ''}>
+                  {appointment.attendance}
+              </Badge>
+          ) : (
+              <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={appointment.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : ''}>
+                  {appointment.paymentStatus}
+              </Badge>
+          )}
+        </div>
+      </CardContent>
+      {!isPast && onUpdateConfirmation && (
+        <CardFooter className="p-4 pt-0 border-t mt-4 flex-col sm:flex-row items-center gap-4">
+          {appointment.patientConfirmationStatus === 'Pendiente' && (
+            <>
+              <p className="text-sm text-muted-foreground text-center sm:text-left flex-1">¿Asistirás a esta cita?</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
+                  <CalendarX className="mr-2 h-4 w-4" /> Cancelar
+                </Button>
+                <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
+                  <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
+                </Button>
+              </div>
+            </>
+          )}
+          {appointment.patientConfirmationStatus === 'Confirmada' && (
+             <Badge variant="default" className="bg-green-600 text-white w-full sm:w-auto justify-center py-1.5 px-3">
+                <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
+             </Badge>
+          )}
+          {appointment.patientConfirmationStatus === 'Cancelada' && (
+             <Badge variant="destructive" className="w-full sm:w-auto justify-center py-1.5 px-3">
+                <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
+             </Badge>
+          )}
+        </CardFooter>
+      )}
+    </Card>
   );
 }
 
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { appointments } = useAppointments();
+  const { appointments, updateAppointmentConfirmation } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
 
@@ -149,7 +186,11 @@ export default function DashboardPage() {
                   {upcomingAppointments.length > 0 ? (
                     <div className="space-y-4">
                       {upcomingAppointments.map(appt => (
-                        <AppointmentCard key={appt.id} appointment={appt} />
+                        <AppointmentCard 
+                          key={appt.id} 
+                          appointment={appt} 
+                          onUpdateConfirmation={updateAppointmentConfirmation}
+                        />
                       ))}
                     </div>
                   ) : (

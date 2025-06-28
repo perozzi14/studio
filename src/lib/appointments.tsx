@@ -7,7 +7,8 @@ import { useAuth } from './auth';
 
 interface AppointmentContextType {
   appointments: Appointment[];
-  addAppointment: (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance'>) => void;
+  addAppointment: (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance' | 'patientConfirmationStatus'>) => void;
+  updateAppointmentConfirmation: (appointmentId: string, status: 'Confirmada' | 'Cancelada') => void;
 }
 
 const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
@@ -16,7 +17,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const { user } = useAuth();
 
-  const addAppointment = useCallback((newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance'>) => {
+  const addAppointment = useCallback((newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance' | 'patientConfirmationStatus'>) => {
     if (!user) return; 
 
     const newAppointment: Appointment = {
@@ -25,12 +26,21 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       patientId: user.email,
       patientName: user.name,
       attendance: 'Pendiente',
+      patientConfirmationStatus: 'Pendiente',
     };
     
     setAppointments(prev => [newAppointment, ...prev]);
   }, [user]);
 
-  const value = { appointments, addAppointment };
+  const updateAppointmentConfirmation = useCallback((appointmentId: string, status: 'Confirmada' | 'Cancelada') => {
+    setAppointments(prev => prev.map(appt => 
+      appt.id === appointmentId 
+        ? { ...appt, patientConfirmationStatus: status }
+        : appt
+    ));
+  }, []);
+
+  const value = { appointments, addAppointment, updateAppointmentConfirmation };
 
   return (
     <AppointmentContext.Provider value={value}>

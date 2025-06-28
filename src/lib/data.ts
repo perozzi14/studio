@@ -602,6 +602,7 @@ export type Appointment = {
   paymentStatus: 'Pendiente' | 'Pagado';
   paymentProof: string | null;
   attendance: 'Atendido' | 'No Asistió' | 'Pendiente';
+  patientConfirmationStatus: 'Pendiente' | 'Confirmada' | 'Cancelada';
 };
 
 export const appointments: Appointment[] = [
@@ -619,7 +620,8 @@ export const appointments: Appointment[] = [
     paymentMethod: 'transferencia',
     paymentStatus: 'Pendiente',
     paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'Pendiente'
+    attendance: 'Pendiente',
+    patientConfirmationStatus: 'Pendiente',
   },
   {
     id: "appt-3",
@@ -634,7 +636,8 @@ export const appointments: Appointment[] = [
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
     paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'Pendiente'
+    attendance: 'Pendiente',
+    patientConfirmationStatus: 'Pendiente',
   },
   {
     id: "appt-7",
@@ -649,12 +652,13 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo',
     paymentStatus: 'Pendiente',
     paymentProof: null,
-    attendance: 'Pendiente'
+    attendance: 'Pendiente',
+    patientConfirmationStatus: 'Pendiente',
   },
   {
     id: "appt-8",
-    patientId: "pat-5",
-    patientName: "Lucia Méndez",
+    patientId: "paciente@example.com",
+    patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
     date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0], // Tomorrow
@@ -664,7 +668,8 @@ export const appointments: Appointment[] = [
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
     paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'Pendiente'
+    attendance: 'Pendiente',
+    patientConfirmationStatus: 'Pendiente',
   },
   // Upcoming for Dr. Sanchez (id: 2)
   {
@@ -680,7 +685,8 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo',
     paymentStatus: 'Pendiente',
     paymentProof: null,
-    attendance: 'Pendiente'
+    attendance: 'Pendiente',
+    patientConfirmationStatus: 'Pendiente',
   },
   // Past Appointments for Dr. Rodriguez (id: 1)
    {
@@ -696,12 +702,13 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
     paymentProof: null,
-    attendance: 'Atendido'
+    attendance: 'Atendido',
+    patientConfirmationStatus: 'Confirmada',
   },
   {
     id: "appt-5",
-    patientId: "pat-7",
-    patientName: "Sofia Peña",
+    patientId: "paciente@example.com",
+    patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
     date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0], // 10 days ago
@@ -711,12 +718,13 @@ export const appointments: Appointment[] = [
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
     paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'No Asistió'
+    attendance: 'No Asistió',
+    patientConfirmationStatus: 'Confirmada',
   },
   {
     id: "appt-6",
-    patientId: "pat-8",
-    patientName: "Juan Alfonzo",
+    patientId: "paciente@example.com",
+    patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
     date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString().split('T')[0], // 5 days ago
@@ -726,7 +734,8 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
     paymentProof: null,
-    attendance: 'Atendido'
+    attendance: 'Atendido',
+    patientConfirmationStatus: 'Confirmada',
   }
 ];
 
