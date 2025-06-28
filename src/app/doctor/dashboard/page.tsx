@@ -93,6 +93,9 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment }: { appointmen
                             {appointment.paymentStatus === 'Pagado' ? <Check className="mr-1 h-3 w-3" /> : <Clock className="mr-1 h-3 w-3" />}
                             {appointment.paymentStatus}
                         </Badge>
+                         <p className="text-xs text-muted-foreground capitalize mt-1">
+                            Método: {appointment.paymentMethod}
+                        </p>
                     </div>
                     {appointment.paymentMethod === 'transferencia' && appointment.paymentStatus === 'Pendiente' && (
                         <AlertDialog>
