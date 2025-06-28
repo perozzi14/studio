@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +68,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-function UpcomingAppointmentCard({ appointment, onConfirmPayment }: { appointment: Appointment, onConfirmPayment: (id: string) => void }) {
+function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails }: { appointment: Appointment, onConfirmPayment: (id: string) => void, onViewDetails: (appointment: Appointment) => void }) {
     return (
         <Card>
             <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
@@ -83,8 +83,8 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment }: { appointmen
                 </div>
                 <Separator orientation="vertical" className="h-auto hidden sm:block" />
                 <Separator orientation="horizontal" className="w-full sm:hidden" />
-                <div className="flex sm:flex-col justify-between items-center sm:items-end gap-2 sm:w-48">
-                    <div className="text-right">
+                <div className="flex sm:flex-col justify-between items-start sm:items-end gap-2 sm:w-48">
+                    <div className="text-right flex-1">
                         <p className="font-bold text-xl">${appointment.totalPrice.toFixed(2)}</p>
                         <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(
                             appointment.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500',
@@ -97,36 +97,41 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment }: { appointmen
                             Método: {appointment.paymentMethod}
                         </p>
                     </div>
-                    {appointment.paymentMethod === 'transferencia' && appointment.paymentStatus === 'Pendiente' && (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Revisar Pago
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Pago de {appointment.patientName}</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        El paciente ha subido un comprobante de pago. Por favor, verifica la transacción antes de confirmar.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <div className="py-4">
-                                    <p className="font-semibold mb-2">Comprobante de Pago:</p>
-                                    {appointment.paymentProof ? (
-                                        <Image src={appointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
-                                    ) : <p className="text-sm text-muted-foreground">No se subió comprobante.</p>}
-                                </div>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onConfirmPayment(appointment.id)}>
-                                        <Check className="mr-2 h-4 w-4" /> Marcar como Pagado
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    )}
+                    <div className="flex sm:flex-col items-center gap-2">
+                         <Button size="icon" variant="outline" className="h-9 w-9" onClick={() => onViewDetails(appointment)}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Ver Detalles</span>
+                        </Button>
+                        {appointment.paymentMethod === 'transferencia' && appointment.paymentStatus === 'Pendiente' && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="h-9">
+                                        Revisar
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Pago de {appointment.patientName}</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            El paciente ha subido un comprobante de pago. Por favor, verifica la transacción antes de confirmar.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <div className="py-4">
+                                        <p className="font-semibold mb-2">Comprobante de Pago:</p>
+                                        {appointment.paymentProof ? (
+                                            <Image src={appointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
+                                        ) : <p className="text-sm text-muted-foreground">No se subió comprobante.</p>}
+                                    </div>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onConfirmPayment(appointment.id)}>
+                                            <Check className="mr-2 h-4 w-4" /> Marcar como Pagado
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -144,17 +149,14 @@ export default function DoctorDashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State for managing the doctor's own data
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
   const [schedule, setSchedule] = useState<string[]>(availableTimes);
   
-  // State for the service dialog
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [servicePrice, setServicePrice] = useState('');
 
-  // State for the bank detail dialog
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
   const [bankName, setBankName] = useState('');
@@ -162,12 +164,14 @@ export default function DoctorDashboardPage() {
   const [idNumber, setIdNumber] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   
-  // State for expense dialog
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState('');
+
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
 
 
   useEffect(() => {
@@ -416,6 +420,12 @@ export default function DoctorDashboardPage() {
     });
   };
 
+  const handleViewDetails = (appointment: Appointment) => {
+      const patient = mockPatients.find(p => p.id === appointment.patientId);
+      setSelectedAppointment({ ...appointment, patient });
+      setIsDetailDialogOpen(true);
+  };
+
   if (isLoading || !user || !doctorData || !financialStats) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -449,7 +459,12 @@ export default function DoctorDashboardPage() {
                             {upcomingAppointments.length > 0 ? (
                                 <div className="space-y-4">
                                     {upcomingAppointments.map((appt) => (
-                                        <UpcomingAppointmentCard key={appt.id} appointment={appt} onConfirmPayment={handleConfirmPayment} />
+                                        <UpcomingAppointmentCard 
+                                            key={appt.id} 
+                                            appointment={appt} 
+                                            onConfirmPayment={handleConfirmPayment} 
+                                            onViewDetails={handleViewDetails}
+                                        />
                                     ))}
                                 </div>
                             ) : (
@@ -474,6 +489,7 @@ export default function DoctorDashboardPage() {
                                         <TableHead>Método</TableHead>
                                         <TableHead>Pago</TableHead>
                                         <TableHead className="text-center">Asistencia</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -510,10 +526,15 @@ export default function DoctorDashboardPage() {
                                                     </Badge>
                                                 )}
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                            <TableCell colSpan={6} className="text-center h-24">No hay citas en el historial.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
@@ -894,6 +915,111 @@ export default function DoctorDashboardPage() {
                             <Button type="button" variant="outline">Cancelar</Button>
                          </DialogClose>
                         <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Detalles de la Cita</DialogTitle>
+                        <DialogDescription>
+                            Resumen completo de la cita y datos del paciente.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedAppointment && (
+                        <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><User /> Información del Paciente</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="font-semibold">Nombre</p>
+                                            <p className="text-muted-foreground">{selectedAppointment.patient?.name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold">Correo Electrónico</p>
+                                            <p className="text-muted-foreground">{selectedAppointment.patient?.email || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold flex items-center gap-1"><Cake className="h-4 w-4"/> Edad</p>
+                                            <p className="text-muted-foreground">{selectedAppointment.patient?.age || 'No especificada'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold flex items-center gap-1"><VenetianMask className="h-4 w-4"/> Sexo</p>
+                                            <p className="text-muted-foreground capitalize">{selectedAppointment.patient?.gender || 'No especificado'}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><CalendarClock /> Detalles de la Cita</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <div>
+                                        <p className="font-semibold">Fecha y Hora</p>
+                                        <p className="text-muted-foreground">{new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Servicios Solicitados</p>
+                                        <ul className="list-disc list-inside text-muted-foreground">
+                                          {selectedAppointment.services.map(s => <li key={s.id}>{s.name} (${s.price.toFixed(2)})</li>)}
+                                        </ul>
+                                    </div>
+                                     {selectedAppointment.attendance !== 'Pendiente' && (
+                                        <div>
+                                            <p className="font-semibold">Estado de Asistencia</p>
+                                             <Badge variant={selectedAppointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(selectedAppointment.attendance === 'Atendido' && 'bg-primary')}>
+                                                {selectedAppointment.attendance}
+                                            </Badge>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><DollarSign /> Información de Pago</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4 text-sm">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                           <p className="font-semibold">Monto Total</p>
+                                           <p className="text-2xl font-bold text-primary">${selectedAppointment.totalPrice.toFixed(2)}</p>
+                                        </div>
+                                        <div className="text-right">
+                                           <p className="font-semibold">Estado del Pago</p>
+                                           <Badge variant={selectedAppointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(
+                                                selectedAppointment.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500',
+                                                "text-white"
+                                            )}>
+                                                {selectedAppointment.paymentStatus}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <Separator />
+                                     <div>
+                                        <p className="font-semibold">Método de Pago</p>
+                                        <p className="text-muted-foreground capitalize">{selectedAppointment.paymentMethod}</p>
+                                    </div>
+                                    {selectedAppointment.paymentMethod === 'transferencia' && selectedAppointment.paymentProof && (
+                                        <div>
+                                            <p className="font-semibold flex items-center gap-1"><FileImage className="h-4 w-4"/> Comprobante de Pago</p>
+                                             <Image src={selectedAppointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border mt-2"/>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                    <DialogFooter>
+                         <DialogClose asChild>
+                            <Button type="button" variant="outline">Cerrar</Button>
+                         </DialogClose>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

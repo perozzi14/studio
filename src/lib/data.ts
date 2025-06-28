@@ -296,8 +296,29 @@ export const doctors: Doctor[] = [
 ];
 
 
+export type Patient = {
+    id: string;
+    name: string;
+    email: string;
+    age: number | null;
+    gender: 'masculino' | 'femenino' | 'otro' | null;
+};
+
+export const mockPatients: Patient[] = [
+    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino' },
+    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino' },
+    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino' },
+    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino' },
+    { id: "pat-5", name: "Lucia Méndez", email: "lucia.m@example.com", age: 41, gender: 'femenino' },
+    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino' },
+    { id: "pat-7", name: "Sofia Peña", email: "sofia.p@example.com", age: 25, gender: 'femenino' },
+    { id: "pat-8", name: "Juan Alfonzo", email: "juan.a@example.com", age: 38, gender: 'masculino' },
+];
+
+
 export type Appointment = {
   id: string;
+  patientId: string;
   patientName: string;
   doctorName: string;
   doctorId: number;
@@ -315,6 +336,7 @@ export const appointments: Appointment[] = [
   // Upcoming Appointments for Dr. Rodriguez (id: 1)
   {
     id: "appt-1",
+    patientId: "pat-1",
     patientName: "Elena Ríos",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -329,6 +351,7 @@ export const appointments: Appointment[] = [
   },
   {
     id: "appt-3",
+    patientId: "pat-3",
     patientName: "Maria Castillo",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -343,6 +366,7 @@ export const appointments: Appointment[] = [
   },
   {
     id: "appt-7",
+    patientId: "pat-4",
     patientName: "Carlos Briceño",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -357,6 +381,7 @@ export const appointments: Appointment[] = [
   },
   {
     id: "appt-8",
+    patientId: "pat-5",
     patientName: "Lucia Méndez",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -372,6 +397,7 @@ export const appointments: Appointment[] = [
   // Upcoming for Dr. Sanchez (id: 2)
   {
     id: "appt-2",
+    patientId: "pat-2",
     patientName: "Jorge Paez",
     doctorName: "Dr. Carlos Sanchez",
     doctorId: 2,
@@ -387,6 +413,7 @@ export const appointments: Appointment[] = [
   // Past Appointments for Dr. Rodriguez (id: 1)
    {
     id: "appt-4",
+    patientId: "pat-6",
     patientName: "Luis Ramirez",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -401,6 +428,7 @@ export const appointments: Appointment[] = [
   },
   {
     id: "appt-5",
+    patientId: "pat-7",
     patientName: "Sofia Peña",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
@@ -415,6 +443,7 @@ export const appointments: Appointment[] = [
   },
   {
     id: "appt-6",
+    patientId: "pat-8",
     patientName: "Juan Alfonzo",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
