@@ -970,15 +970,38 @@ export default function DoctorDashboardPage() {
                                           {selectedAppointment.services.map(s => <li key={s.id}>{s.name} (${s.price.toFixed(2)})</li>)}
                                         </ul>
                                     </div>
-                                     {selectedAppointment.attendance !== 'Pendiente' && (
-                                        <div>
-                                            <p className="font-semibold">Estado de Asistencia</p>
-                                             <Badge variant={selectedAppointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(selectedAppointment.attendance === 'Atendido' && 'bg-primary')}>
-                                                {selectedAppointment.attendance}
-                                            </Badge>
-                                        </div>
-                                    )}
+                                    <div>
+                                        <p className="font-semibold">Estado de Asistencia</p>
+                                        <Badge variant={selectedAppointment.attendance === 'Atendido' ? 'default' : selectedAppointment.attendance === 'No Asistió' ? 'destructive' : 'secondary'} className={cn(selectedAppointment.attendance === 'Atendido' && 'bg-primary')}>
+                                            {selectedAppointment.attendance}
+                                        </Badge>
+                                    </div>
                                 </CardContent>
+                                {(new Date(selectedAppointment.date + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)) && selectedAppointment.attendance === 'Pendiente') && (
+                                    <CardFooter className="justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                handleUpdateAttendance(selectedAppointment.id, 'No Asistió');
+                                                setIsDetailDialogOpen(false);
+                                            }}
+                                        >
+                                            <UserX className="mr-2 h-4 w-4" />
+                                            Marcar No Asistió
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                handleUpdateAttendance(selectedAppointment.id, 'Atendido');
+                                                setIsDetailDialogOpen(false);
+                                            }}
+                                        >
+                                            <UserCheck className="mr-2 h-4 w-4" />
+                                            Marcar Atendido
+                                        </Button>
+                                    </CardFooter>
+                                )}
                             </Card>
                             
                             <Card>
@@ -1013,6 +1036,20 @@ export default function DoctorDashboardPage() {
                                         </div>
                                     )}
                                 </CardContent>
+                                {selectedAppointment.paymentStatus === 'Pendiente' && (
+                                    <CardFooter>
+                                        <Button
+                                            className="w-full"
+                                            onClick={() => {
+                                                handleConfirmPayment(selectedAppointment.id);
+                                                setIsDetailDialogOpen(false);
+                                            }}
+                                        >
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Confirmar Pago
+                                        </Button>
+                                    </CardFooter>
+                                )}
                             </Card>
                         </div>
                     )}
