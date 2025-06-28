@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth";
 import { AppointmentProvider } from "@/lib/appointments";
 import { NotificationProvider } from "@/lib/notifications";
+import { SettingsProvider } from "@/lib/settings";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,8 +35,10 @@ export default function RootLayout({
         <AuthProvider>
           <AppointmentProvider>
             <NotificationProvider>
-              {children}
-              <Toaster />
+              <SettingsProvider>
+                {children}
+                <Toaster />
+              </SettingsProvider>
             </NotificationProvider>
           </AppointmentProvider>
         </AuthProvider>

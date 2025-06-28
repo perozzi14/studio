@@ -32,10 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import Image from 'next/image';
-
-const MONTHLY_DOCTOR_FEE = 50;
-const SELLER_COMMISSION_RATE = 0.20;
-const COMMISSION_PER_DOCTOR = MONTHLY_DOCTOR_FEE * SELLER_COMMISSION_RATE;
+import { useSettings } from '@/lib/settings';
 
 
 function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
@@ -85,8 +82,8 @@ export default function SellerDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get('view') || 'referrals';
   const { toast } = useToast();
+  const { doctorSubscriptionFee } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
 
@@ -122,9 +119,14 @@ export default function SellerDashboardPage() {
     return allDoctors.filter(d => d.sellerId === sellerData.id);
   }, [sellerData]);
 
+  const commissionPerDoctor = useMemo(() => {
+    if (!sellerData) return 0;
+    return doctorSubscriptionFee * sellerData.commissionRate;
+  }, [doctorSubscriptionFee, sellerData]);
+
   const financeStats = useMemo(() => {
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
-    const pendingCommission = activeReferred.length * COMMISSION_PER_DOCTOR;
+    const pendingCommission = activeReferred.length * commissionPerDoctor;
     const totalEarned = mockSellerPayments.reduce((sum, payment) => sum + payment.amount, 0);
     
     const now = new Date();
@@ -139,7 +141,7 @@ export default function SellerDashboardPage() {
       totalEarned,
       nextPaymentDate,
     };
-  }, [referredDoctors]);
+  }, [referredDoctors, commissionPerDoctor]);
 
   const copyReferralLink = () => {
     if (!user?.referralCode) return;
@@ -331,7 +333,7 @@ export default function SellerDashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold text-green-600">${financeStats.pendingCommission.toFixed(2)}</div>
-                                    <p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${COMMISSION_PER_DOCTOR}/c.u.</p>
+                                    <p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}/c.u.</p>
                                 </CardContent>
                             </Card>
                             <Card>

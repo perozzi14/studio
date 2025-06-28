@@ -42,6 +42,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useSettings } from '@/lib/settings';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -68,6 +69,26 @@ export default function AdminDashboardPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+
+  // States for Settings
+  const { doctorSubscriptionFee, setDoctorSubscriptionFee } = useSettings();
+  const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
+
+  useEffect(() => {
+    if (doctorSubscriptionFee) {
+        setTempSubscriptionFee(doctorSubscriptionFee.toString());
+    }
+  }, [doctorSubscriptionFee]);
+
+  const handleSaveSettings = () => {
+    const newFee = parseFloat(tempSubscriptionFee);
+    if (!isNaN(newFee) && newFee > 0) {
+        setDoctorSubscriptionFee(newFee);
+        toast({ title: "Configuración Guardada", description: "El monto de la suscripción ha sido actualizado." });
+    } else {
+        toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido." });
+    }
+  };
   
   useEffect(() => {
     if (user === undefined) return;
@@ -117,7 +138,7 @@ export default function AdminDashboardPage() {
 
     const commissionsPaid = sellers.reduce((acc, seller) => {
         const referredActiveCount = doctors.filter(d => d.sellerId === seller.id && d.status === 'active').length;
-        return acc + (referredActiveCount * 50 * seller.commissionRate);
+        return acc + (referredActiveCount * doctorSubscriptionFee * seller.commissionRate);
     }, 0);
 
     return {
@@ -129,7 +150,7 @@ export default function AdminDashboardPage() {
         commissionsPaid,
         netProfit: totalRevenue - commissionsPaid,
     }
-  }, [doctors, sellers, patients, doctorPayments]);
+  }, [doctors, sellers, patients, doctorPayments, doctorSubscriptionFee]);
 
   if (isLoading || !user) {
     return (
@@ -224,51 +245,53 @@ export default function AdminDashboardPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            <Table className="hidden md:table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Médico</TableHead>
-                                        <TableHead>Especialidad</TableHead>
-                                        <TableHead>Ubicación</TableHead>
-                                        <TableHead>Referido por</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {doctors.map((doctor) => (
-                                        <TableRow key={doctor.id}>
-                                            <TableCell className="font-medium flex items-center gap-3">
-                                                <Avatar className="h-9 w-9">
-                                                    <AvatarImage src={doctor.profileImage} alt={doctor.name} />
-                                                    <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p>{doctor.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{doctor.email}</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{doctor.specialty}</TableCell>
-                                            <TableCell>{doctor.city}</TableCell>
-                                            <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
-                                            <TableCell>
-                                                 <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
-                                                    {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Switch 
-                                                    checked={doctor.status === 'active'} 
-                                                    onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
-                                                />
-                                                <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
+                            <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Médico</TableHead>
+                                            <TableHead>Especialidad</TableHead>
+                                            <TableHead>Ubicación</TableHead>
+                                            <TableHead>Referido por</TableHead>
+                                            <TableHead>Estado</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {doctors.map((doctor) => (
+                                            <TableRow key={doctor.id}>
+                                                <TableCell className="font-medium flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                        <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                        <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p>{doctor.name}</p>
+                                                        <p className="text-xs text-muted-foreground">{doctor.email}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{doctor.specialty}</TableCell>
+                                                <TableCell>{doctor.city}</TableCell>
+                                                <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                                        {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right flex items-center justify-end gap-2">
+                                                    <Switch 
+                                                        checked={doctor.status === 'active'} 
+                                                        onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
+                                                    />
+                                                    <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
+                                                    <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                             <div className="space-y-4 md:hidden">
                                 {doctors.map((doctor) => (
                                     <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
@@ -342,43 +365,45 @@ export default function AdminDashboardPage() {
                            </Button>
                       </CardHeader>
                       <CardContent>
-                          <Table className="hidden md:table">
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Vendedora</TableHead>
-                                      <TableHead>Referidos (Activos)</TableHead>
-                                      <TableHead>Comisión</TableHead>
-                                      <TableHead className="text-right">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {sellers.map((seller) => {
-                                    const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
-                                    const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
-                                    return (
-                                      <TableRow key={seller.id}>
-                                          <TableCell className="font-medium flex items-center gap-3">
-                                              <Avatar className="h-9 w-9">
-                                                  <AvatarImage src={seller.profileImage} alt={seller.name} />
-                                                  <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
-                                              </Avatar>
-                                              <div>
-                                                  <p>{seller.name}</p>
-                                                  <p className="text-xs text-muted-foreground">{seller.email}</p>
-                                              </div>
-                                          </TableCell>
-                                          <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
-                                          <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
-                                          <TableCell className="text-right flex items-center justify-end gap-2">
-                                              <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
-                                              <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                                          </TableCell>
-                                      </TableRow>
-                                    );
-                                  })}
-                              </TableBody>
-                          </Table>
+                          <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Vendedora</TableHead>
+                                        <TableHead>Referidos (Activos)</TableHead>
+                                        <TableHead>Comisión</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {sellers.map((seller) => {
+                                      const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
+                                      const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
+                                      return (
+                                        <TableRow key={seller.id}>
+                                            <TableCell className="font-medium flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarImage src={seller.profileImage} alt={seller.name} />
+                                                    <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p>{seller.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{seller.email}</p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
+                                            <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                </TableBody>
+                            </Table>
+                          </div>
                           <div className="space-y-4 md:hidden">
                                 {sellers.map((seller) => {
                                     const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
@@ -407,9 +432,9 @@ export default function AdminDashboardPage() {
                                             </div>
                                             <Separator />
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2" /> Ver</Button>
-                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2" /> Editar</Button>
-                                                <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2" /> Eliminar</Button>
+                                                <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                                <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                             </div>
                                         </div>
                                     );
@@ -429,33 +454,35 @@ export default function AdminDashboardPage() {
                           <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                         <Table className="hidden md:table">
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Paciente</TableHead>
-                                      <TableHead>Cédula</TableHead>
-                                      <TableHead>Contacto</TableHead>
-                                      <TableHead className="text-right">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {patients.map((patient) => (
-                                      <TableRow key={patient.id}>
-                                          <TableCell className="font-medium">{patient.name}</TableCell>
-                                          <TableCell>{patient.cedula || 'N/A'}</TableCell>
-                                          <TableCell>
-                                             <p>{patient.email}</p>
-                                             <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
-                                          </TableCell>
-                                          <TableCell className="text-right flex items-center justify-end gap-2">
-                                              <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
-                                              <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
-                                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                                          </TableCell>
-                                      </TableRow>
-                                  ))}
-                              </TableBody>
-                          </Table>
+                         <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Paciente</TableHead>
+                                        <TableHead>Cédula</TableHead>
+                                        <TableHead>Contacto</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {patients.map((patient) => (
+                                        <TableRow key={patient.id}>
+                                            <TableCell className="font-medium">{patient.name}</TableCell>
+                                            <TableCell>{patient.cedula || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                <p>{patient.email}</p>
+                                                <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
+                                            </TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                         </div>
                           <div className="space-y-4 md:hidden">
                                 {patients.map((patient) => (
                                     <div key={patient.id} className="p-4 border rounded-lg space-y-3">
@@ -475,9 +502,9 @@ export default function AdminDashboardPage() {
                                         </div>
                                         <Separator />
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2" /> Ver</Button>
-                                            <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2" /> Editar</Button>
-                                            <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2" /> Eliminar</Button>
+                                            <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                            <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                            <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                         </div>
                                     </div>
                                 ))}
@@ -529,30 +556,32 @@ export default function AdminDashboardPage() {
                             <CardDescription>Historial de pagos de mensualidades de los médicos.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <Table className="hidden md:table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Médico</TableHead>
-                                        <TableHead>Monto</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {doctorPayments.map((payment) => (
-                                        <TableRow key={payment.id}>
-                                            <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                            <TableCell>{payment.doctorName}</TableCell>
-                                            <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                 <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
-                                                    {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
-                                                </Badge>
-                                            </TableCell>
+                             <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Médico</TableHead>
+                                            <TableHead>Monto</TableHead>
+                                            <TableHead>Estado</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {doctorPayments.map((payment) => (
+                                            <TableRow key={payment.id}>
+                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                <TableCell>{payment.doctorName}</TableCell>
+                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
+                                                        {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </div>
                             <div className="space-y-4 md:hidden">
                                 {doctorPayments.map((payment) => (
                                     <div key={payment.id} className="p-4 border rounded-lg space-y-3">
@@ -584,38 +613,40 @@ export default function AdminDashboardPage() {
                           <CardDescription>Gestiona las solicitudes de soporte de médicos y vendedoras.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                         <Table className="hidden md:table">
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Fecha</TableHead>
-                                      <TableHead>Usuario</TableHead>
-                                      <TableHead>Rol</TableHead>
-                                      <TableHead>Asunto</TableHead>
-                                      <TableHead>Estado</TableHead>
-                                      <TableHead className="text-right">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {supportTickets.map((ticket) => (
-                                      <TableRow key={ticket.id}>
-                                          <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                          <TableCell>{ticket.userName}</TableCell>
-                                          <TableCell className="capitalize">{ticket.userRole}</TableCell>
-                                          <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                          <TableCell>
-                                             <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                                {ticket.status}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                              <Button variant="outline" size="sm">
-                                                  <Eye className="mr-2 h-4 w-4" /> Ver Ticket
-                                              </Button>
-                                          </TableCell>
-                                      </TableRow>
-                                  ))}
-                              </TableBody>
-                          </Table>
+                         <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Usuario</TableHead>
+                                        <TableHead>Rol</TableHead>
+                                        <TableHead>Asunto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {supportTickets.map((ticket) => (
+                                        <TableRow key={ticket.id}>
+                                            <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                            <TableCell>{ticket.userName}</TableCell>
+                                            <TableCell className="capitalize">{ticket.userRole}</TableCell>
+                                            <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                            <TableCell>
+                                                <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                    {ticket.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="outline" size="sm">
+                                                    <Eye className="mr-2 h-4 w-4" /> Ver Ticket
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                         </div>
                           <div className="space-y-4 md:hidden">
                                 {supportTickets.map((ticket) => (
                                     <div key={ticket.id} className="p-4 border rounded-lg space-y-3">
@@ -643,6 +674,35 @@ export default function AdminDashboardPage() {
                       </CardContent>
                     </Card>
                 </div>
+                )}
+                {currentTab === 'settings' && (
+                    <div className="mt-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
+                                <CardDescription>Ajusta los parámetros principales de la plataforma.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="max-w-md space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="subscription-fee" className="text-base">Plan de Suscripción de Médicos</Label>
+                                        <p className="text-sm text-muted-foreground">Este es el monto mensual que los médicos pagan para estar activos en la plataforma.</p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Input 
+                                            id="subscription-fee" 
+                                            type="number" 
+                                            value={tempSubscriptionFee}
+                                            onChange={(e) => setTempSubscriptionFee(e.target.value)}
+                                            className="text-lg font-semibold"
+                                            step="0.01"
+                                        />
+                                        <Button onClick={handleSaveSettings}>Guardar Cambios</Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 )}
            </>
         </div>
@@ -837,7 +897,7 @@ export default function AdminDashboardPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDoctor} className={cn(buttonVariants({variant: 'destructive'}))}>
+            <AlertDialogAction onClick={handleDeleteDoctor} className={buttonVariants({variant: 'destructive'})}>
                 Sí, eliminar
             </AlertDialogAction>
             </AlertDialogFooter>
@@ -846,5 +906,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

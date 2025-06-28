@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -49,6 +49,7 @@ export function Header() {
     { href: "/admin/dashboard?view=patients", label: "Pacientes" },
     { href: "/admin/dashboard?view=finances", label: "Finanzas" },
     { href: "/admin/dashboard?view=support", label: "Soporte" },
+    { href: "/admin/dashboard?view=settings", label: "Configuración" },
   ];
 
   const dashboardHref = user?.role === 'doctor' 
