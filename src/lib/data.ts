@@ -18,7 +18,26 @@ export type BankDetail = {
   idNumber: string;
 };
 
-export const doctors = [
+export type Service = {
+  id: number;
+  name: string;
+  price: number;
+};
+
+export type Doctor = {
+  id: number;
+  name: string;
+  specialty: string;
+  location: string;
+  rating: number;
+  reviewCount: number;
+  image: string;
+  aiHint: string;
+  services: Service[];
+  bankDetails: BankDetail[];
+};
+
+export const doctors: Doctor[] = [
   { 
     id: 1, 
     name: "Dr. Ana Rodriguez", 
@@ -243,11 +262,22 @@ export const doctors = [
   },
 ];
 
-export type Doctor = (typeof doctors)[0];
-export type Service = (typeof doctors)[0]["services"][0];
 
-// New mock appointments data
-export const appointments = [
+export type Appointment = {
+  id: string;
+  patientName: string;
+  doctorName: string;
+  doctorId: number;
+  date: string;
+  time: string;
+  services: Service[];
+  totalPrice: number;
+  paymentMethod: 'efectivo' | 'transferencia';
+  paymentStatus: 'Pendiente' | 'Pagado';
+  paymentProof: string | null;
+};
+
+export const appointments: Appointment[] = [
   {
     id: "appt-1",
     patientName: "Elena Ríos",
@@ -260,8 +290,8 @@ export const appointments = [
       { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
     ],
     totalPrice: 80,
-    paymentMethod: 'transferencia' as const,
-    paymentStatus: 'Pendiente' as const,
+    paymentMethod: 'transferencia',
+    paymentStatus: 'Pendiente',
     paymentProof: 'https://placehold.co/400x200.png'
   },
   {
@@ -275,8 +305,8 @@ export const appointments = [
       { id: 201, name: "Consulta Dermatológica", price: 45 },
     ],
     totalPrice: 45,
-    paymentMethod: 'efectivo' as const,
-    paymentStatus: 'Pendiente' as const,
+    paymentMethod: 'efectivo',
+    paymentStatus: 'Pendiente',
     paymentProof: null
   },
     {
@@ -290,8 +320,8 @@ export const appointments = [
       { id: 103, name: "Ecocardiograma", price: 80 },
     ],
     totalPrice: 80,
-    paymentMethod: 'transferencia' as const,
-    paymentStatus: 'Pagado' as const,
+    paymentMethod: 'transferencia',
+    paymentStatus: 'Pagado',
     paymentProof: 'https://placehold.co/400x200.png'
   },
    {
@@ -299,18 +329,30 @@ export const appointments = [
     patientName: "Luis Ramirez",
     doctorName: "Dr. Ana Rodriguez",
     doctorId: 1,
-    date: "2024-08-17",
+    date: "2024-07-17",
     time: "11:00",
     services: [
       { id: 101, name: "Consulta Cardiológica", price: 50 },
     ],
     totalPrice: 50,
-    paymentMethod: 'efectivo' as const,
-    paymentStatus: 'Pendiente' as const,
+    paymentMethod: 'efectivo',
+    paymentStatus: 'Pagado',
     paymentProof: null
   },
 ];
 
-export type Appointment = (typeof appointments)[0];
+export type Expense = {
+  id: string;
+  doctorId: number;
+  date: string; // YYYY-MM-DD
+  description: string;
+  amount: number;
+};
 
-    
+export const mockExpenses: Expense[] = [
+  { id: 'exp-1', doctorId: 1, date: '2024-08-01', description: 'Alquiler de consultorio', amount: 500 },
+  { id: 'exp-2', doctorId: 1, date: '2024-08-05', description: 'Materiales médicos', amount: 150 },
+  { id: 'exp-3', doctorId: 1, date: '2024-07-10', description: 'Pago de servicios (luz, agua)', amount: 80 },
+  { id: 'exp-4', doctorId: 1, date: '2024-08-12', description: 'Suscripción software médico', amount: 45 },
+  { id: 'exp-5', doctorId: 1, date: '2024-07-20', description: 'Insumos de oficina', amount: 35 },
+];

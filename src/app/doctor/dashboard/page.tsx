@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, type Appointment, type Doctor, type Service, type BankDetail } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,12 +53,17 @@ const chartConfig = {
     label: "Ingresos",
     color: "hsl(var(--primary))",
   },
+  expenses: {
+    label: "Gastos",
+    color: "hsl(var(--destructive))",
+  },
 } satisfies ChartConfig;
 
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // State for managing the doctor's own data
@@ -78,6 +83,13 @@ export default function DoctorDashboardPage() {
   const [accountHolder, setAccountHolder] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
+  
+  // State for expense dialog
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseDate, setExpenseDate] = useState('');
 
 
   useEffect(() => {
@@ -87,56 +99,67 @@ export default function DoctorDashboardPage() {
     } else if (user.role !== 'doctor') {
       router.push('/dashboard');
     } else {
-      // For this mock, we'll find the doctor data for 'doctor@admin.com'.
-      // Let's assume it's Dr. Ana Rodriguez (id: 1)
       const loggedInDoctor = doctors.find(d => d.id === 1);
       if (loggedInDoctor) {
         setDoctorData(loggedInDoctor);
-        setSchedule(availableTimes); // You might want to store this in doctorData in a real app
+        setSchedule(availableTimes);
+        
+        const doctorAppointments = mockAppointments.filter(appt => appt.doctorId === loggedInDoctor.id);
+        setAppointments(doctorAppointments);
+
+        const doctorExpenses = mockExpenses.filter(exp => exp.doctorId === loggedInDoctor.id);
+        setExpenses(doctorExpenses);
       }
-      
-      // Filter appointments for the logged-in doctor
-      const doctorAppointments = mockAppointments.filter(appt => appt.doctorId === loggedInDoctor?.id);
-      setAppointments(doctorAppointments);
       setIsLoading(false);
     }
   }, [user, router]);
   
   const financialStats = useMemo(() => {
-    if (!appointments) return null;
+    if (!appointments || !expenses) return null;
 
     const paidAppointments = appointments.filter(a => a.paymentStatus === 'Pagado');
-    const pendingAppointments = appointments.filter(a => a.paymentStatus === 'Pendiente');
-
     const totalRevenue = paidAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
-    const pendingRevenue = pendingAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const netProfit = totalRevenue - totalExpenses;
+
+    const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
     const monthlyIncome = appointments
         .filter(a => a.paymentStatus === 'Pagado')
         .reduce((acc, appt) => {
             const month = new Date(appt.date + 'T00:00:00').toLocaleString('es-ES', { month: 'short' });
             const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
-            if (!acc[capitalizedMonth]) {
-                acc[capitalizedMonth] = 0;
-            }
+            if (!acc[capitalizedMonth]) acc[capitalizedMonth] = 0;
             acc[capitalizedMonth] += appt.totalPrice;
             return acc;
         }, {} as Record<string, number>);
-    
-    // Ensure chronological order for the chart
-    const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+    const monthlyExpenses = expenses.reduce((acc, exp) => {
+        const month = new Date(exp.date + 'T00:00:00').toLocaleString('es-ES', { month: 'short' });
+        const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
+        if (!acc[capitalizedMonth]) acc[capitalizedMonth] = 0;
+        acc[capitalizedMonth] += exp.amount;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const allMonths = new Set([...Object.keys(monthlyIncome), ...Object.keys(monthlyExpenses)]);
+
     const chartData = monthOrder
-      .filter(month => monthlyIncome[month] !== undefined)
-      .map(month => ({ month, income: monthlyIncome[month] }));
+      .filter(month => allMonths.has(month))
+      .map(month => ({ 
+        month, 
+        income: monthlyIncome[month] || 0,
+        expenses: monthlyExpenses[month] || 0,
+       }));
+    
 
     return {
         totalRevenue,
-        pendingRevenue,
-        paidCount: paidAppointments.length,
-        pendingCount: pendingAppointments.length,
+        totalExpenses,
+        netProfit,
         chartData
     };
-  }, [appointments]);
+  }, [appointments, expenses]);
 
   const handleConfirmPayment = (appointmentId: string) => {
     setAppointments(prev =>
@@ -157,7 +180,6 @@ export default function DoctorDashboardPage() {
         location: formData.get('location') as string,
     };
     setDoctorData(updatedData);
-    // Here you would typically make an API call to save the data
     alert("¡Perfil actualizado! (simulación)");
   };
   
@@ -170,20 +192,17 @@ export default function DoctorDashboardPage() {
   
   const handleSaveService = () => {
     if (!doctorData || !serviceName || !servicePrice) return;
-    
     const newService: Service = {
       id: editingService ? editingService.id : Date.now(),
       name: serviceName,
       price: parseFloat(servicePrice),
     };
-
     let updatedServices;
     if (editingService) {
       updatedServices = doctorData.services.map(s => s.id === editingService.id ? newService : s);
     } else {
       updatedServices = [...doctorData.services, newService];
     }
-    
     setDoctorData({ ...doctorData, services: updatedServices });
     setIsServiceDialogOpen(false);
   };
@@ -219,7 +238,6 @@ export default function DoctorDashboardPage() {
   
   const handleSaveBankDetail = () => {
     if (!doctorData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
-    
     const newBankDetail: BankDetail = {
       id: editingBankDetail ? editingBankDetail.id : Date.now(),
       bank: bankName,
@@ -227,14 +245,12 @@ export default function DoctorDashboardPage() {
       idNumber: idNumber,
       accountNumber: accountNumber,
     };
-
     let updatedBankDetails;
     if (editingBankDetail) {
       updatedBankDetails = doctorData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
     } else {
       updatedBankDetails = [...doctorData.bankDetails, newBankDetail];
     }
-    
     setDoctorData({ ...doctorData, bankDetails: updatedBankDetails });
     setIsBankDetailDialogOpen(false);
   };
@@ -243,6 +259,38 @@ export default function DoctorDashboardPage() {
     if (!doctorData) return;
     const updatedBankDetails = doctorData.bankDetails.filter(bd => bd.id !== bankDetailId);
     setDoctorData({ ...doctorData, bankDetails: updatedBankDetails });
+  };
+
+  const handleOpenExpenseDialog = (expense: Expense | null) => {
+    setEditingExpense(expense);
+    setExpenseDescription(expense ? expense.description : '');
+    setExpenseAmount(expense ? String(expense.amount) : '');
+    setExpenseDate(expense ? expense.date : new Date().toISOString().split('T')[0]);
+    setIsExpenseDialogOpen(true);
+  };
+
+  const handleSaveExpense = () => {
+    if (!doctorData || !expenseDescription || !expenseAmount || !expenseDate) return;
+    const newExpense: Expense = {
+      id: editingExpense ? editingExpense.id : `exp-${Date.now()}`,
+      doctorId: doctorData.id,
+      description: expenseDescription,
+      amount: parseFloat(expenseAmount),
+      date: expenseDate,
+    };
+
+    let updatedExpenses;
+    if (editingExpense) {
+      updatedExpenses = expenses.map(e => e.id === editingExpense.id ? newExpense : e);
+    } else {
+      updatedExpenses = [...expenses, newExpense];
+    }
+    setExpenses(updatedExpenses);
+    setIsExpenseDialogOpen(false);
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    setExpenses(expenses.filter(e => e.id !== expenseId));
   };
 
 
@@ -363,26 +411,36 @@ export default function DoctorDashboardPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="finances" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <TabsContent value="finances" className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos Totales (Pagado)</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${financialStats.totalRevenue.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">de {financialStats.paidCount} citas confirmadas</p>
+                            <div className="text-2xl font-bold text-green-600">${financialStats.totalRevenue.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">Proveniente de citas pagadas</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Pagos Pendientes</CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Gastos Totales</CardTitle>
+                            <TrendingDown className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${financialStats.pendingRevenue.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">de {financialStats.pendingCount} citas pendientes</p>
+                            <div className="text-2xl font-bold text-red-600">${financialStats.totalExpenses.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">Total de gastos registrados</p>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ganancia Neta</CardTitle>
+                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${financialStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financialStats.netProfit.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">Ingresos menos gastos</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -391,15 +449,15 @@ export default function DoctorDashboardPage() {
                             <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">+{financialStats.paidCount}</div>
+                            <div className="text-2xl font-bold">+{appointments.filter(a => a.paymentStatus === 'Pagado').length}</div>
                             <p className="text-xs text-muted-foreground">Total de citas con pago exitoso</p>
                         </CardContent>
                     </Card>
                 </div>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Ingresos por Mes</CardTitle>
-                        <CardDescription>Un desglose de los ingresos confirmados mensualmente.</CardDescription>
+                        <CardTitle>Resumen Mensual</CardTitle>
+                        <CardDescription>Comparativa de ingresos y gastos por mes.</CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
@@ -421,15 +479,50 @@ export default function DoctorDashboardPage() {
                                     cursor={false}
                                     content={<ChartTooltipContent indicator="dot" />}
                                 />
-                                <Bar
-                                    dataKey="income"
-                                    fill="var(--color-primary)"
-                                    radius={8}
-                                />
+                                <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ChartContainer>
                     </CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Registro de Gastos</CardTitle>
+                            <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
+                        </div>
+                        <Button onClick={() => handleOpenExpenseDialog(null)}><PlusCircle className="mr-2"/> Agregar Gasto</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Descripción</TableHead>
+                                    <TableHead className="text-right">Monto</TableHead>
+                                    <TableHead className="text-center">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                    <TableRow key={expense.id}>
+                                        <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                        <TableCell className="font-medium">{expense.description}</TableCell>
+                                        <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center space-x-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                     <TableRow>
+                                        <TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                 </Card>
             </TabsContent>
 
             <TabsContent value="profile">
@@ -632,10 +725,39 @@ export default function DoctorDashboardPage() {
                 </DialogContent>
             </Dialog>
 
+             <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle>
+                        <DialogDescription>
+                           Registra un nuevo gasto para llevar un control financiero.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="expenseDate" className="text-right">Fecha</Label>
+                            <Input id="expenseDate" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="expenseDescription" className="text-right">Descripción</Label>
+                            <Input id="expenseDescription" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label>
+                            <Input id="expenseAmount" type="number" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} className="col-span-3" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                         <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancelar</Button>
+                         </DialogClose>
+                        <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
       </main>
     </div>
   );
 }
-
-    
