@@ -334,7 +334,7 @@ export const doctors: Doctor[] = [
     coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
-    sellerId: 2,
+    sellerId: null,
     status: 'inactive',
     lastPaymentDate: '2024-04-30',
     email: 'javier.torres.dr@email.com',

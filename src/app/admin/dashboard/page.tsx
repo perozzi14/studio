@@ -41,6 +41,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -56,8 +57,17 @@ export default function AdminDashboardPage() {
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
   const [isLoading, setIsLoading] = useState(true);
 
+  // States for Seller management
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
+
+  // States for Doctor management
+  const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
   
   useEffect(() => {
     if (user === undefined) return;
@@ -73,7 +83,30 @@ export default function AdminDashboardPage() {
         prevDoctors.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc)
       );
   };
+
+  const handleOpenDoctorDialog = (doctor: Doctor | null) => {
+    setEditingDoctor(doctor);
+    setIsDoctorDialogOpen(true);
+  };
+
+  const handleViewDoctorDetails = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsDetailDialogOpen(true);
+  };
   
+  const handleOpenDeleteDialog = (doctor: Doctor) => {
+    setDoctorToDelete(doctor);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteDoctor = () => {
+    if (!doctorToDelete) return;
+    setDoctors(prev => prev.filter(d => d.id !== doctorToDelete.id));
+    toast({ title: "Médico Eliminado", description: `El perfil de ${doctorToDelete.name} ha sido eliminado.`});
+    setIsDeleteDialogOpen(false);
+    setDoctorToDelete(null);
+  };
+
   const stats = useMemo(() => {
     const totalDoctors = doctors.length;
     const activeDoctors = doctors.filter(d => d.status === 'active').length;
@@ -181,9 +214,14 @@ export default function AdminDashboardPage() {
                 {currentTab === 'doctors' && (
                 <div className="mt-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Gestión de Médicos</CardTitle>
-                            <CardDescription>Visualiza, edita y gestiona el estado de todos los médicos en la plataforma.</CardDescription>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <CardTitle>Gestión de Médicos</CardTitle>
+                                <CardDescription>Visualiza, edita y gestiona el estado de todos los médicos en la plataforma.</CardDescription>
+                            </div>
+                            <Button onClick={() => handleOpenDoctorDialog(null)}>
+                                <PlusCircle className="mr-2"/> Registrar Médico
+                            </Button>
                         </CardHeader>
                         <CardContent>
                              <Table>
@@ -212,7 +250,7 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                             <TableCell>{doctor.specialty}</TableCell>
                                             <TableCell>{doctor.city}</TableCell>
-                                            <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'N/A'}</TableCell>
+                                            <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
                                             <TableCell>
                                                  <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
                                                     {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -223,9 +261,11 @@ export default function AdminDashboardPage() {
                                                     checked={doctor.status === 'active'} 
                                                     onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
                                                 />
-                                                <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -450,6 +490,7 @@ export default function AdminDashboardPage() {
         </div>
       </main>
 
+      {/* Seller Dialog */}
       <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
         <DialogContent>
             <DialogHeader>
@@ -478,6 +519,99 @@ export default function AdminDashboardPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Doctor Create/Edit Dialog */}
+       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+                <DialogTitle>{editingDoctor ? 'Editar Médico' : 'Registrar Nuevo Médico'}</DialogTitle>
+                <DialogDescription>
+                    Completa la información del perfil del médico.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-name" className="text-right">Nombre</Label>
+                    <Input id="doc-name" defaultValue={editingDoctor?.name || ''} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-email" className="text-right">Email</Label>
+                    <Input id="doc-email" type="email" defaultValue={editingDoctor?.email || ''} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
+                    <Input id="doc-specialty" defaultValue={editingDoctor?.specialty || ''} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-address" className="text-right">Dirección</Label>
+                    <Input id="doc-address" defaultValue={editingDoctor?.address || ''} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
+                    <Input id="doc-city" defaultValue={editingDoctor?.city || ''} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="doc-seller" className="text-right">Referido por</Label>
+                     <Select defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Selecciona una vendedora" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
+                            {sellers.map(s => (
+                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit">Guardar Cambios</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Doctor View Details Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Detalles del Médico</DialogTitle>
+            </DialogHeader>
+            {selectedDoctor && (
+                <div className="py-4 space-y-2">
+                    <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
+                    <p><strong>Email:</strong> {selectedDoctor.email}</p>
+                    <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
+                    <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
+                    <p><strong>Ubicación:</strong> {selectedDoctor.address}, {selectedDoctor.sector}, {selectedDoctor.city}</p>
+                    <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
+                    <p><strong>Estado:</strong> <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge></p>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de eliminar a este médico?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{doctorToDelete?.name}</strong> del sistema.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDoctor} className={cn(buttonVariants({variant: 'destructive'}))}>
+                Sí, eliminar
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
