@@ -732,32 +732,62 @@ export default function AdminDashboardPage() {
       
       {/* Doctor View Details Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>Detalles del Médico</DialogTitle>
                 <DialogDescription>
-                    Información completa del perfil y su historial de pagos.
+                    Información completa del perfil, servicios y su historial de pagos.
                 </DialogDescription>
             </DialogHeader>
             {selectedDoctor && (
-                <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
-                    <div className="space-y-2">
-                        <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
-                        <p><strong>Email:</strong> {selectedDoctor.email}</p>
-                        <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
-                        <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
-                        <p><strong>Ubicación:</strong> {selectedDoctor.address}, {selectedDoctor.sector}, {selectedDoctor.city}</p>
-                        <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
-                        <div className="flex items-center gap-2">
-                            <strong>Estado:</strong>
-                            <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600 text-white')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+                     <div>
+                        <h4 className="font-semibold mb-2 text-lg">Información del Perfil</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
+                            <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
+                            <p><strong>Email:</strong> {selectedDoctor.email}</p>
+                            <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
+                            <p className="col-span-full"><strong>Ubicación:</strong> {`${selectedDoctor.address}, ${selectedDoctor.sector}, ${selectedDoctor.city}`}</p>
+                            <p><strong>Miembro desde:</strong> {format(new Date(selectedDoctor.joinDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                            <p><strong>Duración de Cita:</strong> {selectedDoctor.slotDuration} min</p>
+                            <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
+                            <div className="flex items-center gap-2">
+                                <strong>Estado:</strong>
+                                <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600 text-white')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                            </div>
                         </div>
+                    </div>
+
+                    <Separator />
+                    
+                    <div>
+                        <h4 className="font-semibold mb-2 text-lg">Descripción Pública</h4>
+                        <p className="text-sm text-muted-foreground">{selectedDoctor.description || "No se ha proporcionado una descripción."}</p>
                     </div>
 
                     <Separator />
 
                     <div>
-                        <h4 className="font-semibold mb-2">Historial de Pagos de Suscripción</h4>
+                        <h4 className="font-semibold mb-2 text-lg">Servicios Ofrecidos</h4>
+                        {selectedDoctor.services.length > 0 ? (
+                           <ul className="list-disc list-inside text-sm space-y-1">
+                                {selectedDoctor.services.map(service => (
+                                    <li key={service.id} className="flex justify-between">
+                                        <span>{service.name}</span>
+                                        <span className="font-mono font-semibold">${service.price.toFixed(2)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">No hay servicios registrados.</p>
+                        )}
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                        <h4 className="font-semibold mb-2 text-lg">Historial de Pagos de Suscripción</h4>
                          {doctorPayments.filter(p => p.doctorId === selectedDoctor.id).length > 0 ? (
                             <Table>
                                 <TableHeader>

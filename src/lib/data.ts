@@ -79,6 +79,7 @@ export type Doctor = {
   whatsapp: string;
   lat: number;
   lng: number;
+  joinDate: string;
 };
 
 export type Seller = {
@@ -199,7 +200,8 @@ export const doctors: Doctor[] = [
     email: 'ana.rodriguez.dr@email.com',
     whatsapp: '0414-1234567',
     lat: 10.4996,
-    lng: -66.8528
+    lng: -66.8528,
+    joinDate: '2024-02-01',
   },
   { 
     id: 2, 
@@ -235,7 +237,8 @@ export const doctors: Doctor[] = [
     email: 'carlos.sanchez.dr@email.com',
     whatsapp: '0412-2345678',
     lat: 10.6667,
-    lng: -71.6125
+    lng: -71.6125,
+    joinDate: '2024-02-15',
   },
   { 
     id: 3, 
@@ -270,7 +273,8 @@ export const doctors: Doctor[] = [
     email: 'sofia.gomez.dr@email.com',
     whatsapp: '0424-3456789',
     lat: 10.2117,
-    lng: -68.0019
+    lng: -68.0019,
+    joinDate: '2024-03-05',
   },
   { 
     id: 4, 
@@ -305,7 +309,8 @@ export const doctors: Doctor[] = [
     email: 'luis.fernandez.dr@email.com',
     whatsapp: '0416-4567890',
     lat: 10.4789,
-    lng: -66.8533
+    lng: -66.8533,
+    joinDate: '2024-03-20',
   },
   { 
     id: 6, 
@@ -340,7 +345,8 @@ export const doctors: Doctor[] = [
     email: 'javier.torres.dr@email.com',
     whatsapp: '0414-6789012',
     lat: 10.5120,
-    lng: -66.9037
+    lng: -66.9037,
+    joinDate: '2024-04-10',
   },
   { 
     id: 7, 
@@ -376,7 +382,8 @@ export const doctors: Doctor[] = [
     email: 'laura.montes.dr@email.com',
     whatsapp: '0412-7890123',
     lat: 10.4515,
-    lng: -66.8505
+    lng: -66.8505,
+    joinDate: '2024-05-01',
   }
 ];
 
