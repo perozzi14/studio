@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, mockAppointments, type Appointment } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, appointments as initialAppointments, type Appointment } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
   const [doctors, setDoctors] = useState<Doctor[]>(allDoctors);
   const [sellers, setSellers] = useState<Seller[]>(allSellers);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(mockDoctorPayments);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>(mockSellerPayments);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
