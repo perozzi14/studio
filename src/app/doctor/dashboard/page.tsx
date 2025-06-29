@@ -156,7 +156,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee, companyBankDetails } = useSettings();
+  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee, companyBankDetails, currency } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -2130,4 +2130,3 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
-
