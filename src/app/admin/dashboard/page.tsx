@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -82,6 +82,10 @@ export default function AdminDashboardPage() {
   // States for Patient Management
   const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
   const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
+
+    // State for Payment Approval
+  const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
+  const [viewingProofUrl, setViewingProofUrl] = useState<string | null>(null);
 
   // States for Settings
   const { 
@@ -212,6 +216,51 @@ export default function AdminDashboardPage() {
     setIsPatientDetailDialogOpen(true);
   };
 
+  const handleViewProof = (url: string | null) => {
+    if (url) {
+      setViewingProofUrl(url);
+      setIsProofDialogOpen(true);
+    }
+  };
+
+  const handleApprovePayment = (paymentId: string) => {
+    let doctorToActivateId: number | null = null;
+    let paymentDate: string | null = null;
+    setDoctorPayments(prev => 
+      prev.map(p => {
+        if (p.id === paymentId) {
+          doctorToActivateId = p.doctorId;
+          paymentDate = p.date;
+          return { ...p, status: 'Paid' };
+        }
+        return p;
+      })
+    );
+
+    if (doctorToActivateId) {
+      setDoctors(prev =>
+        prev.map(doc => 
+          doc.id === doctorToActivateId ? { ...doc, status: 'active', lastPaymentDate: paymentDate || new Date().toISOString().split('T')[0] } : doc
+        )
+      );
+    }
+
+    toast({
+      title: "Pago Aprobado",
+      description: "El pago ha sido marcado como 'Pagado' y el estado del médico ha sido actualizado.",
+    });
+  };
+
+  const handleRejectPayment = (paymentId: string) => {
+    setDoctorPayments(prev => 
+      prev.map(p => p.id === paymentId ? { ...p, status: 'Rejected' } : p)
+    );
+    toast({
+      variant: "destructive",
+      title: "Pago Rechazado",
+      description: "El pago ha sido marcado como 'Rechazado'.",
+    });
+  };
 
   const stats = useMemo(() => {
     const totalDoctors = doctors.length;
@@ -234,12 +283,9 @@ export default function AdminDashboardPage() {
     }
   }, [doctors, sellers, patients, doctorPayments, sellerPayments]);
 
-  const doctorsWithPendingPayments = useMemo(() => {
-    const pendingPaymentDoctorIds = new Set(
-      doctorPayments.filter(p => p.status === 'Pending').map(p => p.doctorId)
-    );
-    return doctors.filter(doctor => pendingPaymentDoctorIds.has(doctor.id));
-  }, [doctorPayments, doctors]);
+  const pendingDoctorPayments = useMemo(() => {
+    return doctorPayments.filter(p => p.status === 'Pending');
+  }, [doctorPayments]);
 
   if (isLoading || !user) {
     return (
@@ -363,7 +409,7 @@ export default function AdminDashboardPage() {
                                                 <TableCell>{doctor.city}</TableCell>
                                                 <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                                    <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
                                                         {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
                                                     </Badge>
                                                 </TableCell>
@@ -395,7 +441,7 @@ export default function AdminDashboardPage() {
                                                     <p className="text-xs text-muted-foreground">{doctor.email}</p>
                                                 </div>
                                             </div>
-                                            <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                            <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
                                                 {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
                                             </Badge>
                                         </div>
@@ -655,6 +701,79 @@ export default function AdminDashboardPage() {
                               </CardContent>
                           </Card>
                       </div>
+
+                      <Card>
+                          <CardHeader>
+                              <CardTitle>Pagos Pendientes de Aprobación</CardTitle>
+                              <CardDescription>Revisa y aprueba los pagos de suscripción reportados por los médicos.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="hidden md:block">
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Médico</TableHead>
+                                              <TableHead>Fecha Reporte</TableHead>
+                                              <TableHead>Monto</TableHead>
+                                              <TableHead className="text-center">Comprobante</TableHead>
+                                              <TableHead className="text-right">Acciones</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {pendingDoctorPayments.length > 0 ? (
+                                              pendingDoctorPayments.map((payment) => (
+                                                  <TableRow key={payment.id}>
+                                                      <TableCell className="font-medium">{payment.doctorName}</TableCell>
+                                                      <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                      <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                      <TableCell className="text-center">
+                                                          <Button variant="outline" size="sm" onClick={() => handleViewProof(payment.paymentProofUrl)}>
+                                                              <Eye className="mr-2 h-4 w-4" /> Ver
+                                                          </Button>
+                                                      </TableCell>
+                                                      <TableCell className="text-right space-x-2">
+                                                          <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="h-4 w-4" /></Button>
+                                                          <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="h-4 w-4" /></Button>
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))
+                                          ) : (
+                                              <TableRow>
+                                                  <TableCell colSpan={5} className="text-center h-24">
+                                                      No hay pagos pendientes de aprobación.
+                                                  </TableCell>
+                                              </TableRow>
+                                          )}
+                                      </TableBody>
+                                  </Table>
+                              </div>
+                              <div className="space-y-4 md:hidden">
+                                  {pendingDoctorPayments.length > 0 ? (
+                                      pendingDoctorPayments.map((payment) => (
+                                          <div key={payment.id} className="p-4 border rounded-lg space-y-3">
+                                              <div>
+                                                  <p className="font-semibold">{payment.doctorName}</p>
+                                                  <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })} - <span className="font-mono">${payment.amount.toFixed(2)}</span></p>
+                                              </div>
+                                              <Separator />
+                                              <Button variant="outline" size="sm" className="w-full mb-2" onClick={() => handleViewProof(payment.paymentProofUrl)}>
+                                                  <Eye className="mr-2 h-4 w-4" /> Ver Comprobante
+                                              </Button>
+                                              <div className="flex gap-2">
+                                                <Button size="sm" variant="outline" className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="mr-2 h-4 w-4" /> Rechazar</Button>
+                                                <Button size="sm" variant="outline" className="flex-1 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="mr-2 h-4 w-4" /> Aprobar</Button>
+                                              </div>
+                                          </div>
+                                      ))
+                                  ) : (
+                                      <p className="text-center text-muted-foreground py-8">
+                                          No hay pagos pendientes de aprobación.
+                                      </p>
+                                  )}
+                              </div>
+                          </CardContent>
+                      </Card>
+
                       <Card>
                         <CardHeader>
                             <CardTitle>Pagos de Médicos Recibidos</CardTitle>
@@ -678,8 +797,12 @@ export default function AdminDashboardPage() {
                                                 <TableCell>{payment.doctorName}</TableCell>
                                                 <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
-                                                        {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                                    <Badge className={cn({
+                                                        'bg-green-600 text-white': payment.status === 'Paid',
+                                                        'bg-amber-500 text-white': payment.status === 'Pending',
+                                                        'bg-red-600 text-white': payment.status === 'Rejected',
+                                                    })}>
+                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
                                                     </Badge>
                                                 </TableCell>
                                             </TableRow>
@@ -695,8 +818,12 @@ export default function AdminDashboardPage() {
                                                 <p className="font-semibold">{payment.doctorName}</p>
                                                 <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
                                             </div>
-                                            <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
-                                                {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                             <Badge className={cn({
+                                                'bg-green-600 text-white': payment.status === 'Paid',
+                                                'bg-amber-500 text-white': payment.status === 'Pending',
+                                                'bg-red-600 text-white': payment.status === 'Rejected',
+                                            })}>
+                                                {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
                                             </Badge>
                                         </div>
                                         <p className="text-right font-mono text-lg">${payment.amount.toFixed(2)}</p>
@@ -705,84 +832,6 @@ export default function AdminDashboardPage() {
                                 {doctorPayments.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>}
                             </div>
                         </CardContent>
-                      </Card>
-                      
-                       <Card>
-                          <CardHeader>
-                              <CardTitle>Médicos con Pagos Pendientes</CardTitle>
-                              <CardDescription>Lista de médicos que aún no han completado su pago de suscripción mensual.</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                              <div className="hidden md:block">
-                                  <Table>
-                                      <TableHeader>
-                                          <TableRow>
-                                              <TableHead>Médico</TableHead>
-                                              <TableHead>Especialidad</TableHead>
-                                              <TableHead>Ubicación</TableHead>
-                                              <TableHead className="text-right">Acciones</TableHead>
-                                          </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                          {doctorsWithPendingPayments.length > 0 ? (
-                                              doctorsWithPendingPayments.map((doctor) => (
-                                                  <TableRow key={doctor.id}>
-                                                      <TableCell className="font-medium flex items-center gap-3">
-                                                          <Avatar className="h-9 w-9">
-                                                              <AvatarImage src={doctor.profileImage} alt={doctor.name} />
-                                                              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                                                          </Avatar>
-                                                          <div>
-                                                              <p>{doctor.name}</p>
-                                                              <p className="text-xs text-muted-foreground">{doctor.email}</p>
-                                                          </div>
-                                                      </TableCell>
-                                                      <TableCell>{doctor.specialty}</TableCell>
-                                                      <TableCell>{doctor.city}</TableCell>
-                                                      <TableCell className="text-right">
-                                                          <Button variant="outline" size="sm">
-                                                              <Mail className="mr-2 h-4 w-4" /> Enviar Recordatorio
-                                                          </Button>
-                                                      </TableCell>
-                                                  </TableRow>
-                                              ))
-                                          ) : (
-                                              <TableRow>
-                                                  <TableCell colSpan={4} className="text-center h-24">
-                                                      ¡Excelente! Todos los médicos están al día con sus pagos.
-                                                  </TableCell>
-                                              </TableRow>
-                                          )}
-                                      </TableBody>
-                                  </Table>
-                              </div>
-                              <div className="space-y-4 md:hidden">
-                                  {doctorsWithPendingPayments.length > 0 ? (
-                                      doctorsWithPendingPayments.map((doctor) => (
-                                          <div key={doctor.id} className="p-4 border rounded-lg space-y-3">
-                                              <div className="flex items-center gap-3">
-                                                  <Avatar className="h-10 w-10">
-                                                      <AvatarImage src={doctor.profileImage} alt={doctor.name} />
-                                                      <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                                                  </Avatar>
-                                                  <div>
-                                                      <p className="font-semibold">{doctor.name}</p>
-                                                      <p className="text-xs text-muted-foreground">{doctor.specialty} - {doctor.city}</p>
-                                                  </div>
-                                              </div>
-                                              <Separator />
-                                              <Button variant="outline" size="sm" className="w-full">
-                                                  <Mail className="mr-2 h-4 w-4" /> Enviar Recordatorio
-                                              </Button>
-                                          </div>
-                                      ))
-                                  ) : (
-                                      <p className="text-center text-muted-foreground py-8">
-                                          ¡Excelente! Todos los médicos están al día con sus pagos.
-                                      </p>
-                                  )}
-                              </div>
-                          </CardContent>
                       </Card>
                     </div>
                 </div>
@@ -1277,8 +1326,12 @@ export default function AdminDashboardPage() {
                                                 <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
                                                 <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' ? 'bg-green-600 text-white' : '')}>
-                                                        {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
+                                                    <Badge className={cn({
+                                                        'bg-green-600 text-white': payment.status === 'Paid',
+                                                        'bg-amber-500 text-white': payment.status === 'Pending',
+                                                        'bg-red-600 text-white': payment.status === 'Rejected',
+                                                    })}>
+                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
                                                     </Badge>
                                                 </TableCell>
                                             </TableRow>
@@ -1462,9 +1515,23 @@ export default function AdminDashboardPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* View Payment Proof Dialog */}
+      <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Comprobante de Pago</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 relative aspect-video">
+            {viewingProofUrl ? (
+              <Image src={viewingProofUrl} alt="Comprobante" layout="fill" className="rounded-md object-contain" />
+            ) : <p>No se pudo cargar el comprobante.</p>}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-
-    

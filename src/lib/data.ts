@@ -2,6 +2,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -719,16 +720,19 @@ export type DoctorPayment = {
   doctorName: string;
   date: string;
   amount: number;
-  status: 'Paid' | 'Pending';
+  status: 'Paid' | 'Pending' | 'Rejected';
+  paymentProofUrl: string | null;
 };
 
 export const mockDoctorPayments: DoctorPayment[] = [
-  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid'},
-  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid'},
-  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid'},
-  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid'},
-  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-05-30', amount: 50, status: 'Pending'},
+  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
+  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
+  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
+  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
+  // This doctor's payment is pending approval
+  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png'},
 ];
+
 
 export type AdminSupportTicket = {
     id: string;
