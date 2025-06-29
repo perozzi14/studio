@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -223,6 +223,13 @@ export default function AdminDashboardPage() {
         netProfit: totalRevenue - commissionsPaid,
     }
   }, [doctors, sellers, patients, doctorPayments, sellerPayments]);
+
+  const doctorsWithPendingPayments = useMemo(() => {
+    const pendingPaymentDoctorIds = new Set(
+      doctorPayments.filter(p => p.status === 'Pending').map(p => p.doctorId)
+    );
+    return doctors.filter(doctor => pendingPaymentDoctorIds.has(doctor.id));
+  }, [doctorPayments, doctors]);
 
   if (isLoading || !user) {
     return (
@@ -688,6 +695,84 @@ export default function AdminDashboardPage() {
                                 {doctorPayments.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>}
                             </div>
                         </CardContent>
+                      </Card>
+                      
+                       <Card>
+                          <CardHeader>
+                              <CardTitle>Médicos con Pagos Pendientes</CardTitle>
+                              <CardDescription>Lista de médicos que aún no han completado su pago de suscripción mensual.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="hidden md:block">
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Médico</TableHead>
+                                              <TableHead>Especialidad</TableHead>
+                                              <TableHead>Ubicación</TableHead>
+                                              <TableHead className="text-right">Acciones</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {doctorsWithPendingPayments.length > 0 ? (
+                                              doctorsWithPendingPayments.map((doctor) => (
+                                                  <TableRow key={doctor.id}>
+                                                      <TableCell className="font-medium flex items-center gap-3">
+                                                          <Avatar className="h-9 w-9">
+                                                              <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                          </Avatar>
+                                                          <div>
+                                                              <p>{doctor.name}</p>
+                                                              <p className="text-xs text-muted-foreground">{doctor.email}</p>
+                                                          </div>
+                                                      </TableCell>
+                                                      <TableCell>{doctor.specialty}</TableCell>
+                                                      <TableCell>{doctor.city}</TableCell>
+                                                      <TableCell className="text-right">
+                                                          <Button variant="outline" size="sm">
+                                                              <Mail className="mr-2 h-4 w-4" /> Enviar Recordatorio
+                                                          </Button>
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))
+                                          ) : (
+                                              <TableRow>
+                                                  <TableCell colSpan={4} className="text-center h-24">
+                                                      ¡Excelente! Todos los médicos están al día con sus pagos.
+                                                  </TableCell>
+                                              </TableRow>
+                                          )}
+                                      </TableBody>
+                                  </Table>
+                              </div>
+                              <div className="space-y-4 md:hidden">
+                                  {doctorsWithPendingPayments.length > 0 ? (
+                                      doctorsWithPendingPayments.map((doctor) => (
+                                          <div key={doctor.id} className="p-4 border rounded-lg space-y-3">
+                                              <div className="flex items-center gap-3">
+                                                  <Avatar className="h-10 w-10">
+                                                      <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                      <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                  </Avatar>
+                                                  <div>
+                                                      <p className="font-semibold">{doctor.name}</p>
+                                                      <p className="text-xs text-muted-foreground">{doctor.specialty} - {doctor.city}</p>
+                                                  </div>
+                                              </div>
+                                              <Separator />
+                                              <Button variant="outline" size="sm" className="w-full">
+                                                  <Mail className="mr-2 h-4 w-4" /> Enviar Recordatorio
+                                              </Button>
+                                          </div>
+                                      ))
+                                  ) : (
+                                      <p className="text-center text-muted-foreground py-8">
+                                          ¡Excelente! Todos los médicos están al día con sus pagos.
+                                      </p>
+                                  )}
+                              </div>
+                          </CardContent>
                       </Card>
                     </div>
                 </div>
@@ -1182,7 +1267,7 @@ export default function AdminDashboardPage() {
                                                 <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
                                                 <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' && 'bg-green-600 text-white')}>
+                                                    <Badge variant={payment.status === 'Paid' ? 'default' : 'secondary'} className={cn(payment.status === 'Paid' ? 'bg-green-600 text-white' : '')}>
                                                         {payment.status === 'Paid' ? 'Pagado' : 'Pendiente'}
                                                     </Badge>
                                                 </TableCell>
