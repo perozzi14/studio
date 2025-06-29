@@ -93,16 +93,16 @@ export const seedDatabase = async () => {
     };
 
     // Seed each collection
-    mockData.doctors.forEach(item => batch.set(doc(db, "doctors", item.id), prepareData(item)));
-    mockData.sellers.forEach(item => batch.set(doc(db, "sellers", item.id), prepareData(item)));
-    mockData.mockPatients.forEach(item => batch.set(doc(db, "patients", item.id), prepareData(item)));
-    mockData.appointments.forEach(item => batch.set(doc(db, "appointments", item.id), prepareData(item)));
-    mockData.mockCompanyExpenses.forEach(item => batch.set(doc(db, "companyExpenses", item.id), prepareData(item)));
-    mockData.mockCoupons.forEach(item => batch.set(doc(db, "coupons", item.id), prepareData(item)));
-    mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", item.id), prepareData(item)));
-    mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", item.id), prepareData(item)));
-    mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", item.id), prepareData(item)));
-    mockData.mockAdminSupportTickets.forEach(item => batch.set(doc(db, "supportTickets", item.id), prepareData(item)));
+    mockData.doctors.forEach(item => batch.set(doc(db, "doctors", String(item.id)), prepareData(item)));
+    mockData.sellers.forEach(item => batch.set(doc(db, "sellers", String(item.id)), prepareData(item)));
+    mockData.mockPatients.forEach(item => batch.set(doc(db, "patients", String(item.id)), prepareData(item)));
+    mockData.appointments.forEach(item => batch.set(doc(db, "appointments", String(item.id)), prepareData(item)));
+    mockData.mockCompanyExpenses.forEach(item => batch.set(doc(db, "companyExpenses", String(item.id)), prepareData(item)));
+    mockData.mockCoupons.forEach(item => batch.set(doc(db, "coupons", String(item.id)), prepareData(item)));
+    mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", String(item.id)), prepareData(item)));
+    mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", String(item.id)), prepareData(item)));
+    mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", String(item.id)), prepareData(item)));
+    mockData.mockAdminSupportTickets.forEach(item => batch.set(doc(db, "supportTickets", String(item.id)), prepareData(item)));
     
     // Seed settings (special case)
     const settingsRef = doc(db, "settings", "main");

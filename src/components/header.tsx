@@ -30,8 +30,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
-import { mockAdminNotifications, type AdminNotification } from "@/lib/data";
+import { useState, useMemo, useEffect } from "react";
+import * as firestoreService from '@/lib/firestoreService';
+import { type AdminNotification } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -42,21 +43,83 @@ export function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>(mockAdminNotifications);
-  const adminUnreadCount = useMemo(() => adminNotifications.filter(n => !n.read).length, [adminNotifications]);
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
+  const [adminUnreadCount, setAdminUnreadCount] = useState(0);
 
-  const markAdminNotificationsAsRead = () => {
-    setTimeout(() => {
-        setAdminNotifications(prev => prev.map(n => ({...n, read: true})));
-    }, 500);
-  };
-  
   const getAdminNotificationIcon = (type: AdminNotification['type']) => {
     switch(type) {
         case 'payment': return <DollarSign className="h-4 w-4 text-green-500" />;
         case 'new_doctor': return <UserPlus className="h-4 w-4 text-blue-500" />;
         case 'support_ticket': return <Ticket className="h-4 w-4 text-orange-500" />;
         default: return <BellRing className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      setAdminNotifications([]);
+      setAdminUnreadCount(0);
+      return;
+    }
+
+    const fetchAdminNotifications = async () => {
+        const [tickets, payments] = await Promise.all([
+            firestoreService.getSupportTickets(),
+            firestoreService.getDoctorPayments()
+        ]);
+
+        const paymentNotifications: AdminNotification[] = payments
+            .filter(p => p.status === 'Pending')
+            .map(p => ({
+                id: `payment-${p.id}`,
+                type: 'payment',
+                title: 'Pago Pendiente de Aprobación',
+                description: `El Dr. ${p.doctorName} ha reportado un pago.`,
+                date: p.date,
+                read: false, 
+                link: `/admin/dashboard?view=finances`
+            }));
+        
+        const ticketNotifications: AdminNotification[] = tickets
+            .filter(t => !t.readByAdmin)
+            .map(t => ({
+                id: `ticket-${t.id}`,
+                type: 'support_ticket',
+                title: 'Nuevo Ticket de Soporte',
+                description: `De: ${t.userName}`,
+                date: t.date,
+                read: false,
+                link: `/admin/dashboard?view=support`
+            }));
+
+        const allNotifications = [...paymentNotifications, ...ticketNotifications]
+            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        setAdminNotifications(allNotifications);
+        setAdminUnreadCount(allNotifications.length);
+    };
+
+    fetchAdminNotifications();
+    
+    const interval = setInterval(fetchAdminNotifications, 60000); // Poll every 60 seconds
+    return () => clearInterval(interval);
+
+  }, [user]);
+
+  const markAdminNotificationsAsRead = async () => {
+    const unreadTicketIds = adminNotifications
+      .filter(n => n.type === 'support_ticket' && !n.read)
+      .map(n => n.id.replace('ticket-', ''));
+
+    if (unreadTicketIds.length > 0) {
+        await firestoreService.batchUpdateNotificationsAsRead(unreadTicketIds, []);
+        
+        // Optimistically update the UI
+        const newUnreadCount = adminNotifications.filter(n => n.type === 'payment').length;
+        setAdminUnreadCount(newUnreadCount);
+        setAdminNotifications(prev => prev.map(n => 
+            n.type === 'support_ticket' ? { ...n, read: true } : n
+        ));
     }
   };
 
@@ -158,14 +221,13 @@ export function Header() {
           })}
 
           {user && isAdmin && (
-            <Popover onOpenChange={(open) => { if (open) markAdminNotificationsAsRead() }}>
+            <Popover onOpenChange={(open) => { if (open && adminUnreadCount > 0) markAdminNotificationsAsRead() }}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative ml-2">
                   <Bell className="h-5 w-5" />
                   {adminUnreadCount > 0 && (
                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{adminUnreadCount}</span>
                     </span>
                   )}
                   <span className="sr-only">Ver notificaciones de admin</span>
@@ -315,14 +377,13 @@ export function Header() {
         </nav>
         <div className="md:hidden ml-auto flex items-center gap-1">
           {user && isAdmin && (
-            <Popover onOpenChange={(open) => { if (open) markAdminNotificationsAsRead() }}>
+            <Popover onOpenChange={(open) => { if (open && adminUnreadCount > 0) markAdminNotificationsAsRead() }}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
                   {adminUnreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{adminUnreadCount}</span>
                     </span>
                   )}
                   <span className="sr-only">Ver notificaciones de admin</span>
