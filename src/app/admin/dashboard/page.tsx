@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, mockAppointments, type Appointment } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,6 +57,7 @@ export default function AdminDashboardPage() {
   const [doctors, setDoctors] = useState<Doctor[]>(allDoctors);
   const [sellers, setSellers] = useState<Seller[]>(allSellers);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(mockDoctorPayments);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>(mockSellerPayments);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
@@ -77,6 +78,10 @@ export default function AdminDashboardPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient', data: any} | null>(null);
+
+  // States for Patient Management
+  const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
+  const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
 
   // States for Settings
   const { 
@@ -200,6 +205,11 @@ export default function AdminDashboardPage() {
     toast({ title: "Pago Registrado", description: `Se ha registrado el pago para ${managingSeller.name}.` });
     setIsRegisterPaymentDialogOpen(false);
     setPaymentProofUrl(null);
+  };
+
+  const handleViewPatientDetails = (patient: Patient) => {
+    setSelectedPatientForDetail(patient);
+    setIsPatientDetailDialogOpen(true);
   };
 
 
@@ -569,7 +579,7 @@ export default function AdminDashboardPage() {
                                                 <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
                                             </TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleViewPatientDetails(patient)}><Eye className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
@@ -597,7 +607,7 @@ export default function AdminDashboardPage() {
                                         </div>
                                         <Separator />
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewPatientDetails(patient)}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
                                             <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
                                             <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                         </div>
@@ -1287,6 +1297,89 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Patient Detail Dialog */}
+      <Dialog open={isPatientDetailDialogOpen} onOpenChange={setIsPatientDetailDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+                <DialogTitle>Historial del Paciente: {selectedPatientForDetail?.name}</DialogTitle>
+                <DialogDescription>
+                    Consulta el historial completo de citas y pagos del paciente.
+                </DialogDescription>
+            </DialogHeader>
+            {selectedPatientForDetail && (
+                <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Información del Paciente</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                            <p><strong>Nombre:</strong> {selectedPatientForDetail.name}</p>
+                            <p><strong>Email:</strong> {selectedPatientForDetail.email}</p>
+                            <p><strong>Cédula:</strong> {selectedPatientForDetail.cedula || 'N/A'}</p>
+                            <p><strong>Teléfono:</strong> {selectedPatientForDetail.phone || 'N/A'}</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Historial de Citas</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {(() => {
+                                const patientAppointments = appointments.filter(a => a.patientId === selectedPatientForDetail.id);
+                                if (patientAppointments.length === 0) {
+                                    return <p className="text-center text-muted-foreground py-8">Este paciente no tiene citas registradas.</p>;
+                                }
+                                return (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Doctor</TableHead>
+                                                <TableHead>Fecha</TableHead>
+                                                <TableHead>Servicios</TableHead>
+                                                <TableHead>Monto</TableHead>
+                                                <TableHead>Pago</TableHead>
+                                                <TableHead>Asistencia</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {patientAppointments
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map(appt => (
+                                                <TableRow key={appt.id}>
+                                                    <TableCell className="font-medium">{appt.doctorName}</TableCell>
+                                                    <TableCell>{format(new Date(appt.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                    <TableCell className="text-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
+                                                    <TableCell className="font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : '')}>
+                                                            {appt.paymentStatus}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={appt.attendance === 'Atendido' ? 'default' : appt.attendance === 'No Asistió' ? 'destructive' : 'secondary'}>
+                                                            {appt.attendance}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                );
+                            })()}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Cerrar</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* Delete Confirmation Dialog */}
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -1372,3 +1465,6 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+
+    
