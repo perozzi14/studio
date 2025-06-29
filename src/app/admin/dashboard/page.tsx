@@ -76,14 +76,18 @@ export default function AdminDashboardPage() {
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient' | 'expense', data: any} | null>(null);
-
+  
   // States for Patient Management
   const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
   const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
+  const [isPatientEditDialogOpen, setIsPatientEditDialogOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
-    // State for Payment Approval
+  // States for Deletion
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', data: any} | null>(null);
+
+  // State for Payment Approval
   const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
   const [viewingProofUrl, setViewingProofUrl] = useState<string | null>(null);
 
@@ -103,9 +107,9 @@ export default function AdminDashboardPage() {
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
   const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
   const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
-  const [editingCity, setEditingCity] = useState<string | null>(null);
+  const [editingCity, setEditingCity] = useState<{ originalName: string, newName: string } | null>(null);
   const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false);
-  const [editingSpecialty, setEditingSpecialty] = useState<string | null>(null);
+  const [editingSpecialty, setEditingSpecialty] = useState<{ originalName: string, newName: string } | null>(null);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [isCompanyBankDetailDialogOpen, setIsCompanyBankDetailDialogOpen] = useState(false);
@@ -155,7 +159,7 @@ export default function AdminDashboardPage() {
     setIsDetailDialogOpen(true);
   };
   
-  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense', item: any) => {
+  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', item: any) => {
     setItemToDelete({ type: itemType, data: item });
     setIsDeleteDialogOpen(true);
   };
@@ -181,6 +185,22 @@ export default function AdminDashboardPage() {
       case 'expense':
         setCompanyExpenses(prev => prev.filter(e => e.id !== data.id));
         toast({ title: "Gasto Eliminado", description: `El gasto "${data.description}" ha sido eliminado.`});
+        break;
+      case 'city':
+        setCities(prev => prev.filter(c => c !== data));
+        toast({ title: "Ciudad Eliminada", description: `La ciudad "${data}" ha sido eliminada.`});
+        break;
+      case 'specialty':
+        setSpecialties(prev => prev.filter(s => s !== data));
+        toast({ title: "Especialidad Eliminada", description: `La especialidad "${data}" ha sido eliminada.`});
+        break;
+      case 'coupon':
+        setCoupons(prev => prev.filter(c => c.id !== data.id));
+        toast({ title: "Cupón Eliminado", description: `El cupón "${data.code}" ha sido eliminado.`});
+        break;
+      case 'bank':
+        setCompanyBankDetails(prev => prev.filter(b => b.id !== data.id));
+        toast({ title: "Cuenta Bancaria Eliminada", description: `La cuenta de ${data.bank} ha sido eliminada.`});
         break;
     }
     
@@ -226,6 +246,31 @@ export default function AdminDashboardPage() {
     setSelectedPatientForDetail(patient);
     setIsPatientDetailDialogOpen(true);
   };
+
+  const handleOpenPatientEditDialog = (patient: Patient) => {
+    setEditingPatient(patient);
+    setIsPatientEditDialogOpen(true);
+  };
+
+  const handleSavePatient = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPatient) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const updatedPatient: Patient = {
+      ...editingPatient,
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      cedula: formData.get('cedula') as string,
+      phone: formData.get('phone') as string,
+    };
+    
+    setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+    toast({ title: "Paciente Actualizado", description: `La información de ${updatedPatient.name} ha sido guardada.` });
+    setIsPatientEditDialogOpen(false);
+    setEditingPatient(null);
+  };
+
 
   const handleViewProof = (url: string | null) => {
     if (url) {
@@ -287,11 +332,9 @@ export default function AdminDashboardPage() {
     }
 
     if (editingExpense) {
-        // Update existing expense
         setCompanyExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? { ...exp, date, description, amount: parseFloat(amount), category } : exp));
         toast({ title: "Gasto Actualizado", description: "El gasto ha sido modificado exitosamente." });
     } else {
-        // Add new expense
         const newExpense: CompanyExpense = {
             id: `cexp-${Date.now()}`,
             date,
@@ -305,6 +348,107 @@ export default function AdminDashboardPage() {
     
     setIsExpenseDialogOpen(false);
     setEditingExpense(null);
+  };
+  
+  const handleSaveCity = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingCity) return;
+    
+    const newName = (e.currentTarget.elements.namedItem('city-name') as HTMLInputElement).value;
+    if (!newName) {
+        toast({ variant: "destructive", title: "Nombre requerido", description: "El nombre de la ciudad no puede estar vacío." });
+        return;
+    }
+
+    if (editingCity.originalName) {
+        // Editing existing city
+        setCities(prev => prev.map(c => c === editingCity.originalName ? newName : c));
+        toast({ title: "Ciudad Actualizada" });
+    } else {
+        // Adding new city
+        setCities(prev => [...prev, newName]);
+        toast({ title: "Ciudad Agregada" });
+    }
+    setIsCityDialogOpen(false);
+    setEditingCity(null);
+  };
+
+  const handleSaveSpecialty = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingSpecialty) return;
+    
+    const newName = (e.currentTarget.elements.namedItem('specialty-name') as HTMLInputElement).value;
+    if (!newName) {
+        toast({ variant: "destructive", title: "Nombre requerido", description: "El nombre de la especialidad no puede estar vacío." });
+        return;
+    }
+
+    if (editingSpecialty.originalName) {
+        setSpecialties(prev => prev.map(s => s === editingSpecialty.originalName ? newName : s));
+        toast({ title: "Especialidad Actualizada" });
+    } else {
+        setSpecialties(prev => [...prev, newName]);
+        toast({ title: "Especialidad Agregada" });
+    }
+    setIsSpecialtyDialogOpen(false);
+    setEditingSpecialty(null);
+  };
+
+  const handleSaveCoupon = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const code = formData.get('code') as string;
+    const discountType = formData.get('discountType') as 'percentage' | 'fixed';
+    const value = parseFloat(formData.get('value') as string);
+    const scope = formData.get('scope') as string;
+    
+    if (!code || !discountType || isNaN(value) || !scope) {
+        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para el cupón." });
+        return;
+    }
+
+    const newCouponData = {
+        code: code.toUpperCase(),
+        discountType,
+        value,
+        scope: scope === 'general' ? 'general' : parseInt(scope, 10),
+    };
+    
+    if (editingCoupon) {
+        setCoupons(prev => prev.map(c => c.id === editingCoupon.id ? { ...c, ...newCouponData } : c));
+        toast({ title: "Cupón Actualizado" });
+    } else {
+        setCoupons(prev => [...prev, { id: Date.now(), ...newCouponData }]);
+        toast({ title: "Cupón Creado" });
+    }
+    setIsCouponDialogOpen(false);
+    setEditingCoupon(null);
+  };
+
+  const handleSaveBankDetail = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const bank = formData.get('bankName') as string;
+    const accountHolder = formData.get('accountHolder') as string;
+    const idNumber = formData.get('idNumber') as string;
+    const accountNumber = formData.get('accountNumber') as string;
+    
+    if (!bank || !accountHolder || !idNumber || !accountNumber) {
+        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos." });
+        return;
+    }
+
+    const newBankData = { bank, accountHolder, idNumber, accountNumber };
+    
+    if (editingCompanyBankDetail) {
+        setCompanyBankDetails(prev => prev.map(b => b.id === editingCompanyBankDetail.id ? { ...b, ...newBankData } : b));
+        toast({ title: "Cuenta Actualizada" });
+    } else {
+        setCompanyBankDetails(prev => [...prev, { id: Date.now(), ...newBankData }]);
+        toast({ title: "Cuenta Agregada" });
+    }
+    setIsCompanyBankDetailDialogOpen(false);
+    setEditingCompanyBankDetail(null);
   };
 
 
@@ -673,7 +817,7 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => handleViewPatientDetails(patient)}><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
@@ -701,7 +845,7 @@ export default function AdminDashboardPage() {
                                         <Separator />
                                         <div className="flex justify-end gap-2">
                                             <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewPatientDetails(patient)}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
-                                            <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
                                             <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                         </div>
                                     </div>
@@ -1108,7 +1252,7 @@ export default function AdminDashboardPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             <Button size="icon" variant="outline" onClick={() => { setEditingCompanyBankDetail(bd); setIsCompanyBankDetailDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                            <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('bank', bd)}><Trash2 className="h-4 w-4"/></Button>
                                         </div>
                                     </div>
                                 ))}
@@ -1122,7 +1266,7 @@ export default function AdminDashboardPage() {
                              <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="flex items-center gap-2"><MapPin /> Gestión de Ubicaciones</CardTitle>
-                                    <Button size="sm" onClick={() => setIsCityDialogOpen(true)}><PlusCircle className="mr-2"/> Ciudad</Button>
+                                    <Button size="sm" onClick={() => { setEditingCity({ originalName: '', newName: '' }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2">
@@ -1130,8 +1274,8 @@ export default function AdminDashboardPage() {
                                         <div key={city} className="flex justify-between items-center p-2 rounded-md border">
                                             <span className="font-medium">{city}</span>
                                             <div className="flex gap-2">
-                                                <Button size="icon" variant="outline" onClick={() => { setEditingCity(city); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city, newName: city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city)}><Trash2 className="h-4 w-4"/></Button>
                                             </div>
                                         </div>
                                     ))}
@@ -1142,7 +1286,7 @@ export default function AdminDashboardPage() {
                              <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="flex items-center gap-2"><BrainCircuit /> Gestión de Especialidades</CardTitle>
-                                    <Button size="sm" onClick={() => setIsSpecialtyDialogOpen(true)}><PlusCircle className="mr-2"/> Nueva</Button>
+                                    <Button size="sm" onClick={() => { setEditingSpecialty({ originalName: '', newName: '' }); setIsSpecialtyDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2">
@@ -1150,8 +1294,8 @@ export default function AdminDashboardPage() {
                                         <div key={spec} className="flex justify-between items-center p-2 rounded-md border">
                                             <span className="font-medium">{spec}</span>
                                             <div className="flex gap-2">
-                                                <Button size="icon" variant="outline" onClick={() => { setEditingSpecialty(spec); setIsSpecialtyDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="outline" onClick={() => { setEditingSpecialty({ originalName: spec, newName: spec }); setIsSpecialtyDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('specialty', spec)}><Trash2 className="h-4 w-4"/></Button>
                                             </div>
                                         </div>
                                     ))}
@@ -1163,7 +1307,7 @@ export default function AdminDashboardPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="flex items-center gap-2"><Tag /> Gestión de Cupones</CardTitle>
-                                <Button size="sm" onClick={() => setIsCouponDialogOpen(true)}><PlusCircle className="mr-2"/> Cupón</Button>
+                                <Button size="sm" onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}><PlusCircle className="mr-2"/> Cupón</Button>
                             </CardHeader>
                             <CardContent>
                                 <Table>
@@ -1185,7 +1329,7 @@ export default function AdminDashboardPage() {
                                             <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
                                                 <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="h-4 w-4"/></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -1494,7 +1638,7 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Patient Detail Dialog */}
+      {/* Patient Dialogs */}
       <Dialog open={isPatientDetailDialogOpen} onOpenChange={setIsPatientDetailDialogOpen}>
         <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
@@ -1575,7 +1719,39 @@ export default function AdminDashboardPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
+      <Dialog open={isPatientEditDialogOpen} onOpenChange={setIsPatientEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Paciente</DialogTitle>
+            <DialogDescription>Actualiza la información del paciente {editingPatient?.name}.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSavePatient}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="patient-name">Nombre Completo</Label>
+                <Input id="patient-name" name="name" defaultValue={editingPatient?.name} required />
+              </div>
+              <div>
+                <Label htmlFor="patient-email">Correo Electrónico</Label>
+                <Input id="patient-email" name="email" type="email" defaultValue={editingPatient?.email} required />
+              </div>
+              <div>
+                <Label htmlFor="patient-cedula">Cédula</Label>
+                <Input id="patient-cedula" name="cedula" defaultValue={editingPatient?.cedula || ''} />
+              </div>
+              <div>
+                <Label htmlFor="patient-phone">Teléfono</Label>
+                <Input id="patient-phone" name="phone" defaultValue={editingPatient?.phone || ''} />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar Cambios</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -1599,32 +1775,36 @@ export default function AdminDashboardPage() {
       <Dialog open={isCityDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCity(null); setIsCityDialogOpen(isOpen); }}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>{editingCity ? `Editando "${editingCity}"` : 'Agregar Nueva Ciudad'}</DialogTitle>
+                  <DialogTitle>{editingCity?.originalName ? `Editando "${editingCity.originalName}"` : 'Agregar Nueva Ciudad'}</DialogTitle>
               </DialogHeader>
-              <div className="py-4">
-                  <Label htmlFor="city-name">Nombre de la Ciudad</Label>
-                  <Input id="city-name" defaultValue={editingCity || ''} />
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                  <Button>Guardar Ciudad</Button>
-              </DialogFooter>
+              <form onSubmit={handleSaveCity}>
+                <div className="py-4">
+                    <Label htmlFor="city-name">Nombre de la Ciudad</Label>
+                    <Input id="city-name" name="city-name" defaultValue={editingCity?.newName || ''} />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Ciudad</Button>
+                </DialogFooter>
+              </form>
           </DialogContent>
       </Dialog>
 
       <Dialog open={isSpecialtyDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingSpecialty(null); setIsSpecialtyDialogOpen(isOpen); }}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>{editingSpecialty ? `Editando "${editingSpecialty}"` : 'Agregar Nueva Especialidad'}</DialogTitle>
+                  <DialogTitle>{editingSpecialty?.originalName ? `Editando "${editingSpecialty.originalName}"` : 'Agregar Nueva Especialidad'}</DialogTitle>
               </DialogHeader>
-              <div className="py-4">
-                  <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
-                  <Input id="specialty-name" defaultValue={editingSpecialty || ''} />
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                  <Button>Guardar Especialidad</Button>
-              </DialogFooter>
+              <form onSubmit={handleSaveSpecialty}>
+                <div className="py-4">
+                    <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
+                    <Input id="specialty-name" name="specialty-name" defaultValue={editingSpecialty?.newName || ''} />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Especialidad</Button>
+                </DialogFooter>
+              </form>
           </DialogContent>
       </Dialog>
       
@@ -1634,28 +1814,30 @@ export default function AdminDashboardPage() {
                   <DialogTitle>{editingCompanyBankDetail ? 'Editar Cuenta de SUMA' : 'Agregar Nueva Cuenta de SUMA'}</DialogTitle>
                   <DialogDescription>Gestiona las cuentas donde los médicos pagarán sus suscripciones.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="bankName" className="text-right">Banco</Label>
-                      <Input id="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} className="col-span-3" />
-                  </div>
+              <form onSubmit={handleSaveBankDetail}>
+                <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="accountHolder" className="text-right">Titular</Label>
-                      <Input id="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} className="col-span-3" />
-                  </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
-                      <Input id="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} className="col-span-3" />
-                  </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
-                      <Input id="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} className="col-span-3" />
-                  </div>
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                  <Button>Guardar Cuenta</Button>
-              </DialogFooter>
+                        <Label htmlFor="bankName" className="text-right">Banco</Label>
+                        <Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} className="col-span-3" required />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
+                        <Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} className="col-span-3" required />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
+                        <Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} className="col-span-3" required />
+                    </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
+                        <Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} className="col-span-3" required />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Cuenta</Button>
+                </DialogFooter>
+              </form>
           </DialogContent>
       </Dialog>
 
@@ -1665,29 +1847,31 @@ export default function AdminDashboardPage() {
                 <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
                 <DialogDescription>Completa la información para el cupón de descuento.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div><Label>Código</Label><Input defaultValue={editingCoupon?.code} placeholder="VERANO20"/></div>
-                <div><Label>Tipo de Descuento</Label>
-                    <RadioGroup defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
-                        <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
-                        <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
-                    </RadioGroup>
-                </div>
-                <div><Label>Valor</Label><Input type="number" defaultValue={editingCoupon?.value} placeholder="20"/></div>
-                <div><Label>Alcance</Label>
-                    <Select defaultValue={editingCoupon?.scope.toString() || 'general'}>
-                        <SelectTrigger><SelectValue/></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="general">General (Todos los Médicos)</SelectItem>
-                            {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button>Guardar Cupón</Button>
-            </DialogFooter>
+            <form onSubmit={handleSaveCoupon}>
+              <div className="space-y-4 py-4">
+                  <div><Label>Código</Label><Input name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
+                  <div><Label>Tipo de Descuento</Label>
+                      <RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
+                          <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
+                          <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
+                      </RadioGroup>
+                  </div>
+                  <div><Label>Valor</Label><Input name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
+                  <div><Label>Alcance</Label>
+                      <Select name="scope" defaultValue={editingCoupon?.scope.toString() || 'general'}>
+                          <SelectTrigger><SelectValue/></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="general">General (Todos los Médicos)</SelectItem>
+                              {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.name}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                  <Button type="submit">Guardar Cupón</Button>
+              </DialogFooter>
+            </form>
         </DialogContent>
       </Dialog>
 
