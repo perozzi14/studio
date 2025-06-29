@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         gender: null,
         favoriteDoctorIds: [],
         ...doctor,
+        id: String(doctor.id), // Defensive string casting
         phone: doctor.whatsapp, // Map doctor's whatsapp to patient's phone field
         role: 'doctor',
       };
@@ -73,13 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cedula: null, 
         favoriteDoctorIds: [],
         ...seller,
+        id: String(seller.id), // Defensive string casting
         role: 'seller', 
       };
     }
     
     const patient = patients.find(p => p.email.toLowerCase() === lowerEmail);
     if (patient) {
-      return { ...patient, role: 'patient' };
+      return { ...patient, id: String(patient.id), role: 'patient' };
     }
 
     return null;

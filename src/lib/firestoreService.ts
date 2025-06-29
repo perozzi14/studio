@@ -42,8 +42,8 @@ async function getCollectionData<T>(collectionName: string): Promise<T[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         convertTimestamps(data);
-        // Ensure ID is always a string and overwrite any 'id' field from data
-        return { id: doc.id, ...data } as T;
+        // Ensure ID is always a string and overwrites any 'id' field from data
+        return { ...data, id: doc.id } as T;
     });
   } catch (error) {
     console.error(`Error fetching ${collectionName}: `, error);
@@ -65,7 +65,7 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
             const data = docSnap.data();
             convertTimestamps(data);
             // Ensure ID is always a string and overwrite any 'id' field from data
-            return { id: docSnap.id, ...data } as T;
+            return { ...data, id: docSnap.id } as T;
         }
         return null;
     } catch (error) {
@@ -87,8 +87,6 @@ export const seedDatabase = async () => {
         snapshot.docs.forEach(doc => batch.delete(doc.ref));
     }
     
-    // Helper to strip the 'id' property from data before writing,
-    // as it's redundant with the document's own ID.
     const prepareData = <T extends { id: any }>(dataWithId: T): Omit<T, 'id'> => {
         const { id, ...data } = dataWithId;
         return data;
@@ -110,7 +108,6 @@ export const seedDatabase = async () => {
         cities: mockData.cities,
         specialties: mockData.specialties,
         doctorSubscriptionFee: 50,
-        // The bank details inside settings are just data, their IDs are fine
         companyBankDetails: mockData.mockCompanyBankDetails,
         timezone: 'America/Caracas',
         logoUrl: '/logo.svg',
@@ -134,12 +131,12 @@ export const getAppointments = () => getCollectionData<Appointment>('appointment
 export const getDoctorAppointments = async (doctorId: string) => {
     const q = query(collection(db, "appointments"), where("doctorId", "==", doctorId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
 };
 export const getPatientAppointments = async (patientId: string) => {
     const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
 };
 export const getDoctorPayments = () => getCollectionData<DoctorPayment>('doctorPayments');
 export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerPayments');
@@ -161,7 +158,10 @@ export const updateSeller = async (id: string, data: Partial<Seller>) => updateD
 export const deleteSeller = async (id: string) => deleteDoc(doc(db, 'sellers', id));
 
 // Patient
-export const addPatient = async (patientData: Omit<Patient, 'id'>) => addDoc(collection(db, 'patients'), patientData);
+export const addPatient = async (patientData: Omit<Patient, 'id'>): Promise<string> => {
+    const docRef = await addDoc(collection(db, 'patients'), patientData);
+    return docRef.id;
+};
 export const updatePatient = async (id: string, data: Partial<Patient>) => updateDoc(doc(db, 'patients', id), data);
 export const deletePatient = async (id: string) => deleteDoc(doc(db, 'patients', id));
 
