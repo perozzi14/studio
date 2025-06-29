@@ -150,6 +150,7 @@ export const getDoctors = () => getCollectionData<Doctor>('doctors');
 export const getDoctor = (id: string) => getDocumentData<Doctor>('doctors', id);
 export const getSellers = () => getCollectionData<Seller>('sellers');
 export const getPatients = () => getCollectionData<Patient>('patients');
+export const getPatient = (id: string) => getDocumentData<Patient>('patients', id);
 export const getAppointments = () => getCollectionData<Appointment>('appointments');
 export const getDoctorAppointments = async (doctorId: string) => {
     const q = query(collection(db, "appointments"), where("doctorId", "==", doctorId));

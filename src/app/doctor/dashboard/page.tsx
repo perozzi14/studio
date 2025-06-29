@@ -644,7 +644,7 @@ export default function DoctorDashboardPage() {
   };
 
   const handleViewDetails = async (appointment: Appointment) => {
-      const patient = await firestoreService.getDocumentData<Patient>('patients', appointment.patientId);
+      const patient = await firestoreService.getPatient(appointment.patientId);
       setSelectedAppointment({ ...appointment, patient: patient || undefined });
       setEditingClinicalNotes(appointment.clinicalNotes || '');
       setIsDetailDialogOpen(true);
