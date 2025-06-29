@@ -7,6 +7,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -88,6 +89,7 @@ export type Schedule = {
 export type Doctor = {
   id: number;
   name: string;
+  cedula: string;
   specialty: string;
   city: string;
   address: string;
@@ -179,6 +181,7 @@ export const doctors: Doctor[] = [
   { 
     id: 1, 
     name: "Dr. Ana Rodriguez", 
+    cedula: "V-12.345.678",
     specialty: "Cardiología", 
     city: "Caracas", 
     address: "Av. Francisco de Miranda, Centro Lido, Piso 5",
@@ -232,6 +235,7 @@ export const doctors: Doctor[] = [
   { 
     id: 2, 
     name: "Dr. Carlos Sanchez", 
+    cedula: "V-10.987.654",
     specialty: "Dermatología", 
     city: "Maracaibo", 
     address: "Calle 72 con Av. 3H, Edificio Profesional",
@@ -268,6 +272,7 @@ export const doctors: Doctor[] = [
   { 
     id: 3, 
     name: "Dr. Sofia Gomez", 
+    cedula: "V-14.567.890",
     specialty: "Neurología", 
     city: "Valencia", 
     address: "Av. Monseñor Adams, Centro Médico El Viñedo",
@@ -303,6 +308,7 @@ export const doctors: Doctor[] = [
   { 
     id: 4, 
     name: "Dr. Luis Fernandez", 
+    cedula: "V-11.222.333",
     specialty: "Pediatría", 
     city: "Caracas", 
     address: "Calle París, Torre Orinoco, Las Mercedes",
@@ -338,6 +344,7 @@ export const doctors: Doctor[] = [
   { 
     id: 6, 
     name: "Dr. Javier Torres", 
+    cedula: "V-13.131.313",
     specialty: "Ortopedia", 
     city: "Caracas", 
     address: "Av. Panteón, Clínica Caracas, San Bernardino",
@@ -373,6 +380,7 @@ export const doctors: Doctor[] = [
   { 
     id: 7, 
     name: "Dra. Laura Montes", 
+    cedula: "V-17.111.222",
     specialty: "Medicina Estética", 
     city: "Caracas", 
     address: "Av. Principal de Santa Fe, CC Santa Fe, Nivel C3",

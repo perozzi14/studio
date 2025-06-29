@@ -60,6 +60,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const chartConfig = {
@@ -155,7 +156,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { coupons, setCoupons } = useSettings();
+  const { coupons, setCoupons, cities, specialties } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -166,6 +167,7 @@ export default function DoctorDashboardPage() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
+  const [profileForm, setProfileForm] = useState<Doctor | null>(null);
   
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -213,6 +215,7 @@ export default function DoctorDashboardPage() {
       const loggedInDoctor = doctors.find(d => d.email.toLowerCase() === user.email.toLowerCase());
       if (loggedInDoctor) {
         setDoctorData(loggedInDoctor);
+        setProfileForm(loggedInDoctor);
         setPublicProfileUrl(`${window.location.origin}/doctors/${loggedInDoctor.id}`);
         
         const doctorAppointments = mockAppointments.filter(appt => appt.doctorId === loggedInDoctor.id);
@@ -613,8 +616,34 @@ export default function DoctorDashboardPage() {
     (e.target as HTMLFormElement).reset();
   };
 
+  const handleProfileInputChange = (field: keyof Doctor, value: any) => {
+    if (profileForm) {
+      setProfileForm(prev => ({ ...prev!, [field]: value }));
+    }
+  };
 
-  if (isLoading || !user || !doctorData || !financialStats) {
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'bannerImage') => {
+      if (e.target.files && e.target.files[0] && profileForm) {
+        const file = e.target.files[0];
+        const newUrl = URL.createObjectURL(file);
+        setProfileForm(prev => ({ ...prev!, [field]: newUrl }));
+      }
+  };
+
+  const handleProfileSave = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (profileForm) {
+          // In a real app, you would send this to the server
+          setDoctorData(profileForm);
+          toast({
+              title: "¡Perfil Actualizado!",
+              description: "Tu información personal ha sido guardada correctamente.",
+          });
+      }
+  };
+
+
+  if (isLoading || !user || !doctorData || !financialStats || !profileForm) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -1032,29 +1061,111 @@ export default function DoctorDashboardPage() {
 
               <TabsContent value="profile" className="mt-6">
                 <div className="space-y-6">
-                    <Card>
+                  <Card>
                       <CardHeader>
                           <CardTitle className="flex items-center gap-2"><User />Mi Perfil</CardTitle>
-                          <CardDescription>Actualiza tu información pública y de contacto.</CardDescription>
+                          <CardDescription>Actualiza tu información pública y de contacto. Esta información será visible para los pacientes.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                          <form className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="name">Nombre Completo</Label>
-                                <Input id="name" defaultValue={doctorData.name} />
+                          <form className="space-y-8" onSubmit={handleProfileSave}>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                  <div className="space-y-4">
+                                      <Label className="text-base font-semibold">Foto de Perfil</Label>
+                                      <div className="flex items-center gap-6">
+                                          <Avatar className="h-24 w-24">
+                                              <AvatarImage src={profileForm.profileImage} alt={profileForm.name} />
+                                              <AvatarFallback>{profileForm.name?.charAt(0)}</AvatarFallback>
+                                          </Avatar>
+                                          <div className="space-y-2 flex-1">
+                                              <Input id="profileImage" type="file" accept="image/*" onChange={(e) => handleProfileImageChange(e, 'profileImage')} />
+                                              <p className="text-xs text-muted-foreground">Recomendado: 400x400px</p>
+                                          </div>
+                                      </div>
+                                  </div>
+                                  <div className="space-y-4">
+                                      <Label className="text-base font-semibold">Banner del Consultorio</Label>
+                                      <div className="space-y-2">
+                                          <div className="aspect-video relative rounded-md border bg-muted overflow-hidden">
+                                               <Image src={profileForm.bannerImage!} alt="Banner" layout="fill" className="object-cover" />
+                                          </div>
+                                          <Input id="bannerImage" type="file" accept="image/*" onChange={(e) => handleProfileImageChange(e, 'bannerImage')} />
+                                          <p className="text-xs text-muted-foreground">Recomendado: 1200x400px</p>
+                                      </div>
+                                  </div>
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="specialty">Especialidad</Label>
-                                <Input id="specialty" defaultValue={doctorData.specialty} />
+                              <Separator />
+                              <div className="space-y-4">
+                                  <Label className="text-base font-semibold">Información Personal y Contacto</Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                      <div className="space-y-2">
+                                          <Label htmlFor="prof-name">Nombre Completo</Label>
+                                          <Input id="prof-name" value={profileForm.name} onChange={(e) => handleProfileInputChange('name', e.target.value)} />
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label htmlFor="prof-cedula">Cédula de Identidad</Label>
+                                          <Input id="prof-cedula" value={profileForm.cedula} onChange={(e) => handleProfileInputChange('cedula', e.target.value)} />
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label>Correo Electrónico (No editable)</Label>
+                                          <Input value={profileForm.email} disabled />
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label htmlFor="prof-whatsapp">Número de WhatsApp</Label>
+                                          <Input id="prof-whatsapp" value={profileForm.whatsapp} onChange={(e) => handleProfileInputChange('whatsapp', e.target.value)} />
+                                      </div>
+                                  </div>
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="address">Dirección del Consultorio</Label>
-                                <Input id="address" defaultValue={doctorData.address} />
+                              <Separator />
+                              <div className="space-y-4">
+                                   <Label className="text-base font-semibold">Información Profesional</Label>
+                                   <div className="space-y-2">
+                                       <Label htmlFor="prof-desc">Descripción Pública</Label>
+                                       <Textarea id="prof-desc" value={profileForm.description} onChange={(e) => handleProfileInputChange('description', e.target.value)} rows={4} placeholder="Describe tu experiencia, enfoque y lo que los pacientes pueden esperar..."/>
+                                   </div>
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                      <div className="space-y-2">
+                                          <Label>Especialidad</Label>
+                                          <Select value={profileForm.specialty} onValueChange={(value) => handleProfileInputChange('specialty', value)}>
+                                              <SelectTrigger><SelectValue /></SelectTrigger>
+                                              <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label>Duración de Cita (minutos)</Label>
+                                          <RadioGroup value={profileForm.slotDuration?.toString()} onValueChange={(value) => handleProfileInputChange('slotDuration', parseInt(value))} className="flex gap-4 pt-2">
+                                              <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="30" /> 30 min</Label>
+                                              <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="60" /> 60 min</Label>
+                                          </RadioGroup>
+                                      </div>
+                                   </div>
                               </div>
-                              <Button>Guardar Cambios</Button>
+                              <Separator />
+                              <div className="space-y-4">
+                                  <Label className="text-base font-semibold">Ubicación del Consultorio</Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                       <div className="space-y-2">
+                                          <Label>Ciudad</Label>
+                                          <Select value={profileForm.city} onValueChange={(value) => handleProfileInputChange('city', value)}>
+                                              <SelectTrigger><SelectValue/></SelectTrigger>
+                                              <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Label htmlFor="prof-sector">Sector</Label>
+                                          <Input id="prof-sector" value={profileForm.sector} onChange={(e) => handleProfileInputChange('sector', e.target.value)} />
+                                      </div>
+                                      <div className="space-y-2 md:col-span-3">
+                                          <Label htmlFor="prof-address">Dirección Completa</Label>
+                                          <Input id="prof-address" value={profileForm.address} onChange={(e) => handleProfileInputChange('address', e.target.value)} />
+                                      </div>
+                                  </div>
+                              </div>
+                              <div className="flex justify-end">
+                                  <Button type="submit">Guardar Cambios</Button>
+                              </div>
                           </form>
                       </CardContent>
-                    </Card>
+                  </Card>
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><LinkIcon /> Tu Enlace Público</CardTitle>
