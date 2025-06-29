@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -138,10 +137,6 @@ export default function SellerDashboardPage() {
         fetchData();
     }
   }, [user, fetchData]);
-  
-  const handleTabChange = (value: string) => {
-    router.push(`/seller/dashboard?view=${value}`);
-  };
 
   const commissionPerDoctor = useMemo(() => {
     if (!sellerData) return 0;
@@ -242,16 +237,10 @@ export default function SellerDashboardPage() {
             <h1 className="text-3xl font-bold font-headline mb-2">Panel de Vendedora</h1>
             <p className="text-muted-foreground mb-8">Bienvenida de nuevo, {user.name}. Aquí puedes gestionar tus médicos y finanzas.</p>
 
-             <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-                    <TabsTrigger value="referrals">Mis Referidos</TabsTrigger>
-                    <TabsTrigger value="finances">Finanzas</TabsTrigger>
-                    <TabsTrigger value="accounts">Cuentas</TabsTrigger>
-                    <TabsTrigger value="marketing">Marketing</TabsTrigger>
-                    <TabsTrigger value="support">Soporte</TabsTrigger>
-                </TabsList>
-                <TabsContent value="referrals" className="mt-6">
-                    <div className="space-y-8">
+            <>
+                {currentTab === 'referrals' && (
+                  <div className="mt-6">
+                      <div className="space-y-8">
                          <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><LinkIcon className="text-primary"/> Tu Enlace de Referido</CardTitle>
@@ -325,10 +314,12 @@ export default function SellerDashboardPage() {
                                 </div>
                             </CardContent>
                         </Card>
+                      </div>
                     </div>
-                </TabsContent>
-                <TabsContent value="finances" className="mt-6">
-                    <div className="space-y-8">
+                )}
+                {currentTab === 'finances' && (
+                  <div className="mt-6">
+                      <div className="space-y-8">
                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente (Este Mes)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}/c.u.</p></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total General Generado</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Suma de todos los pagos recibidos.</p></CardContent></Card>
@@ -364,9 +355,11 @@ export default function SellerDashboardPage() {
                             </CardContent>
                         </Card>
                     </div>
-                </TabsContent>
-                <TabsContent value="accounts" className="mt-6">
-                    <Card>
+                  </div>
+                )}
+                {currentTab === 'accounts' && (
+                  <div className="mt-6">
+                      <Card>
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div><CardTitle className="flex items-center gap-2"><Coins /> Mis Cuentas Bancarias</CardTitle><CardDescription>Gestiona tus cuentas para recibir los pagos de comisiones.</CardDescription></div>
                           <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
@@ -406,9 +399,11 @@ export default function SellerDashboardPage() {
                           </div>
                       </CardContent>
                     </Card>
-                </TabsContent>
-                <TabsContent value="marketing" className="mt-6">
-                    <Card>
+                </div>
+                )}
+                {currentTab === 'marketing' && (
+                  <div className="mt-6">
+                      <Card>
                         <CardHeader><CardTitle>Material de Marketing</CardTitle><CardDescription>Recursos proporcionados por SUMA para ayudarte a promocionar la plataforma.</CardDescription></CardHeader>
                         <CardContent>
                             {marketingMaterials.length > 0 ? (
@@ -418,9 +413,11 @@ export default function SellerDashboardPage() {
                             ) : (<p className="text-center text-muted-foreground py-12">No hay materiales de marketing disponibles en este momento.</p>)}
                         </CardContent>
                     </Card>
-                </TabsContent>
-                <TabsContent value="support" className="mt-6">
-                    <Card>
+                </div>
+                )}
+                {currentTab === 'support' && (
+                  <div className="mt-6">
+                      <Card>
                         <CardHeader><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div><CardTitle>Soporte Técnico</CardTitle><CardDescription>Gestiona tus tickets de soporte con el equipo de SUMA.</CardDescription></div>
                             <Dialog><DialogTrigger asChild><Button className="w-full sm:w-auto"><MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket</Button></DialogTrigger>
@@ -444,8 +441,9 @@ export default function SellerDashboardPage() {
                             <div className="space-y-4 md:hidden"><p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p></div>
                         </CardContent>
                     </Card>
-                </TabsContent>
-            </Tabs>
+                </div>
+                )}
+            </>
         </div>
       </main>
 
