@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,6 +34,13 @@ import {
 import Image from 'next/image';
 import { useSettings } from '@/lib/settings';
 import { z } from 'zod';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -90,7 +97,7 @@ export default function SellerDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { doctorSubscriptionFee } = useSettings();
+  const { doctorSubscriptionFee, cities } = useSettings();
   
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
@@ -103,6 +110,10 @@ export default function SellerDashboardPage() {
   
   const [isPaymentDetailDialogOpen, setIsPaymentDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SellerPayment | null>(null);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cityFilter, setCityFilter] = useState('all');
+  const [doctorsToShow, setDoctorsToShow] = useState(10);
   
   const currentTab = searchParams.get('view') || 'referrals';
 
@@ -157,6 +168,26 @@ export default function SellerDashboardPage() {
     return { totalReferred: referredDoctors.length, activeReferredCount: activeReferred.length, pendingCommission, totalEarned, nextPaymentDate };
   }, [referredDoctors, commissionPerDoctor, sellerData, sellerPayments]);
   
+  const filteredAndSortedDoctors = useMemo(() => {
+    let doctors = [...referredDoctors]
+        .sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
+
+    if (searchTerm) {
+        doctors = doctors.filter(doc => doc.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    if (cityFilter !== 'all') {
+        doctors = doctors.filter(doc => doc.city === cityFilter);
+    }
+
+    if (doctorsToShow !== -1) {
+        return doctors.slice(0, doctorsToShow);
+    }
+
+    return doctors;
+  }, [referredDoctors, searchTerm, cityFilter, doctorsToShow]);
+
+
    const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
@@ -257,19 +288,58 @@ export default function SellerDashboardPage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Lista de Médicos Referidos</CardTitle>
-                                <CardDescription>Un resumen de todos los médicos que has ingresado. Total: {financeStats.totalReferred}</CardDescription>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <CardTitle>Mis Médicos Referidos</CardTitle>
+                                        <CardDescription>
+                                            Visualiza los últimos doctores registrados, busca y filtra los médicos que se han unido con tu enlace.
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-col md:flex-row gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Buscar por nombre..."
+                                            className="pl-8 w-full"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <Select value={cityFilter} onValueChange={setCityFilter}>
+                                        <SelectTrigger className="w-full md:w-[180px]">
+                                            <SelectValue placeholder="Filtrar por ciudad" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todas las ciudades</SelectItem>
+                                            {cities.map((city) => (
+                                                <SelectItem key={city} value={city}>{city}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={String(doctorsToShow)} onValueChange={(val) => setDoctorsToShow(Number(val))}>
+                                        <SelectTrigger className="w-full md:w-[180px]">
+                                            <SelectValue placeholder="Mostrar" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="5">Mostrar 5</SelectItem>
+                                            <SelectItem value="10">Mostrar 10</SelectItem>
+                                            <SelectItem value="20">Mostrar 20</SelectItem>
+                                            <SelectItem value="-1">Mostrar Todos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <Table className="hidden md:table">
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Médico</TableHead><TableHead>Contacto</TableHead><TableHead>Especialidad</TableHead>
-                                            <TableHead>Ubicación</TableHead><TableHead>Último Pago</TableHead><TableHead className="text-center">Estado</TableHead>
+                                            <TableHead>Ubicación</TableHead><TableHead>Fecha de Registro</TableHead><TableHead className="text-center">Estado</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {referredDoctors.length > 0 ? referredDoctors.map((doctor) => (
+                                        {filteredAndSortedDoctors.length > 0 ? filteredAndSortedDoctors.map((doctor) => (
                                             <TableRow key={doctor.id}>
                                                 <TableCell className="font-medium">{doctor.name}</TableCell>
                                                 <TableCell><div className="flex flex-col gap-1 text-xs">
@@ -277,19 +347,19 @@ export default function SellerDashboardPage() {
                                                     <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{doctor.whatsapp}</span></span>
                                                 </div></TableCell>
                                                 <TableCell>{doctor.specialty}</TableCell><TableCell>{doctor.city}, {doctor.sector}</TableCell>
-                                                <TableCell>{format(new Date(doctor.lastPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                                 <TableCell className="text-center"><Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
                                                     {doctor.status === 'active' ? <CheckCircle className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
                                                     {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
                                                 </Badge></TableCell>
                                             </TableRow>
                                         )) : (
-                                            <TableRow><TableCell colSpan={6} className="h-24 text-center">Aún no tienes médicos referidos. ¡Comparte tu enlace!</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={6} className="h-24 text-center">No se encontraron médicos con los filtros actuales.</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
                                 <div className="space-y-4 md:hidden">
-                                    {referredDoctors.length > 0 ? referredDoctors.map((doctor) => (
+                                    {filteredAndSortedDoctors.length > 0 ? filteredAndSortedDoctors.map((doctor) => (
                                         <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
                                             <div className="flex justify-between items-start gap-2">
                                                 <div><p className="font-bold">{doctor.name}</p><p className="text-sm text-muted-foreground">{doctor.specialty}</p></div>
@@ -301,7 +371,7 @@ export default function SellerDashboardPage() {
                                             <Separator/>
                                             <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                                                 <div><p className="font-semibold text-xs text-muted-foreground mb-1">Ubicación</p><p>{doctor.city}</p></div>
-                                                <div><p className="font-semibold text-xs text-muted-foreground mb-1">Último Pago</p><p>{format(new Date(doctor.lastPaymentDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p></div>
+                                                <div><p className="font-semibold text-xs text-muted-foreground mb-1">Fecha Registro</p><p>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p></div>
                                                 <div className="col-span-2"><p className="font-semibold text-xs text-muted-foreground mb-1">Contacto</p>
                                                     <div className="flex flex-col gap-1.5 text-xs">
                                                         <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 flex-shrink-0" /> <span>{doctor.email}</span></span>
@@ -310,7 +380,7 @@ export default function SellerDashboardPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                    )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">Aún no tienes médicos referidos. ¡Comparte tu enlace!</div>)}
+                                    )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">No se encontraron médicos con los filtros actuales.</div>)}
                                 </div>
                             </CardContent>
                         </Card>
