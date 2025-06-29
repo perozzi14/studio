@@ -53,35 +53,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const doctor = doctors.find(d => d.email.toLowerCase() === lowerEmail);
     if (doctor) {
-      // Ensure the returned object conforms to the User (which extends Patient) type
-      return {
+      const userPayload: User = {
+        id: String(doctor.id),
+        name: doctor.name,
+        email: doctor.email,
+        role: 'doctor',
+        // Patient fields for type compatibility
         age: null,
         gender: null,
+        phone: doctor.whatsapp,
+        cedula: doctor.cedula,
         favoriteDoctorIds: [],
-        ...doctor,
-        id: String(doctor.id), // Defensive string casting
-        phone: doctor.whatsapp, // Map doctor's whatsapp to patient's phone field
-        role: 'doctor',
+        profileImage: doctor.profileImage
       };
+      return userPayload;
     }
 
     const seller = sellers.find(s => s.email.toLowerCase() === lowerEmail);
     if (seller) {
-      // Ensure the returned object conforms to the User (which extends Patient) type
-      return { 
-        age: null, 
-        gender: null, 
-        cedula: null, 
+      const userPayload: User = {
+        id: String(seller.id),
+        name: seller.name,
+        email: seller.email,
+        role: 'seller',
+        // Patient fields for type compatibility
+        age: null,
+        gender: null,
+        phone: seller.phone,
+        cedula: null,
         favoriteDoctorIds: [],
-        ...seller,
-        id: String(seller.id), // Defensive string casting
-        role: 'seller', 
+        profileImage: seller.profileImage,
+        // Seller specific
+        referralCode: seller.referralCode,
       };
+      return userPayload;
     }
     
     const patient = patients.find(p => p.email.toLowerCase() === lowerEmail);
     if (patient) {
-      return { ...patient, id: String(patient.id), role: 'patient' };
+       const userPayload: User = {
+        ...patient,
+        id: String(patient.id),
+        role: 'patient',
+      };
+      return userPayload;
     }
 
     return null;
