@@ -91,10 +91,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+        <div className="flex items-center gap-2 font-bold text-lg">
           <Stethoscope className="h-6 w-6 text-primary" />
           <span className="font-headline">SUMA</span>
-        </Link>
+        </div>
         <nav className="hidden md:flex ml-auto items-center gap-2">
           {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
             <Button key={link.href} variant="ghost" asChild>
@@ -366,10 +366,10 @@ export function Header() {
                  <SheetTitle className="sr-only">Menú</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 py-6">
-                <Link href="/" className="flex items-center gap-2 font-bold text-lg mb-4">
+                <div className="flex items-center gap-2 font-bold text-lg mb-4">
                   <Stethoscope className="h-6 w-6 text-primary" />
                   <span className="font-headline">SUMA</span>
-                </Link>
+                </div>
                 {user?.role === 'admin' && pathname.startsWith('/admin') && (
                    <div className="flex flex-col gap-3">
                     <p className="text-muted-foreground font-semibold text-sm">PANEL ADMIN</p>

@@ -35,9 +35,9 @@ export default function RegisterPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
-           <Link href="/" className="inline-block mx-auto mb-4">
+           <div className="inline-block mx-auto mb-4">
             <Stethoscope className="h-10 w-10 text-primary" />
-          </Link>
+          </div>
           <CardTitle className="text-2xl font-headline">
             Registro de Paciente
           </CardTitle>
