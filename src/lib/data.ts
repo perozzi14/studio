@@ -1,5 +1,6 @@
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -36,8 +37,14 @@ export type Coupon = {
   id: number;
   code: string;
   discountType: 'percentage' | 'fixed';
-  value: number; 
+  value: number;
+  scope: 'general' | number; // 'general' or doctorId
 };
+
+export const mockCoupons: Coupon[] = [
+  { id: 1, code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
+  { id: 2, code: 'VERANO20', discountType: 'percentage', value: 20, scope: 1 } // Dr. Ana Rodriguez
+];
 
 export type DaySchedule = {
   active: boolean;
@@ -69,7 +76,6 @@ export type Doctor = {
   description: string;
   services: Service[];
   bankDetails: BankDetail[];
-  coupons: Coupon[];
   schedule: Schedule;
   slotDuration: 30 | 60;
   sellerId: number | null;
@@ -180,10 +186,6 @@ export const doctors: Doctor[] = [
         idNumber: "V-12.345.678"
       }
     ],
-    coupons: [
-      { id: 1, code: "VERANO20", discountType: "percentage", value: 20 },
-      { id: 2, code: "SUMA10", discountType: "fixed", value: 10 },
-    ],
     slotDuration: 30,
     schedule: {
         monday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
@@ -228,7 +230,6 @@ export const doctors: Doctor[] = [
       accountHolder: "Carlos Sanchez",
       idNumber: "V-10.987.654"
     }],
-    coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
     sellerId: 1,
@@ -264,7 +265,6 @@ export const doctors: Doctor[] = [
       accountHolder: "Sofia Gomez",
       idNumber: "V-14.567.890"
     }],
-    coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
     sellerId: 2,
@@ -300,7 +300,6 @@ export const doctors: Doctor[] = [
       accountHolder: "Luis Fernandez",
       idNumber: "V-11.222.333"
     }],
-    coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
     sellerId: 1,
@@ -336,7 +335,6 @@ export const doctors: Doctor[] = [
       accountHolder: "Javier Torres",
       idNumber: "V-13.131.313"
     }],
-    coupons: [],
     slotDuration: 30,
     schedule: defaultSchedule,
     sellerId: null,
@@ -373,7 +371,6 @@ export const doctors: Doctor[] = [
       accountHolder: "Laura Montes",
       idNumber: "V-17.111.222"
     }],
-    coupons: [],
     slotDuration: 60,
     schedule: defaultSchedule,
     sellerId: 3,

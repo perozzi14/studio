@@ -36,7 +36,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { specialties, doctors, cities, type Doctor } from "@/lib/data";
+import { doctors, type Doctor } from "@/lib/data";
 import { DoctorCard } from "@/components/doctor-card";
 import {
   Carousel,
@@ -45,6 +45,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { useSettings } from "@/lib/settings";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -59,6 +60,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
 };
 
 export default function FindDoctorPage() {
+  const { cities, specialties } = useSettings();
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [specialty, setSpecialty] = useState("all");
   const [location, setLocation] = useState("all");

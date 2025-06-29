@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppointments } from "@/lib/appointments";
 import { useAuth } from "@/lib/auth";
+import { useSettings } from "@/lib/settings";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
@@ -48,6 +49,7 @@ export default function DoctorProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { addAppointment } = useAppointments();
+  const { coupons } = useSettings();
 
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -96,8 +98,9 @@ export default function DoctorProfilePage() {
   };
   
   const handleApplyCoupon = () => {
-    if (!doctor || !couponInput) return;
-    const coupon = doctor.coupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
+    if (!id || !couponInput) return;
+    const applicableCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
+    const coupon = applicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
 
     if (coupon) {
       let discount = 0;

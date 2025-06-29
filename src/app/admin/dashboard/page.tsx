@@ -5,14 +5,14 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -43,6 +43,7 @@ import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/lib/settings';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -71,22 +72,38 @@ export default function AdminDashboardPage() {
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
 
   // States for Settings
-  const { doctorSubscriptionFee, setDoctorSubscriptionFee } = useSettings();
+  const { 
+      doctorSubscriptionFee, setDoctorSubscriptionFee,
+      cities, setCities,
+      specialties, setSpecialties,
+      coupons, setCoupons,
+      timezone, setTimezone,
+      logoUrl, setLogoUrl,
+      currency, setCurrency,
+  } = useSettings();
+  
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
+  const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
+  const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
+  const [editingCity, setEditingCity] = useState<string | null>(null);
+  const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false);
+  const [editingSpecialty, setEditingSpecialty] = useState<string | null>(null);
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
   useEffect(() => {
-    if (doctorSubscriptionFee) {
-        setTempSubscriptionFee(doctorSubscriptionFee.toString());
-    }
-  }, [doctorSubscriptionFee]);
-
+    setTempSubscriptionFee(doctorSubscriptionFee.toString());
+    setTempLogoUrl(logoUrl);
+  }, [doctorSubscriptionFee, logoUrl]);
+  
   const handleSaveSettings = () => {
     const newFee = parseFloat(tempSubscriptionFee);
     if (!isNaN(newFee) && newFee > 0) {
         setDoctorSubscriptionFee(newFee);
-        toast({ title: "Configuración Guardada", description: "El monto de la suscripción ha sido actualizado." });
+        setLogoUrl(tempLogoUrl);
+        toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
     } else {
-        toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido." });
+        toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido para la suscripción." });
     }
   };
   
@@ -123,6 +140,8 @@ export default function AdminDashboardPage() {
   const handleDeleteDoctor = () => {
     if (!doctorToDelete) return;
     setDoctors(prev => prev.filter(d => d.id !== doctorToDelete.id));
+    // Also remove coupons associated with this doctor
+    setCoupons(prev => prev.filter(c => c.scope !== doctorToDelete.id));
     toast({ title: "Médico Eliminado", description: `El perfil de ${doctorToDelete.name} ha sido eliminado.`});
     setIsDeleteDialogOpen(false);
     setDoctorToDelete(null);
@@ -676,30 +695,145 @@ export default function AdminDashboardPage() {
                 </div>
                 )}
                 {currentTab === 'settings' && (
-                    <div className="mt-6">
+                    <div className="mt-6 space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
                                 <CardDescription>Ajusta los parámetros principales de la plataforma.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="max-w-md space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="subscription-fee" className="text-base">Plan de Suscripción de Médicos</Label>
-                                        <p className="text-sm text-muted-foreground">Este es el monto mensual que los médicos pagan para estar activos en la plataforma.</p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <Label className="text-base">Plan de Suscripción</Label>
+                                    <div className="flex items-center gap-2">
+                                        <DollarSign className="h-5 w-5 text-muted-foreground" />
                                         <Input 
                                             id="subscription-fee" 
                                             type="number" 
                                             value={tempSubscriptionFee}
                                             onChange={(e) => setTempSubscriptionFee(e.target.value)}
-                                            className="text-lg font-semibold"
                                             step="0.01"
                                         />
-                                        <Button onClick={handleSaveSettings}>Guardar Cambios</Button>
                                     </div>
                                 </div>
+                                <div className="space-y-4">
+                                    <Label className="text-base">Logo de SUMA (URL)</Label>
+                                     <div className="flex items-center gap-2">
+                                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                        <Input 
+                                            id="logo-url" 
+                                            type="text" 
+                                            value={tempLogoUrl}
+                                            onChange={(e) => setTempLogoUrl(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                 <div className="space-y-4">
+                                    <Label className="text-base">Moneda Principal</Label>
+                                     <div className="flex items-center gap-2">
+                                        <Wallet className="h-5 w-5 text-muted-foreground" />
+                                        <Select value={currency} onValueChange={setCurrency}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="USD">USD - Dólar Americano</SelectItem>
+                                                <SelectItem value="EUR">EUR - Euro</SelectItem>
+                                                <SelectItem value="VES">VES - Bolívar Soberano</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <Label className="text-base">Zona Horaria</Label>
+                                     <div className="flex items-center gap-2">
+                                        <Globe className="h-5 w-5 text-muted-foreground" />
+                                        <Select value={timezone} onValueChange={setTimezone}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="America/Caracas">GMT-4 (Caracas)</SelectItem>
+                                                <SelectItem value="America/New_York">GMT-5 (Nueva York)</SelectItem>
+                                                <SelectItem value="Europe/Madrid">GMT+1 (Madrid)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardContent>
+                                <Button onClick={handleSaveSettings}>Guardar Cambios Generales</Button>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid md:grid-cols-2 gap-6 items-start">
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2"><MapPin /> Gestión de Ubicaciones</CardTitle>
+                                    <Button size="sm" onClick={() => setIsCityDialogOpen(true)}><PlusCircle className="mr-2"/> Ciudad</Button>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                    {cities.map(city => (
+                                        <div key={city} className="flex justify-between items-center p-2 rounded-md border">
+                                            <span className="font-medium">{city}</span>
+                                            <div className="flex gap-2">
+                                                <Button size="icon" variant="outline" onClick={() => { setEditingCity(city); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2"><BrainCircuit /> Gestión de Especialidades</CardTitle>
+                                    <Button size="sm" onClick={() => setIsSpecialtyDialogOpen(true)}><PlusCircle className="mr-2"/> Nueva</Button>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                    {specialties.map(spec => (
+                                        <div key={spec} className="flex justify-between items-center p-2 rounded-md border">
+                                            <span className="font-medium">{spec}</span>
+                                            <div className="flex gap-2">
+                                                <Button size="icon" variant="outline" onClick={() => { setEditingSpecialty(spec); setIsSpecialtyDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center gap-2"><Tag /> Gestión de Cupones</CardTitle>
+                                <Button size="sm" onClick={() => setIsCouponDialogOpen(true)}><PlusCircle className="mr-2"/> Cupón</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Código</TableHead>
+                                            <TableHead>Tipo</TableHead>
+                                            <TableHead>Valor</TableHead>
+                                            <TableHead>Alcance</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                    {coupons.map(coupon => (
+                                        <TableRow key={coupon.id}>
+                                            <TableCell className="font-mono">{coupon.code}</TableCell>
+                                            <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
+                                            <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
+                                            <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </div>
@@ -814,7 +948,10 @@ export default function AdminDashboardPage() {
                             <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
                             <div className="flex items-center gap-2">
                                 <strong>Estado:</strong>
-                                <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' && 'bg-green-600 text-white')}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</Badge>
+                                <div className={cn(
+                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                                    selectedDoctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground'
+                                )}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</div>
                             </div>
                         </div>
                     </div>
@@ -892,7 +1029,7 @@ export default function AdminDashboardPage() {
             <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro de eliminar a este médico?</AlertDialogTitle>
             <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{doctorToDelete?.name}</strong> del sistema.
+                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{doctorToDelete?.name}</strong> y sus cupones asociados del sistema.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -903,6 +1040,39 @@ export default function AdminDashboardPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Settings Dialogs */}
+      <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
+                <DialogDescription>Completa la información para el cupón de descuento.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div><Label>Código</Label><Input defaultValue={editingCoupon?.code} placeholder="VERANO20"/></div>
+                <div><Label>Tipo de Descuento</Label>
+                    <RadioGroup defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
+                        <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
+                        <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
+                    </RadioGroup>
+                </div>
+                <div><Label>Valor</Label><Input type="number" defaultValue={editingCoupon?.value} placeholder="20"/></div>
+                <div><Label>Alcance</Label>
+                    <Select defaultValue={editingCoupon?.scope.toString() || 'general'}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="general">General (Todos los Médicos)</SelectItem>
+                            {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button>Guardar Cupón</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
