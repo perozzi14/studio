@@ -5,6 +5,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -841,4 +842,19 @@ export const mockAdminNotifications: AdminNotification[] = [
         read: true,
         link: '/admin/dashboard?view=finances'
     }
+];
+
+export type CompanyExpense = {
+    id: string;
+    date: string; // YYYY-MM-DD
+    description: string;
+    amount: number;
+    category: 'operativo' | 'marketing' | 'personal';
+};
+
+export const mockCompanyExpenses: CompanyExpense[] = [
+    { id: 'cexp-1', date: '2024-05-01', description: 'Alquiler de oficina', amount: 800, category: 'operativo' },
+    { id: 'cexp-2', date: '2024-05-10', description: 'Campaña de publicidad en redes', amount: 250, category: 'marketing' },
+    { id: 'cexp-3', date: '2024-05-15', description: 'Nómina - Administrador', amount: 1200, category: 'personal' },
+    { id: 'cexp-4', date: '2024-05-25', description: 'Pago de servicios (internet, luz)', amount: 150, category: 'operativo' },
 ];

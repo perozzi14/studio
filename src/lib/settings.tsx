@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { specialties as initialSpecialties, cities as initialCities, mockCoupons, type Coupon, mockCompanyBankDetails, type BankDetail } from './data';
+import { specialties as initialSpecialties, cities as initialCities, mockCoupons, type Coupon, mockCompanyBankDetails, type BankDetail, mockCompanyExpenses, type CompanyExpense } from './data';
 
 interface SettingsContextType {
   doctorSubscriptionFee: number;
@@ -21,6 +21,8 @@ interface SettingsContextType {
   setCurrency: (currency: string) => void;
   companyBankDetails: BankDetail[];
   setCompanyBankDetails: (details: BankDetail[]) => void;
+  companyExpenses: CompanyExpense[];
+  setCompanyExpenses: (expenses: CompanyExpense[]) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -34,6 +36,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [logoUrl, setLogoUrl] = useState<string>('/logo.svg'); // Placeholder
   const [currency, setCurrency] = useState<string>('USD');
   const [companyBankDetails, setCompanyBankDetails] = useState<BankDetail[]>(mockCompanyBankDetails);
+  const [companyExpenses, setCompanyExpenses] = useState<CompanyExpense[]>(mockCompanyExpenses);
 
 
   const value = { 
@@ -45,6 +48,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     logoUrl, setLogoUrl,
     currency, setCurrency,
     companyBankDetails, setCompanyBankDetails,
+    companyExpenses, setCompanyExpenses
    };
 
   return (

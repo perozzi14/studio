@@ -6,14 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, appointments as initialAppointments, type Appointment } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, appointments as initialAppointments, type Appointment, type CompanyExpense } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient', data: any} | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient' | 'expense', data: any} | null>(null);
 
   // States for Patient Management
   const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
   const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
   const [viewingProofUrl, setViewingProofUrl] = useState<string | null>(null);
 
-  // States for Settings
+  // States for Settings & Company Finances
   const { 
       doctorSubscriptionFee, setDoctorSubscriptionFee,
       cities, setCities,
@@ -97,6 +97,7 @@ export default function AdminDashboardPage() {
       logoUrl, setLogoUrl,
       currency, setCurrency,
       companyBankDetails, setCompanyBankDetails,
+      companyExpenses, setCompanyExpenses,
   } = useSettings();
   
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
@@ -109,6 +110,8 @@ export default function AdminDashboardPage() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [isCompanyBankDetailDialogOpen, setIsCompanyBankDetailDialogOpen] = useState(false);
   const [editingCompanyBankDetail, setEditingCompanyBankDetail] = useState<BankDetail | null>(null);
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<CompanyExpense | null>(null);
 
 
   useEffect(() => {
@@ -152,7 +155,7 @@ export default function AdminDashboardPage() {
     setIsDetailDialogOpen(true);
   };
   
-  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient', item: any) => {
+  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense', item: any) => {
     setItemToDelete({ type: itemType, data: item });
     setIsDeleteDialogOpen(true);
   };
@@ -174,6 +177,10 @@ export default function AdminDashboardPage() {
       case 'patient':
         setPatients(prev => prev.filter(p => p.id !== data.id));
         toast({ title: "Paciente Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
+        break;
+      case 'expense':
+        setCompanyExpenses(prev => prev.filter(e => e.id !== data.id));
+        toast({ title: "Gasto Eliminado", description: `El gasto "${data.description}" ha sido eliminado.`});
         break;
     }
     
@@ -266,6 +273,41 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const handleSaveExpense = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const date = formData.get('date') as string;
+    const description = formData.get('description') as string;
+    const amount = formData.get('amount') as string;
+    const category = formData.get('category') as CompanyExpense['category'];
+
+    if (!date || !description || !amount || !category) {
+        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para registrar el gasto." });
+        return;
+    }
+
+    if (editingExpense) {
+        // Update existing expense
+        setCompanyExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? { ...exp, date, description, amount: parseFloat(amount), category } : exp));
+        toast({ title: "Gasto Actualizado", description: "El gasto ha sido modificado exitosamente." });
+    } else {
+        // Add new expense
+        const newExpense: CompanyExpense = {
+            id: `cexp-${Date.now()}`,
+            date,
+            description,
+            amount: parseFloat(amount),
+            category,
+        };
+        setCompanyExpenses(prev => [newExpense, ...prev]);
+        toast({ title: "Gasto Registrado", description: "El nuevo gasto ha sido agregado." });
+    }
+    
+    setIsExpenseDialogOpen(false);
+    setEditingExpense(null);
+  };
+
+
   const stats = useMemo(() => {
     const totalDoctors = doctors.length;
     const activeDoctors = doctors.filter(d => d.status === 'active').length;
@@ -273,8 +315,8 @@ export default function AdminDashboardPage() {
     const totalPatients = patients.length;
     
     const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
-
     const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalExpenses = companyExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
         totalDoctors,
@@ -283,9 +325,10 @@ export default function AdminDashboardPage() {
         totalPatients,
         totalRevenue,
         commissionsPaid,
-        netProfit: totalRevenue - commissionsPaid,
+        totalExpenses,
+        netProfit: totalRevenue - commissionsPaid - totalExpenses,
     }
-  }, [doctors, sellers, patients, doctorPayments, sellerPayments]);
+  }, [doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses]);
 
   const pendingDoctorPayments = useMemo(() => {
     return doctorPayments.filter(p => p.status === 'Pending');
@@ -354,12 +397,12 @@ export default function AdminDashboardPage() {
                           </Card>
                            <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Ingresos (Mes Actual)</CardTitle>
+                                  <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
                                   <BarChart className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Estimado basado en médicos activos</p>
+                                  <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${stats.netProfit.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos</p>
                               </CardContent>
                           </Card>
                       </div>
@@ -673,25 +716,35 @@ export default function AdminDashboardPage() {
                 {currentTab === 'finances' && (
                  <div className="mt-6">
                     <div className="space-y-6">
-                       <div className="grid gap-4 md:grid-cols-3">
+                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                           <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Ingresos Totales (Suscripciones)</CardTitle>
-                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                  <CardTitle className="text-sm font-medium">Ingresos (Suscripciones)</CardTitle>
+                                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
                                   <div className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Basado en los pagos de médicos</p>
+                                  <p className="text-xs text-muted-foreground">Pagos de médicos recibidos</p>
                               </CardContent>
                           </Card>
-                          <Card>
+                           <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                   <CardTitle className="text-sm font-medium">Comisiones Pagadas</CardTitle>
-                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  <Landmark className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold text-red-600">${stats.commissionsPaid.toFixed(2)}</div>
+                                  <div className="text-2xl font-bold text-amber-600">${stats.commissionsPaid.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Pagos a vendedoras</p>
+                              </CardContent>
+                          </Card>
+                           <Card>
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Gastos Operativos</CardTitle>
+                                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="text-2xl font-bold text-red-600">${stats.totalExpenses.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Gastos de la empresa</p>
                               </CardContent>
                           </Card>
                           <Card>
@@ -700,8 +753,8 @@ export default function AdminDashboardPage() {
                                   <Wallet className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold">${stats.netProfit.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Ingresos - Comisiones</p>
+                                  <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${stats.netProfit.toFixed(2)}</div>
+                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos</p>
                               </CardContent>
                           </Card>
                       </div>
@@ -777,10 +830,72 @@ export default function AdminDashboardPage() {
                               </div>
                           </CardContent>
                       </Card>
+                      
+                       <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <CardTitle>Gastos Operativos de SUMA</CardTitle>
+                                <CardDescription>Registro de todos los egresos de la empresa.</CardDescription>
+                            </div>
+                            <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}>
+                                <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="hidden md:block">
+                                <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Descripción</TableHead>
+                                        <TableHead>Categoría</TableHead>
+                                        <TableHead className="text-right">Monto</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {companyExpenses.map((expense) => (
+                                        <TableRow key={expense.id}>
+                                            <TableCell>{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                            <TableCell className="font-medium">{expense.description}</TableCell>
+                                            <TableCell className="capitalize">{expense.category}</TableCell>
+                                            <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="icon" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {companyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>}
+                                </TableBody>
+                                </Table>
+                            </div>
+                            <div className="space-y-4 md:hidden">
+                                {companyExpenses.map((expense) => (
+                                    <div key={expense.id} className="p-4 border rounded-lg space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-semibold">{expense.description}</p>
+                                                <p className="text-xs text-muted-foreground">{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                                            </div>
+                                            <Badge variant="secondary" className="capitalize">{expense.category}</Badge>
+                                        </div>
+                                        <p className="text-right font-mono text-lg">${expense.amount.toFixed(2)}</p>
+                                        <Separator />
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                            <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {companyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados.</p>}
+                            </div>
+                        </CardContent>
+                      </Card>
 
                       <Card>
                         <CardHeader>
-                            <CardTitle>Pagos de Médicos Recibidos</CardTitle>
+                            <CardTitle>Historial de Ingresos (Suscripciones)</CardTitle>
                             <CardDescription>Historial de pagos de mensualidades de los médicos.</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1466,9 +1581,9 @@ export default function AdminDashboardPage() {
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de eliminar a este {itemToDelete?.type === 'doctor' ? 'médico' : itemToDelete?.type === 'seller' ? 'vendedora' : 'paciente'}?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro de eliminar este elemento?</AlertDialogTitle>
             <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{itemToDelete?.data?.name}</strong> del sistema.
+                Esta acción no se puede deshacer. Se eliminará permanentemente de la base de datos del sistema.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1573,6 +1688,46 @@ export default function AdminDashboardPage() {
                 <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
                 <Button>Guardar Cupón</Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isExpenseDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) setEditingExpense(null); setIsExpenseDialogOpen(isOpen); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? 'Editar Gasto' : 'Agregar Nuevo Gasto'}</DialogTitle>
+            <DialogDescription>Registra un gasto operativo de la empresa.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveExpense}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="expense-date">Fecha</Label>
+                <Input id="expense-date" name="date" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} required />
+              </div>
+              <div>
+                <Label htmlFor="expense-description">Descripción</Label>
+                <Input id="expense-description" name="description" defaultValue={editingExpense?.description || ''} required />
+              </div>
+              <div>
+                <Label htmlFor="expense-amount">Monto ($)</Label>
+                <Input id="expense-amount" name="amount" type="number" step="0.01" defaultValue={editingExpense?.amount || ''} required />
+              </div>
+              <div>
+                <Label htmlFor="expense-category">Categoría</Label>
+                 <Select name="category" defaultValue={editingExpense?.category || 'operativo'}>
+                    <SelectTrigger id="expense-category"><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="operativo">Operativo</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">{editingExpense ? 'Guardar Cambios' : 'Agregar Gasto'}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
       
