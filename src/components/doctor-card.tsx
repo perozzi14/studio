@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Heart, MapPin, Star, Share2, Copy, Send } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
-import type { Doctor } from "@/lib/data";
+import type { Doctor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

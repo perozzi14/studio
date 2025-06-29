@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,11 +32,13 @@ import {
   Wind,
   Star,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { doctors, type Doctor } from "@/lib/data";
+import * as firestoreService from '@/lib/firestoreService';
+import { type Doctor } from "@/lib/types";
 import { DoctorCard } from "@/components/doctor-card";
 import {
   Carousel,
@@ -61,25 +63,28 @@ const specialtyIcons: Record<string, React.ElementType> = {
 
 export default function FindDoctorPage() {
   const { cities, specialties } = useSettings();
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [specialty, setSpecialty] = useState("all");
   const [location, setLocation] = useState("all");
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(doctors);
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
 
-  const topRatedDoctors = useMemo(() => {
-    return [...doctors]
-      .filter((d) => d.rating >= 4.9)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 6);
+  useEffect(() => {
+      const fetchDocs = async () => {
+        setIsLoading(true);
+        const docs = await firestoreService.getDoctors();
+        setAllDoctors(docs);
+        setFilteredDoctors(docs);
+        setIsLoading(false);
+      }
+      fetchDocs();
   }, []);
 
-  const aestheticDoctors = useMemo(() => {
-    return doctors.filter((d) => d.specialty === "Medicina Estética");
-  }, []);
-
-  const handleSearch = () => {
-    let results = doctors;
+  const handleSearch = useCallback(() => {
+    let results = allDoctors;
 
     if (specialty && specialty !== "all") {
       results = results.filter(
@@ -94,14 +99,24 @@ export default function FindDoctorPage() {
     }
 
     // Note: Date filter is not implemented in this version
-
     setFilteredDoctors(results);
-  };
+  }, [allDoctors, specialty, location]);
 
   useEffect(() => {
     handleSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [specialty, location]);
+  }, [specialty, location, handleSearch]);
+
+  const topRatedDoctors = useMemo(() => {
+    return [...allDoctors]
+      .filter((d) => d.rating >= 4.9)
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 6);
+  }, [allDoctors]);
+
+  const aestheticDoctors = useMemo(() => {
+    return allDoctors.filter((d) => d.specialty === "Medicina Estética");
+  }, [allDoctors]);
+
 
   const visibleSpecialties = showAllSpecialties
     ? specialties
@@ -231,88 +246,96 @@ export default function FindDoctorPage() {
         </div>
 
         <div className="container py-12 space-y-16">
-          <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">Resultados de la Búsqueda</h2>
-              <p className="text-muted-foreground">
-                {filteredDoctors.length}{" "}
-                {filteredDoctors.length === 1
-                  ? "médico encontrado"
-                  : "médicos encontrados"}
-              </p>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
+          ) : (
+            <>
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">Resultados de la Búsqueda</h2>
+                  <p className="text-muted-foreground">
+                    {filteredDoctors.length}{" "}
+                    {filteredDoctors.length === 1
+                      ? "médico encontrado"
+                      : "médicos encontrados"}
+                  </p>
+                </div>
 
-            {filteredDoctors.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredDoctors.map((doctor) => (
-                  <DoctorCard key={doctor.id} doctor={doctor} />
-                ))}
+                {filteredDoctors.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredDoctors.map((doctor) => (
+                      <DoctorCard key={doctor.id} doctor={doctor} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-muted/50 rounded-lg">
+                    <p className="text-lg text-muted-foreground">
+                      No se encontraron médicos que coincidan con tus criterios.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Intenta ajustar tus filtros.
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-20 bg-muted/50 rounded-lg">
-                <p className="text-lg text-muted-foreground">
-                  No se encontraron médicos que coincidan con tus criterios.
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Intenta ajustar tus filtros.
-                </p>
-              </div>
-            )}
-          </div>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Star className="text-yellow-400 fill-yellow-400" /> Médicos
-              Mejor Valorados
-            </h2>
-            <Carousel
-              opts={{
-                align: "start",
-                loop: false,
-              }}
-              className="w-full"
-            >
-              <CarouselContent>
-                {topRatedDoctors.map((doctor) => (
-                  <CarouselItem
-                    key={doctor.id}
-                    className="md:basis-1/2 lg:basis-1/3"
+              <section>
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Star className="text-yellow-400 fill-yellow-400" /> Médicos
+                  Mejor Valorados
+                </h2>
+                <Carousel
+                  opts={{
+                    align: "start",
+                    loop: false,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent>
+                    {topRatedDoctors.map((doctor) => (
+                      <CarouselItem
+                        key={doctor.id}
+                        className="md:basis-1/2 lg:basis-1/3"
+                      >
+                        <DoctorCard doctor={doctor} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="hidden sm:flex" />
+                  <CarouselNext className="hidden sm:flex" />
+                </Carousel>
+              </section>
+
+              {aestheticDoctors.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Sparkles className="text-pink-400" /> Medicina Estética
+                  </h2>
+                  <Carousel
+                    opts={{
+                      align: "start",
+                      loop: false,
+                    }}
+                    className="w-full"
                   >
-                    <DoctorCard doctor={doctor} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex" />
-              <CarouselNext className="hidden sm:flex" />
-            </Carousel>
-          </section>
-
-          {aestheticDoctors.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Sparkles className="text-pink-400" /> Medicina Estética
-              </h2>
-              <Carousel
-                opts={{
-                  align: "start",
-                  loop: false,
-                }}
-                className="w-full"
-              >
-                <CarouselContent>
-                  {aestheticDoctors.map((doctor) => (
-                    <CarouselItem
-                      key={doctor.id}
-                      className="md:basis-1/2 lg:basis-1/3"
-                    >
-                      <DoctorCard doctor={doctor} />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-              </Carousel>
-            </section>
+                    <CarouselContent>
+                      {aestheticDoctors.map((doctor) => (
+                        <CarouselItem
+                          key={doctor.id}
+                          className="md:basis-1/2 lg:basis-1/3"
+                        >
+                          <DoctorCard doctor={doctor} />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="hidden sm:flex" />
+                    <CarouselNext className="hidden sm:flex" />
+                  </Carousel>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>

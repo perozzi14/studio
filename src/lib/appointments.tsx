@@ -1,44 +1,52 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { appointments as initialAppointments, type Appointment, type Service } from './data';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import * as firestoreService from './firestoreService';
+import type { Appointment } from './types';
 import { useAuth } from './auth';
 
 interface AppointmentContextType {
   appointments: Appointment[];
-  addAppointment: (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance' | 'patientConfirmationStatus'>) => void;
+  addAppointment: (newAppointmentData: Omit<Appointment, 'id'| 'patientId' | 'patientName'>) => void;
   updateAppointmentConfirmation: (appointmentId: string, status: 'Confirmada' | 'Cancelada') => void;
 }
 
 const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
 
 export function AppointmentProvider({ children }: { children: ReactNode }) {
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const { user } = useAuth();
 
-  const addAppointment = useCallback((newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName' | 'attendance' | 'patientConfirmationStatus'>) => {
-    if (!user) return; 
-
-    const newAppointment: Appointment = {
-      ...newAppointmentData,
-      id: `appt-${Date.now()}`,
-      patientId: user.email,
-      patientName: user.name,
-      attendance: 'Pendiente',
-      patientConfirmationStatus: 'Pendiente',
-    };
-    
-    setAppointments(prev => [newAppointment, ...prev]);
+  const fetchAppointments = useCallback(async () => {
+    if(user?.role === 'patient') {
+      const patientAppointments = await firestoreService.getPatientAppointments(user.id);
+      setAppointments(patientAppointments);
+    }
   }, [user]);
 
-  const updateAppointmentConfirmation = useCallback((appointmentId: string, status: 'Confirmada' | 'Cancelada') => {
-    setAppointments(prev => prev.map(appt => 
-      appt.id === appointmentId 
-        ? { ...appt, patientConfirmationStatus: status }
-        : appt
-    ));
-  }, []);
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+
+  const addAppointment = useCallback(async (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName'>) => {
+    if (!user) return; 
+
+    const newAppointment: Omit<Appointment, 'id'> = {
+      ...newAppointmentData,
+      patientId: user.id,
+      patientName: user.name,
+    };
+    
+    await firestoreService.addAppointment(newAppointment);
+    fetchAppointments();
+  }, [user, fetchAppointments]);
+
+  const updateAppointmentConfirmation = useCallback(async (appointmentId: string, status: 'Confirmada' | 'Cancelada') => {
+    await firestoreService.updateAppointment(appointmentId, { patientConfirmationStatus: status });
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   const value = { appointments, addAppointment, updateAppointmentConfirmation };
 

@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Header, BottomNav } from "@/components/header";
-import { doctors, type Doctor, type Service, type BankDetail, type Coupon } from "@/lib/data";
+import * as firestoreService from '@/lib/firestoreService';
+import { type Doctor, type Service, type BankDetail, type Coupon } from "@/lib/types";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag } from "lucide-react";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,13 +45,16 @@ function generateTimeSlots(startTime: string, endTime: string, duration: number)
 
 export default function DoctorProfilePage() {
   const params = useParams();
-  const id = params.id ? parseInt(params.id as string, 10) : null;
-  const doctor = doctors.find((d) => d.id === id);
+  const router = useRouter();
+  const id = params.id as string;
   const { toast } = useToast();
   const { user } = useAuth();
   const { addAppointment } = useAppointments();
   const { coupons } = useSettings();
 
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -62,6 +66,22 @@ export default function DoctorProfilePage() {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  useEffect(() => {
+    if (id) {
+        const fetchDoctor = async () => {
+            setIsLoading(true);
+            const docData = await firestoreService.getDoctor(id);
+            if (docData) {
+                setDoctor(docData);
+            } else {
+                router.push('/find-a-doctor'); // Or a 404 page
+            }
+            setIsLoading(false);
+        }
+        fetchDoctor();
+    }
+  }, [id, router]);
 
   const subtotal = useMemo(() => {
     return selectedServices.reduce((total, service) => total + service.price, 0);
@@ -173,6 +193,10 @@ export default function DoctorProfilePage() {
       return;
     }
 
+    // Note: In a real app, paymentProof would be uploaded to a storage service
+    // and the URL would be saved. Here we use a placeholder.
+    const proofUrl = paymentProof ? URL.createObjectURL(paymentProof) : null;
+
     addAppointment({
       doctorId: doctor.id,
       doctorName: doctor.name,
@@ -182,7 +206,9 @@ export default function DoctorProfilePage() {
       totalPrice: finalPrice,
       paymentMethod: paymentMethod,
       paymentStatus: 'Pendiente',
-      paymentProof: paymentProof ? URL.createObjectURL(paymentProof) : null,
+      paymentProof: proofUrl,
+      attendance: 'Pendiente',
+      patientConfirmationStatus: 'Pendiente',
     });
 
     setStep('confirmation');
@@ -198,6 +224,17 @@ export default function DoctorProfilePage() {
     setPaymentProof(null);
     handleRemoveCoupon();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   if (!doctor) {
     return (
@@ -382,7 +419,7 @@ export default function DoctorProfilePage() {
                      <RadioGroup 
                       value={selectedBankDetail?.id.toString()} 
                       onValueChange={(value) => {
-                        const bankId = parseInt(value, 10);
+                        const bankId = value;
                         setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
                       }}
                       className="space-y-2"

@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, appointments as mockAppointments, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments } from '@/lib/data';
+import * as firestoreService from '@/lib/firestoreService';
 import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense } from '@/lib/types';
-import { seedDatabase } from '@/lib/firestoreService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -112,13 +111,13 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const currentTab = searchParams.get('view') || 'overview';
   
-  const [doctors, setDoctors] = useState<Doctor[]>(allDoctors);
-  const [sellers, setSellers] = useState<Seller[]>(allSellers);
-  const [patients, setPatients] = useState<Patient[]>(mockPatients);
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
-  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(mockDoctorPayments);
-  const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>(mockSellerPayments);
-  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
+  const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // States for Seller management
@@ -151,15 +150,29 @@ export default function AdminDashboardPage() {
 
   // States for Settings & Company Finances
   const { 
-      doctorSubscriptionFee, setDoctorSubscriptionFee,
-      cities, setCities,
-      specialties, setSpecialties,
-      coupons, setCoupons,
-      timezone, setTimezone,
-      logoUrl, setLogoUrl,
-      currency, setCurrency,
-      companyBankDetails, setCompanyBankDetails,
-      companyExpenses, setCompanyExpenses,
+      settings,
+      doctorSubscriptionFee,
+      cities,
+      specialties,
+      coupons,
+      timezone,
+      logoUrl,
+      currency,
+      companyBankDetails,
+      companyExpenses,
+      updateSetting,
+      addListItem,
+      updateListItem,
+      deleteListItem,
+      addCompanyExpense,
+      updateCompanyExpense,
+      deleteCompanyExpense,
+      addCoupon,
+      updateCoupon,
+      deleteCoupon,
+      addBankDetail,
+      updateBankDetail,
+      deleteBankDetail
   } = useSettings();
   
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
@@ -177,15 +190,41 @@ export default function AdminDashboardPage() {
   
   // State for DB Seeding
   const [isSeeding, setIsSeeding] = useState(false);
+  
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    const [docs, sells, pats, apps, docPays, sellPays] = await Promise.all([
+        firestoreService.getDoctors(),
+        firestoreService.getSellers(),
+        firestoreService.getPatients(),
+        firestoreService.getAppointments(),
+        firestoreService.getDoctorPayments(),
+        firestoreService.getSellerPayments(),
+    ]);
+    setDoctors(docs);
+    setSellers(sells);
+    setPatients(pats);
+    setAppointments(apps);
+    setDoctorPayments(docPays);
+    setSellerPayments(sellPays);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleSeedDatabase = async () => {
     setIsSeeding(true);
     try {
-      await seedDatabase();
+      await firestoreService.seedDatabase();
       toast({
         title: "Base de Datos Poblada",
         description: "Los datos de prueba han sido cargados a Firestore exitosamente.",
       });
+      fetchData(); // Refresh data after seeding
     } catch (error) {
       console.error("Error seeding database:", error);
       toast({
@@ -204,11 +243,11 @@ export default function AdminDashboardPage() {
     setTempLogoUrl(logoUrl);
   }, [doctorSubscriptionFee, logoUrl]);
   
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     const newFee = parseFloat(tempSubscriptionFee);
     if (!isNaN(newFee) && newFee > 0) {
-        setDoctorSubscriptionFee(newFee);
-        setLogoUrl(tempLogoUrl);
+        await updateSetting('doctorSubscriptionFee', newFee);
+        await updateSetting('logoUrl', tempLogoUrl);
         toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
     } else {
         toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido para la suscripción." });
@@ -219,18 +258,15 @@ export default function AdminDashboardPage() {
     if (user === undefined) return;
     if (user === null || user.role !== 'admin') {
       router.push('/auth/login');
-    } else {
-      setIsLoading(false);
     }
   }, [user, router]);
   
-  const handleDoctorStatusChange = (doctorId: number, newStatus: 'active' | 'inactive') => {
-      setDoctors(prevDoctors => 
-        prevDoctors.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc)
-      );
+  const handleDoctorStatusChange = async (doctorId: string, newStatus: 'active' | 'inactive') => {
+      await firestoreService.updateDoctorStatus(doctorId, newStatus);
+      fetchData();
   };
   
-    const handleSaveDoctor = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSaveDoctor = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const dataToValidate = {
@@ -251,20 +287,19 @@ export default function AdminDashboardPage() {
         }
 
         const { name, email, specialty, city, address, sellerId } = result.data;
+        const sellerIdValue = sellerId === 'null' || !sellerId ? null : sellerId;
 
         if (editingDoctor) {
-            const updatedDoctor = {
-                ...editingDoctor,
+            const updatedDoctorData = {
                 name, email, specialty, city, address,
-                sellerId: sellerId === 'null' || !sellerId ? null : parseInt(sellerId, 10),
+                sellerId: sellerIdValue,
             };
-            setDoctors(prev => prev.map(doc => doc.id === editingDoctor.id ? updatedDoctor : doc));
+            await firestoreService.updateDoctor(editingDoctor.id, updatedDoctorData);
             toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
         } else {
-            const newDoctor: Doctor = {
-                id: Date.now(),
+            const newDoctorData: Omit<Doctor, 'id'> = {
                 name, email, specialty, city, address,
-                sellerId: sellerId === 'null' || !sellerId ? null : parseInt(sellerId, 10),
+                sellerId: sellerIdValue,
                 cedula: '',
                 sector: '',
                 rating: 0,
@@ -293,9 +328,10 @@ export default function AdminDashboardPage() {
                 subscriptionStatus: 'inactive',
                 nextPaymentDate: new Date().toISOString().split('T')[0],
             };
-            setDoctors(prev => [newDoctor, ...prev]);
+            await firestoreService.addDoctor(newDoctorData);
             toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
         }
+        fetchData();
         setIsDoctorDialogOpen(false);
         setEditingDoctor(null);
   };
@@ -310,7 +346,7 @@ export default function AdminDashboardPage() {
     setIsDetailDialogOpen(true);
   };
   
-    const handleSaveSeller = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSaveSeller = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const dataToValidate = {
@@ -331,12 +367,11 @@ export default function AdminDashboardPage() {
         const commissionRate = commission / 100;
 
         if (editingSeller) {
-            const updatedSeller = { ...editingSeller, name, email, commissionRate };
-            setSellers(prev => prev.map(s => s.id === editingSeller.id ? updatedSeller : s));
+            const updatedSellerData = { name, email, commissionRate };
+            await firestoreService.updateSeller(editingSeller.id, updatedSellerData);
             toast({ title: "Vendedora Actualizada", description: `El perfil de ${name} ha sido guardado.` });
         } else {
-            const newSeller: Seller = {
-                id: Date.now(),
+            const newSellerData: Omit<Seller, 'id'> = {
                 name,
                 email,
                 commissionRate,
@@ -345,9 +380,10 @@ export default function AdminDashboardPage() {
                 referralCode: `REF${Date.now()}`,
                 bankDetails: [],
             };
-            setSellers(prev => [newSeller, ...prev]);
+            await firestoreService.addSeller(newSellerData);
             toast({ title: "Vendedora Registrada", description: `El perfil de ${name} ha sido creado.` });
         }
+        fetchData();
         setIsSellerDialogOpen(false);
         setEditingSeller(null);
   };
@@ -357,48 +393,52 @@ export default function AdminDashboardPage() {
     setIsDeleteDialogOpen(true);
   };
   
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!itemToDelete) return;
     const { type, data } = itemToDelete;
     
-    switch (type) {
-      case 'doctor':
-        setDoctors(prev => prev.filter(d => d.id !== data.id));
-        setCoupons(prev => prev.filter(c => c.scope !== data.id));
-        toast({ title: "Médico Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
-        break;
-      case 'seller':
-        setSellers(prev => prev.filter(s => s.id !== data.id));
-        toast({ title: "Vendedora Eliminada", description: `El perfil de ${data.name} ha sido eliminado.`});
-        break;
-      case 'patient':
-        setPatients(prev => prev.filter(p => p.id !== data.id));
-        toast({ title: "Paciente Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
-        break;
-      case 'expense':
-        setCompanyExpenses(prev => prev.filter(e => e.id !== data.id));
-        toast({ title: "Gasto Eliminado", description: `El gasto "${data.description}" ha sido eliminado.`});
-        break;
-      case 'city':
-        setCities(prev => prev.filter(c => c !== data));
-        toast({ title: "Ciudad Eliminada", description: `La ciudad "${data}" ha sido eliminada.`});
-        break;
-      case 'specialty':
-        setSpecialties(prev => prev.filter(s => s !== data));
-        toast({ title: "Especialidad Eliminada", description: `La especialidad "${data}" ha sido eliminada.`});
-        break;
-      case 'coupon':
-        setCoupons(prev => prev.filter(c => c.id !== data.id));
-        toast({ title: "Cupón Eliminado", description: `El cupón "${data.code}" ha sido eliminado.`});
-        break;
-      case 'bank':
-        setCompanyBankDetails(prev => prev.filter(b => b.id !== data.id));
-        toast({ title: "Cuenta Bancaria Eliminada", description: `La cuenta de ${data.bank} ha sido eliminada.`});
-        break;
+    try {
+        switch (type) {
+        case 'doctor':
+            await firestoreService.deleteDoctor(data.id);
+            toast({ title: "Médico Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
+            break;
+        case 'seller':
+            await firestoreService.deleteSeller(data.id);
+            toast({ title: "Vendedora Eliminada", description: `El perfil de ${data.name} ha sido eliminado.`});
+            break;
+        case 'patient':
+            await firestoreService.deletePatient(data.id);
+            toast({ title: "Paciente Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
+            break;
+        case 'expense':
+            await deleteCompanyExpense(data.id);
+            toast({ title: "Gasto Eliminado", description: `El gasto "${data.description}" ha sido eliminado.`});
+            break;
+        case 'city':
+            await deleteListItem('cities', data);
+            toast({ title: "Ciudad Eliminada", description: `La ciudad "${data}" ha sido eliminada.`});
+            break;
+        case 'specialty':
+            await deleteListItem('specialties', data);
+            toast({ title: "Especialidad Eliminada", description: `La especialidad "${data}" ha sido eliminada.`});
+            break;
+        case 'coupon':
+            await deleteCoupon(data.id);
+            toast({ title: "Cupón Eliminado", description: `El cupón "${data.code}" ha sido eliminado.`});
+            break;
+        case 'bank':
+            await deleteBankDetail(data.id);
+            toast({ title: "Cuenta Bancaria Eliminada", description: `La cuenta de ${data.bank} ha sido eliminada.`});
+            break;
+        }
+    } catch(err) {
+        toast({ variant: 'destructive', title: "Error al eliminar", description: "No se pudo eliminar el elemento." });
+    } finally {
+        fetchData();
+        setIsDeleteDialogOpen(false);
+        setItemToDelete(null);
     }
-    
-    setIsDeleteDialogOpen(false);
-    setItemToDelete(null);
   };
 
   const handleOpenSellerFinanceDialog = (seller: Seller) => {
@@ -406,7 +446,7 @@ export default function AdminDashboardPage() {
     setIsSellerFinanceDialogOpen(true);
   };
   
-  const handleRegisterPayment = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegisterPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -427,8 +467,7 @@ export default function AdminDashboardPage() {
 
     const { amount, period, transactionId, paymentProofUrl } = result.data;
 
-    const newPayment: SellerPayment = {
-      id: `pay-${Date.now()}`,
+    const newPayment: Omit<SellerPayment, 'id'> = {
       sellerId: managingSeller.id,
       paymentDate: new Date().toISOString().split('T')[0],
       amount,
@@ -438,8 +477,9 @@ export default function AdminDashboardPage() {
       transactionId,
     };
 
-    setSellerPayments(prev => [newPayment, ...prev]);
+    await firestoreService.addSellerPayment(newPayment);
     toast({ title: "Pago Registrado", description: `Se ha registrado el pago para ${managingSeller.name}.` });
+    fetchData();
     setIsRegisterPaymentDialogOpen(false);
     setPaymentProofUrl(null);
   };
@@ -454,7 +494,7 @@ export default function AdminDashboardPage() {
     setIsPatientEditDialogOpen(true);
   };
 
-  const handleSavePatient = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSavePatient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingPatient) return;
     
@@ -474,16 +514,16 @@ export default function AdminDashboardPage() {
         return;
     }
 
-    const updatedPatient: Patient = {
-      ...editingPatient,
+    const updatedPatientData: Partial<Patient> = {
       name: result.data.name,
       email: result.data.email,
       cedula: result.data.cedula || null,
       phone: result.data.phone || null,
     };
     
-    setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
-    toast({ title: "Paciente Actualizado", description: `La información de ${updatedPatient.name} ha sido guardada.` });
+    await firestoreService.updatePatient(editingPatient.id, updatedPatientData);
+    toast({ title: "Paciente Actualizado", description: `La información de ${updatedPatientData.name} ha sido guardada.` });
+    fetchData();
     setIsPatientEditDialogOpen(false);
     setEditingPatient(null);
   };
@@ -496,46 +536,35 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleApprovePayment = (paymentId: string) => {
-    let doctorToActivateId: number | null = null;
-    let paymentDate: string | null = null;
-    setDoctorPayments(prev => 
-      prev.map(p => {
-        if (p.id === paymentId) {
-          doctorToActivateId = p.doctorId;
-          paymentDate = p.date;
-          return { ...p, status: 'Paid' };
-        }
-        return p;
-      })
-    );
+  const handleApprovePayment = async (paymentId: string) => {
+    const payment = doctorPayments.find(p => p.id === paymentId);
+    if (!payment) return;
 
-    if (doctorToActivateId) {
-      setDoctors(prev =>
-        prev.map(doc => 
-          doc.id === doctorToActivateId ? { ...doc, status: 'active', lastPaymentDate: paymentDate || new Date().toISOString().split('T')[0] } : doc
-        )
-      );
-    }
-
+    await firestoreService.updateDoctorPaymentStatus(paymentId, 'Paid');
+    await firestoreService.updateDoctorStatus(payment.doctorId, 'active');
+    await firestoreService.updateDoctor(payment.doctorId, { 
+      lastPaymentDate: payment.date || new Date().toISOString().split('T')[0],
+      subscriptionStatus: 'active',
+     });
+    
     toast({
       title: "Pago Aprobado",
       description: "El pago ha sido marcado como 'Pagado' y el estado del médico ha sido actualizado.",
     });
+    fetchData();
   };
 
-  const handleRejectPayment = (paymentId: string) => {
-    setDoctorPayments(prev => 
-      prev.map(p => p.id === paymentId ? { ...p, status: 'Rejected' } : p)
-    );
+  const handleRejectPayment = async (paymentId: string) => {
+    await firestoreService.updateDoctorPaymentStatus(paymentId, 'Rejected');
     toast({
       variant: "destructive",
       title: "Pago Rechazado",
       description: "El pago ha sido marcado como 'Rechazado'.",
     });
+    fetchData();
   };
 
-  const handleSaveExpense = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
@@ -556,11 +585,10 @@ export default function AdminDashboardPage() {
     const { date, description, amount, category } = result.data;
 
     if (editingExpense) {
-        setCompanyExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? { ...exp, date, description, amount, category } : exp));
+        await updateCompanyExpense(editingExpense.id, { date, description, amount, category });
         toast({ title: "Gasto Actualizado", description: "El gasto ha sido modificado exitosamente." });
     } else {
-        const newExpense: CompanyExpense = { id: `cexp-${Date.now()}`, date, description, amount, category };
-        setCompanyExpenses(prev => [newExpense, ...prev]);
+        await addCompanyExpense({ date, description, amount, category });
         toast({ title: "Gasto Registrado", description: "El nuevo gasto ha sido agregado." });
     }
     
@@ -568,7 +596,7 @@ export default function AdminDashboardPage() {
     setEditingExpense(null);
   };
   
-  const handleSaveCity = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveCity = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingCity) return;
     
@@ -581,17 +609,17 @@ export default function AdminDashboardPage() {
     }
 
     if (editingCity.originalName) {
-        setCities(prev => prev.map(c => c === editingCity.originalName ? newName : c));
+        await updateListItem('cities', editingCity.originalName, newName);
         toast({ title: "Ciudad Actualizada" });
     } else {
-        setCities(prev => [...prev, newName]);
+        await addListItem('cities', newName);
         toast({ title: "Ciudad Agregada" });
     }
     setIsCityDialogOpen(false);
     setEditingCity(null);
   };
 
-  const handleSaveSpecialty = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveSpecialty = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingSpecialty) return;
     
@@ -604,17 +632,17 @@ export default function AdminDashboardPage() {
     }
 
     if (editingSpecialty.originalName) {
-        setSpecialties(prev => prev.map(s => s === editingSpecialty.originalName ? newName : s));
+        await updateListItem('specialties', editingSpecialty.originalName, newName);
         toast({ title: "Especialidad Actualizada" });
     } else {
-        setSpecialties(prev => [...prev, newName]);
+        await addListItem('specialties', newName);
         toast({ title: "Especialidad Agregada" });
     }
     setIsSpecialtyDialogOpen(false);
     setEditingSpecialty(null);
   };
 
-  const handleSaveCoupon = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveCoupon = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -635,25 +663,18 @@ export default function AdminDashboardPage() {
 
     const { code, discountType, value, scope } = result.data;
     
-    const newCouponData = {
-        code,
-        discountType,
-        value,
-        scope: scope === 'general' ? 'general' : parseInt(scope, 10),
-    };
-    
     if (editingCoupon) {
-        setCoupons(prev => prev.map(c => c.id === editingCoupon.id ? { ...c, ...newCouponData } : c));
+        await updateCoupon(editingCoupon.id, { code, discountType, value, scope });
         toast({ title: "Cupón Actualizado" });
     } else {
-        setCoupons(prev => [...prev, { id: Date.now(), ...newCouponData }]);
+        await addCoupon({ code, discountType, value, scope });
         toast({ title: "Cupón Creado" });
     }
     setIsCouponDialogOpen(false);
     setEditingCoupon(null);
   };
 
-  const handleSaveBankDetail = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveBankDetail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
@@ -674,10 +695,10 @@ export default function AdminDashboardPage() {
     const newBankData = result.data;
     
     if (editingCompanyBankDetail) {
-        setCompanyBankDetails(prev => prev.map(b => b.id === editingCompanyBankDetail.id ? { ...b, ...newBankData } : b));
+        await updateBankDetail(editingCompanyBankDetail.id, newBankData);
         toast({ title: "Cuenta Actualizada" });
     } else {
-        setCompanyBankDetails(prev => [...prev, { id: Date.now(), ...newBankData }]);
+        await addBankDetail(newBankData);
         toast({ title: "Cuenta Agregada" });
     }
     setIsCompanyBankDetailDialogOpen(false);
@@ -1508,7 +1529,7 @@ export default function AdminDashboardPage() {
                                     <Label className="text-base">Moneda Principal</Label>
                                      <div className="flex items-center gap-2">
                                         <Wallet className="h-5 w-5 text-muted-foreground" />
-                                        <Select value={currency} onValueChange={setCurrency}>
+                                        <Select value={currency} onValueChange={(val) => updateSetting('currency', val)}>
                                             <SelectTrigger><SelectValue/></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="USD">USD - Dólar Americano</SelectItem>
@@ -1522,7 +1543,7 @@ export default function AdminDashboardPage() {
                                     <Label className="text-base">Zona Horaria</Label>
                                      <div className="flex items-center gap-2">
                                         <Globe className="h-5 w-5 text-muted-foreground" />
-                                        <Select value={timezone} onValueChange={setTimezone}>
+                                        <Select value={timezone} onValueChange={(val) => updateSetting('timezone', val)}>
                                             <SelectTrigger><SelectValue/></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="America/Caracas">GMT-4 (Caracas)</SelectItem>
@@ -1719,7 +1740,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
-                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 20) * 100} className="col-span-3" required />
+                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} className="col-span-3" required />
                     </div>
                 </div>
                 <DialogFooter>

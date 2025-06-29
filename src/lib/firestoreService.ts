@@ -15,73 +15,191 @@ import {
   where,
   writeBatch,
   CollectionReference,
+  Timestamp,
 } from 'firebase/firestore';
 import * as mockData from './data';
-import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, SupportTicket, SellerPayment, DoctorPayment } from './types';
+import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, SupportTicket, SellerPayment, DoctorPayment, AppSettings } from './types';
+
+
+// Helper to convert Firestore Timestamps to strings
+const convertTimestamps = (data: any) => {
+    for (const key in data) {
+        if (data[key] instanceof Timestamp) {
+            data[key] = data[key].toDate().toISOString();
+        } else if (typeof data[key] === 'object' && data[key] !== null) {
+            convertTimestamps(data[key]);
+        }
+    }
+    return data;
+};
+
+
+// Generic Fetch Function
+async function getCollectionData<T>(collectionName: string): Promise<T[]> {
+  try {
+    const colRef = collection(db, collectionName);
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        convertTimestamps(data);
+        return { id: doc.id, ...data } as T;
+    });
+  } catch (error) {
+    console.error(`Error fetching ${collectionName}: `, error);
+    return [];
+  }
+}
+
+// Generic Get Document Function
+async function getDocumentData<T>(collectionName: string, id: string): Promise<T | null> {
+    try {
+        const docRef = doc(db, collectionName, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            convertTimestamps(data);
+            return { id: docSnap.id, ...data } as T;
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching document ${id} from ${collectionName}: `, error);
+        return null;
+    }
+}
 
 
 // Seeding function
 export const seedDatabase = async () => {
     const batch = writeBatch(db);
 
+    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings"];
+    
+    for (const col of collectionsToClear) {
+        const snapshot = await getDocs(collection(db, col));
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    }
+    
     // Seed doctors
     mockData.doctors.forEach(doctor => {
-        const docRef = doc(db, "doctors", String(doctor.id));
+        const docRef = doc(db, "doctors", doctor.id);
         batch.set(docRef, doctor);
     });
 
     // Seed sellers
     mockData.sellers.forEach(seller => {
-        const docRef = doc(db, "sellers", String(seller.id));
+        const docRef = doc(db, "sellers", seller.id);
         batch.set(docRef, seller);
     });
     
     // Seed patients
      mockData.mockPatients.forEach(patient => {
-        const docRef = doc(db, "patients", String(patient.id));
+        const docRef = doc(db, "patients", patient.id);
         batch.set(docRef, patient);
     });
     
     // Seed appointments
      mockData.appointments.forEach(appointment => {
-        const docRef = doc(db, "appointments", String(appointment.id));
+        const docRef = doc(db, "appointments", appointment.id);
         batch.set(docRef, appointment);
     });
     
     // Seed company expenses
      mockData.mockCompanyExpenses.forEach(expense => {
-        const docRef = doc(db, "companyExpenses", String(expense.id));
+        const docRef = doc(db, "companyExpenses", expense.id);
         batch.set(docRef, expense);
     });
 
     // Seed coupons
      mockData.mockCoupons.forEach(coupon => {
-        const docRef = doc(db, "coupons", String(coupon.id));
+        const docRef = doc(db, "coupons", coupon.id);
         batch.set(docRef, coupon);
     });
 
     // Seed doctor payments
      mockData.mockDoctorPayments.forEach(payment => {
-        const docRef = doc(db, "doctorPayments", String(payment.id));
+        const docRef = doc(db, "doctorPayments", payment.id);
         batch.set(docRef, payment);
     });
     
     // Seed seller payments
      mockData.mockSellerPayments.forEach(payment => {
-        const docRef = doc(db, "sellerPayments", String(payment.id));
+        const docRef = doc(db, "sellerPayments", payment.id);
         batch.set(docRef, payment);
     });
 
     // Seed settings
     const settingsRef = doc(db, "settings", "main");
-    batch.set(settingsRef, {
+    const settingsData: AppSettings = {
         cities: mockData.cities,
         specialties: mockData.specialties,
-        doctorSubscriptionFee: 50, // Example value
+        doctorSubscriptionFee: 50,
         companyBankDetails: mockData.mockCompanyBankDetails,
-    });
-
+        timezone: 'America/Caracas',
+        logoUrl: '/logo.svg',
+        currency: 'USD',
+    };
+    batch.set(settingsRef, settingsData);
 
     await batch.commit();
     console.log("Database seeded successfully!");
 };
+
+
+// --- Data Fetching Functions ---
+export const getDoctors = () => getCollectionData<Doctor>('doctors');
+export const getDoctor = (id: string) => getDocumentData<Doctor>('doctors', id);
+export const getSellers = () => getCollectionData<Seller>('sellers');
+export const getPatients = () => getCollectionData<Patient>('patients');
+export const getAppointments = () => getCollectionData<Appointment>('appointments');
+export const getDoctorAppointments = async (doctorId: string) => {
+    const q = query(collection(db, "appointments"), where("doctorId", "==", doctorId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+};
+export const getPatientAppointments = async (patientId: string) => {
+    const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+};
+export const getDoctorPayments = () => getCollectionData<DoctorPayment>('doctorPayments');
+export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerPayments');
+export const getCompanyExpenses = () => getCollectionData<CompanyExpense>('companyExpenses');
+export const getCoupons = () => getCollectionData<Coupon>('coupons');
+export const getSettings = () => getDocumentData<AppSettings>('settings', 'main');
+
+// --- Data Mutation Functions ---
+
+// Doctor
+export const addDoctor = async (doctorData: Omit<Doctor, 'id'>) => addDoc(collection(db, 'doctors'), doctorData);
+export const updateDoctor = async (id: string, data: Partial<Doctor>) => updateDoc(doc(db, 'doctors', id), data);
+export const deleteDoctor = async (id: string) => deleteDoc(doc(db, 'doctors', id));
+export const updateDoctorStatus = async (id: string, status: 'active' | 'inactive') => updateDoc(doc(db, 'doctors', id), { status });
+
+// Seller
+export const addSeller = async (sellerData: Omit<Seller, 'id'>) => addDoc(collection(db, 'sellers'), sellerData);
+export const updateSeller = async (id: string, data: Partial<Seller>) => updateDoc(doc(db, 'sellers', id), data);
+export const deleteSeller = async (id: string) => deleteDoc(doc(db, 'sellers', id));
+
+// Patient
+export const updatePatient = async (id: string, data: Partial<Patient>) => updateDoc(doc(db, 'patients', id), data);
+export const deletePatient = async (id: string) => deleteDoc(doc(db, 'patients', id));
+
+// Appointment
+export const addAppointment = async (appointmentData: Omit<Appointment, 'id'>) => addDoc(collection(db, 'appointments'), appointmentData);
+export const updateAppointment = async (id: string, data: Partial<Appointment>) => updateDoc(doc(db, 'appointments', id), data);
+
+// Company Expense
+export const addCompanyExpense = async (expenseData: Omit<CompanyExpense, 'id'>) => addDoc(collection(db, 'companyExpenses'), expenseData);
+export const updateCompanyExpense = async (id: string, data: Partial<CompanyExpense>) => updateDoc(doc(db, 'companyExpenses', id), data);
+export const deleteCompanyExpense = async (id: string) => deleteDoc(doc(db, 'companyExpenses', id));
+
+// Settings & Related Sub-collections
+export const updateSettings = async (data: Partial<AppSettings>) => updateDoc(doc(db, 'settings', 'main'), data);
+export const addCoupon = async (couponData: Omit<Coupon, 'id'>) => addDoc(collection(db, 'coupons'), couponData);
+export const updateCoupon = async (id: string, data: Partial<Coupon>) => updateDoc(doc(db, 'coupons', id), data);
+export const deleteCoupon = async (id: string) => deleteDoc(doc(db, 'coupons', id));
+
+// Payments
+export const addSellerPayment = async (paymentData: Omit<SellerPayment, 'id'>) => addDoc(collection(db, 'sellerPayments'), paymentData);
+export const addDoctorPayment = async (paymentData: Omit<DoctorPayment, 'id'>) => addDoc(collection(db, 'doctorPayments'), paymentData);
+export const updateDoctorPaymentStatus = async (id: string, status: DoctorPayment['status']) => updateDoc(doc(db, 'doctorPayments', id), { status });

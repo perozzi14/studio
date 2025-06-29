@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header, BottomNav } from '@/components/header';
@@ -9,10 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
-import { type Appointment, type Doctor, doctors } from '@/lib/data';
+import { type Appointment, type Doctor } from '@/lib/types';
+import * as firestoreService from '@/lib/firestoreService';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,17 +32,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 function AppointmentCard({ 
   appointment, 
+  doctor,
   isPast = false,
   onUpdateConfirmation,
   onContactDoctor,
 }: { 
   appointment: Appointment, 
+  doctor: Doctor | undefined,
   isPast?: boolean,
   onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void,
   onContactDoctor: (doctor: Doctor) => void,
 }) {
-  const doctor = doctors.find(d => d.id === appointment.doctorId);
-  
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
@@ -107,8 +108,20 @@ export default function DashboardPage() {
   const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
   
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [isDoctorsLoading, setIsDoctorsLoading] = useState(true);
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
   const [selectedChatDoctor, setSelectedChatDoctor] = useState<Doctor | null>(null);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+        setIsDoctorsLoading(true);
+        const doctorsData = await firestoreService.getDoctors();
+        setAllDoctors(doctorsData);
+        setIsDoctorsLoading(false);
+    }
+    fetchDoctors();
+  }, []);
 
   useEffect(() => {
     if (user === undefined) return; 
@@ -129,12 +142,10 @@ export default function DashboardPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const userAppointments = appointments.filter(a => a.patientId === user.email);
-
     const upcoming: Appointment[] = [];
     const past: Appointment[] = [];
 
-    userAppointments.forEach(appt => {
+    appointments.forEach(appt => {
         const apptDate = new Date(appt.date + 'T00:00:00');
         if (apptDate >= today) {
             upcoming.push(appt);
@@ -160,35 +171,12 @@ export default function DashboardPage() {
     setIsChatDialogOpen(true);
   };
 
-  if (!user || user.role !== 'patient') {
+  if (!user || user.role !== 'patient' || isDoctorsLoading) {
     return (
        <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 container py-12">
-           <div className="space-y-4">
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2" />
-           </div>
-           <div className="mt-8 grid md:grid-cols-2 gap-8">
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-1/3" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardHeader>
-              <CardContent>
-                 <Skeleton className="h-40 w-full" />
-              </CardContent>
-            </Card>
-             <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-1/3" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardHeader>
-              <CardContent>
-                 <Skeleton className="h-40 w-full" />
-              </CardContent>
-            </Card>
-           </div>
+        <main className="flex-1 container py-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
       </div>
     );
@@ -218,6 +206,7 @@ export default function DashboardPage() {
                         <AppointmentCard 
                           key={appt.id} 
                           appointment={appt} 
+                          doctor={allDoctors.find(d => d.id === appt.doctorId)}
                           onUpdateConfirmation={updateAppointmentConfirmation}
                           onContactDoctor={handleContactDoctor}
                         />
@@ -244,7 +233,13 @@ export default function DashboardPage() {
                    {pastAppointments.length > 0 ? (
                     <div className="space-y-4">
                       {pastAppointments.map(appt => (
-                        <AppointmentCard key={appt.id} appointment={appt} isPast onContactDoctor={handleContactDoctor}/>
+                        <AppointmentCard 
+                          key={appt.id} 
+                          appointment={appt} 
+                          doctor={allDoctors.find(d => d.id === appt.doctorId)}
+                          isPast 
+                          onContactDoctor={handleContactDoctor}
+                        />
                       ))}
                     </div>
                   ) : (

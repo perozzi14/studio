@@ -1,20 +1,13 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctors, sellers } from './data';
+import * as firestoreService from './firestoreService';
+import type { Patient } from './types';
 
-interface User {
-  name: string;
-  email: string;
+interface User extends Patient {
   role: 'patient' | 'doctor' | 'seller' | 'admin';
-  age: number | null;
-  gender: 'masculino' | 'femenino' | 'otro' | null;
-  profileImage: string | null;
-  cedula: string | null;
-  phone: string | null;
-  favoriteDoctorIds: number[];
   referralCode?: string;
 }
 
@@ -23,7 +16,7 @@ interface AuthContextType {
   login: (email: string, name?: string) => void;
   logout: () => void;
   updateUser: (data: Partial<Omit<User, 'role' | 'email'>>) => void;
-  toggleFavoriteDoctor: (doctorId: number) => void;
+  toggleFavoriteDoctor: (doctorId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,30 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const router = useRouter();
   
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        // Ensure favoriteDoctorIds is an array
-        if (!parsedUser.favoriteDoctorIds) {
-          parsedUser.favoriteDoctorIds = [];
-        }
-        setUser(parsedUser);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    }
-  }, []);
-
-  const login = (email: string, name: string = 'Nuevo Usuario') => {
-    let loggedInUser: User;
+  const fetchUserByEmail = useCallback(async (email: string): Promise<User | null> => {
     const lowerEmail = email.toLowerCase();
-
+    
+    // Check if it's an admin
     if (lowerEmail === 'admin@admin.com') {
-      loggedInUser = { 
+      return { 
+        id: 'admin@admin.com',
         email, 
         name: 'Administrador', 
         role: 'admin', 
@@ -66,47 +42,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileImage: 'https://placehold.co/100x100.png',
         favoriteDoctorIds: []
       };
-      setUser(loggedInUser);
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      router.push('/admin/dashboard');
-    } else if (lowerEmail === 'doctor@admin.com') {
-      const doctorInfo = doctors.find(d => d.id === 1);
-      loggedInUser = { 
-        email, 
-        name: doctorInfo?.name || 'Doctor Admin', 
-        role: 'doctor', 
-        age: null, 
-        gender: null,
-        cedula: null,
-        phone: null,
-        profileImage: doctorInfo?.profileImage || null,
-        favoriteDoctorIds: []
-      };
-      setUser(loggedInUser);
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      router.push('/doctor/dashboard');
-    } else if (lowerEmail === 'vendedora@venta.com') {
-      const sellerInfo = sellers.find(s => s.email.toLowerCase() === lowerEmail);
-      loggedInUser = { 
-        email, 
-        name: sellerInfo?.name || 'Vendedora', 
-        role: 'seller', 
-        age: null, 
-        gender: null,
-        cedula: null,
-        phone: sellerInfo?.phone || null,
-        profileImage: sellerInfo?.profileImage || 'https://placehold.co/100x100.png',
-        favoriteDoctorIds: [],
-        referralCode: sellerInfo?.referralCode
-      };
-      setUser(loggedInUser);
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      router.push('/seller/dashboard');
     }
-    else {
-      loggedInUser = { email, name, role: 'patient', age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+    
+    // Check if it's a doctor, seller, or patient
+    const [doctors, sellers, patients] = await Promise.all([
+        firestoreService.getDoctors(),
+        firestoreService.getSellers(),
+        firestoreService.getPatients(),
+    ]);
+
+    const doctor = doctors.find(d => d.email.toLowerCase() === lowerEmail);
+    if (doctor) return { ...doctor, role: 'doctor', favoriteDoctorIds: [] };
+
+    const seller = sellers.find(s => s.email.toLowerCase() === lowerEmail);
+    if (seller) return { ...seller, age: null, gender: null, cedula: null, role: 'seller', favoriteDoctorIds: [] };
+    
+    const patient = patients.find(p => p.email.toLowerCase() === lowerEmail);
+    if (patient) return { ...patient, role: 'patient' };
+
+    return null;
+  }, []);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          // Re-fetch user data to ensure it's up to date
+          const freshUser = await fetchUserByEmail(parsedUser.email);
+          setUser(freshUser);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
+    };
+    initializeAuth();
+  }, [fetchUserByEmail]);
+
+  const login = async (email: string, name: string = 'Nuevo Usuario') => {
+    let loggedInUser = await fetchUserByEmail(email);
+
+    if (loggedInUser) {
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
+      switch(loggedInUser.role) {
+        case 'admin': router.push('/admin/dashboard'); break;
+        case 'doctor': router.push('/doctor/dashboard'); break;
+        case 'seller': router.push('/seller/dashboard'); break;
+        case 'patient': router.push('/dashboard'); break;
+      }
+    } else {
+      // Register new patient
+      const newPatient: Omit<Patient, 'id'> = { email, name, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+      const docRef = await firestoreService.addDoc('patients', newPatient);
+      const newUser: User = { id: docRef.id, ...newPatient, role: 'patient' };
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
       router.push('/dashboard');
     }
   };
@@ -117,30 +111,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  const updateUser = (data: Partial<Omit<User, 'role' | 'email'>>) => {
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      const updatedUser = { ...prevUser, ...data };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      return updatedUser;
-    });
+  const updateUser = async (data: Partial<Omit<User, 'role' | 'email'>>) => {
+    if (!user) return;
+    
+    const updateData: Partial<Patient> = { ...data };
+    await firestoreService.updatePatient(user.id, updateData);
+
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  const toggleFavoriteDoctor = (doctorId: number) => {
-    setUser(prevUser => {
-        if (!prevUser || prevUser.role !== 'patient') return prevUser;
+  const toggleFavoriteDoctor = async (doctorId: string) => {
+    if (!user || user.role !== 'patient') return;
+
+    const favorites = user.favoriteDoctorIds || [];
+    const isFavorite = favorites.includes(doctorId);
+    const newFavorites = isFavorite
+        ? favorites.filter(id => id !== doctorId)
+        : [...favorites, doctorId];
         
-        const favorites = prevUser.favoriteDoctorIds || [];
-        const isFavorite = favorites.includes(doctorId);
-        
-        const newFavorites = isFavorite
-            ? favorites.filter(id => id !== doctorId)
-            : [...favorites, doctorId];
-            
-        const updatedUser = { ...prevUser, favoriteDoctorIds: newFavorites };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        return updatedUser;
-    });
+    await updateUser({ favoriteDoctorIds: newFavorites });
   };
 
   return (
@@ -156,4 +147,10 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+// Helper function in auth context as it's a common need for new users
+const addDoc = async (collectionName: string, data: any) => {
+    const docRef = await addDoc(collection(db, collectionName), data);
+    return docRef;
 }

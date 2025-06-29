@@ -1,39 +1,51 @@
+
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { Header, BottomNav } from "@/components/header";
 import { useAuth } from "@/lib/auth";
-import { doctors } from "@/lib/data";
+import * as firestoreService from '@/lib/firestoreService';
+import { type Doctor } from "@/lib/types";
 import { DoctorCard } from "@/components/doctor-card";
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function FavoritesPage() {
   const { user } = useAuth();
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+        setIsLoading(true);
+        const docs = await firestoreService.getDoctors();
+        setAllDoctors(docs);
+        setIsLoading(false);
+    }
+    fetchDocs();
+  }, []);
 
   const favoriteDoctors = useMemo(() => {
-    if (user?.role !== 'patient' || !user.favoriteDoctorIds) {
+    if (!user || user.role !== 'patient' || !user.favoriteDoctorIds) {
       return [];
     }
-    return doctors.filter((doctor) =>
+    return allDoctors.filter((doctor) =>
       user.favoriteDoctorIds.includes(doctor.id)
     );
-  }, [user]);
+  }, [user, allDoctors]);
 
-  // Handle loading state
-  if (user === undefined) {
+  if (user === undefined || isLoading) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-            <p>Cargando...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
       </div>
     )
   }
 
-  // Handle not logged in state
   if (user === null) {
       return (
         <div className="flex flex-col min-h-screen bg-background">

@@ -1,6 +1,6 @@
 
 export type BankDetail = {
-  id: number;
+  id: string;
   bank: string;
   accountNumber: string;
   accountHolder: string;
@@ -8,17 +8,17 @@ export type BankDetail = {
 };
 
 export type Service = {
-  id: number;
+  id: string;
   name: string;
   price: number;
 };
 
 export type Coupon = {
-  id: number;
+  id: string;
   code: string;
   discountType: 'percentage' | 'fixed';
   value: number;
-  scope: 'general' | number; // 'general' or doctorId
+  scope: 'general' | string; // 'general' or doctorId
 };
 
 export type DaySchedule = {
@@ -37,7 +37,7 @@ export type Schedule = {
 };
 
 export type Doctor = {
-  id: number;
+  id: string;
   name: string;
   cedula: string;
   specialty: string;
@@ -54,7 +54,7 @@ export type Doctor = {
   bankDetails: BankDetail[];
   schedule: Schedule;
   slotDuration: 30 | 60;
-  sellerId: number | null;
+  sellerId: string | null;
   status: 'active' | 'inactive';
   lastPaymentDate: string;
   email: string;
@@ -67,7 +67,7 @@ export type Doctor = {
 };
 
 export type Seller = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -85,6 +85,8 @@ export type Patient = {
     gender: 'masculino' | 'femenino' | 'otro' | null;
     phone: string | null;
     cedula: string | null;
+    favoriteDoctorIds?: string[];
+    profileImage?: string;
 };
 
 export type Appointment = {
@@ -92,7 +94,7 @@ export type Appointment = {
   patientId: string;
   patientName: string;
   doctorName: string;
-  doctorId: number;
+  doctorId: string;
   date: string;
   time: string;
   services: Service[];
@@ -108,7 +110,7 @@ export type Appointment = {
 
 export type Expense = {
   id: string;
-  doctorId: number;
+  doctorId: string;
   date: string; // YYYY-MM-DD
   description: string;
   amount: number;
@@ -116,17 +118,17 @@ export type Expense = {
 
 export type SellerPayment = {
   id: string;
-  sellerId: number;
+  sellerId: string;
   paymentDate: string; // YYYY-MM-DD
   amount: number;
   period: string; // e.g., "Mayo 2024"
-  includedDoctors: { id: number; name: string }[];
+  includedDoctors: { id: string; name: string }[];
   paymentProofUrl: string;
   transactionId: string;
 };
 
 export type MarketingMaterial = {
-    id: number;
+    id: string;
     type: 'image' | 'video' | 'file' | 'url';
     title: string;
     description: string;
@@ -145,7 +147,7 @@ export type SupportTicket = {
 
 export type DoctorPayment = {
   id: string;
-  doctorId: number;
+  doctorId: string;
   doctorName: string;
   date: string;
   amount: number;
@@ -182,3 +184,14 @@ export type CompanyExpense = {
     amount: number;
     category: 'operativo' | 'marketing' | 'personal';
 };
+
+// For settings document in Firestore
+export type AppSettings = {
+    cities: string[];
+    specialties: string[];
+    doctorSubscriptionFee: number;
+    companyBankDetails: BankDetail[];
+    timezone: string;
+    logoUrl: string;
+    currency: string;
+}

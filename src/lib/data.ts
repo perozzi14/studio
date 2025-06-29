@@ -21,14 +21,14 @@ export const cities = [
 
 export const mockCompanyBankDetails: BankDetail[] = [
   {
-    id: 9901,
+    id: '9901',
     bank: 'Banesco',
     accountHolder: 'SUMA C.A.',
     accountNumber: '0134-0000-0000-0000-0000',
     idNumber: 'J-12345678-9',
   },
   {
-    id: 9902,
+    id: '9902',
     bank: 'Mercantil',
     accountHolder: 'SUMA C.A.',
     accountNumber: '0105-0000-0000-0000-0000',
@@ -37,8 +37,8 @@ export const mockCompanyBankDetails: BankDetail[] = [
 ];
 
 export const mockCoupons: Coupon[] = [
-  { id: 1, code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
-  { id: 2, code: 'VERANO20', discountType: 'percentage', value: 20, scope: 1 } // Dr. Ana Rodriguez
+  { id: '1', code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
+  { id: '2', code: 'VERANO20', discountType: 'percentage', value: 20, scope: '1' } // Dr. Ana Rodriguez
 ];
 
 const defaultSchedule: Schedule = {
@@ -53,7 +53,7 @@ const defaultSchedule: Schedule = {
 
 export const sellers: Seller[] = [
   {
-    id: 1,
+    id: '1',
     name: "Vendedora Principal",
     email: "vendedora@venta.com",
     phone: "0412-9876543",
@@ -62,7 +62,7 @@ export const sellers: Seller[] = [
     commissionRate: 0.20,
     bankDetails: [
       {
-        id: 9001,
+        id: '9001',
         bank: "Bancamiga",
         accountNumber: "0172-0009-0009-0009-0009",
         accountHolder: "Vendedora Principal",
@@ -71,7 +71,7 @@ export const sellers: Seller[] = [
     ]
   },
   {
-    id: 2,
+    id: '2',
     name: "Maria Garcia",
     email: "maria.g@venta.com",
     phone: "0414-1112233",
@@ -81,7 +81,7 @@ export const sellers: Seller[] = [
     bankDetails: []
   },
    {
-    id: 3,
+    id: '3',
     name: "Sofia Martinez",
     email: "sofia.m@venta.com",
     phone: "0424-4445566",
@@ -95,7 +95,7 @@ export const sellers: Seller[] = [
 
 export const doctors: Doctor[] = [
   { 
-    id: 1, 
+    id: '1', 
     name: "Dr. Ana Rodriguez", 
     cedula: "V-12.345.678",
     specialty: "Cardiología", 
@@ -109,20 +109,20 @@ export const doctors: Doctor[] = [
     aiHint: "woman doctor",
     description: "Cardióloga con más de 15 años de experiencia en el diagnóstico y tratamiento de enfermedades cardiovasculares. Comprometida con la prevención y el bienestar de mis pacientes.",
     services: [
-      { id: 101, name: "Consulta Cardiológica", price: 50 },
-      { id: 102, name: "Electrocardiograma (EKG)", price: 30 },
-      { id: 103, name: "Ecocardiograma", price: 80 },
+      { id: '101', name: "Consulta Cardiológica", price: 50 },
+      { id: '102', name: "Electrocardiograma (EKG)", price: 30 },
+      { id: '103', name: "Ecocardiograma", price: 80 },
     ],
     bankDetails: [
       {
-        id: 1001,
+        id: '1001',
         bank: "Banesco",
         accountNumber: "0134-0001-0001-0001-0001",
         accountHolder: "Ana Rodriguez",
         idNumber: "V-12.345.678"
       },
       {
-        id: 1002,
+        id: '1002',
         bank: "Mercantil",
         accountNumber: "0105-0001-0001-0001-0001",
         accountHolder: "Ana Rodriguez",
@@ -139,7 +139,7 @@ export const doctors: Doctor[] = [
         saturday: { active: false, slots: [] },
         sunday: { active: false, slots: [] },
     },
-    sellerId: 1,
+    sellerId: '1',
     status: 'active',
     lastPaymentDate: '2024-05-28',
     email: 'doctor@admin.com',
@@ -151,7 +151,7 @@ export const doctors: Doctor[] = [
     nextPaymentDate: '2024-06-28',
   },
   { 
-    id: 2, 
+    id: '2', 
     name: "Dr. Carlos Sanchez", 
     cedula: "V-10.987.654",
     specialty: "Dermatología", 
@@ -165,12 +165,12 @@ export const doctors: Doctor[] = [
     aiHint: "man doctor",
     description: "Especialista en dermatología clínica y estética, enfocado en ofrecer tratamientos personalizados para el cuidado de la piel. Miembro activo de la Sociedad Venezolana de Dermatología.",
     services: [
-      { id: 201, name: "Consulta Dermatológica", price: 45 },
-      { id: 202, name: "Crioterapia (verrugas)", price: 60 },
-      { id: 203, name: "Biopsia de Piel", price: 100 },
+      { id: '201', name: "Consulta Dermatológica", price: 45 },
+      { id: '202', name: "Crioterapia (verrugas)", price: 60 },
+      { id: '203', name: "Biopsia de Piel", price: 100 },
     ],
     bankDetails: [{
-      id: 2001,
+      id: '2001',
       bank: "Banco de Venezuela",
       accountNumber: "0102-0002-0002-0002-0002",
       accountHolder: "Carlos Sanchez",
@@ -178,7 +178,7 @@ export const doctors: Doctor[] = [
     }],
     slotDuration: 60,
     schedule: defaultSchedule,
-    sellerId: 1,
+    sellerId: '1',
     status: 'active',
     lastPaymentDate: '2024-05-25',
     email: 'carlos.sanchez.dr@email.com',
@@ -190,7 +190,7 @@ export const doctors: Doctor[] = [
     nextPaymentDate: '2024-06-25',
   },
   { 
-    id: 3, 
+    id: '3', 
     name: "Dr. Sofia Gomez", 
     cedula: "V-14.567.890",
     specialty: "Neurología", 
@@ -204,11 +204,11 @@ export const doctors: Doctor[] = [
     aiHint: "doctor smile",
     description: "Neuróloga dedicada al estudio y tratamiento de trastornos del sistema nervioso. Experiencia en migrañas, epilepsia y enfermedades neurodegenerativas.",
     services: [
-      { id: 301, name: "Consulta Neurológica", price: 60 },
-      { id: 302, name: "Electroencefalograma (EEG)", price: 120 },
+      { id: '301', name: "Consulta Neurológica", price: 60 },
+      { id: '302', name: "Electroencefalograma (EEG)", price: 120 },
     ],
     bankDetails: [{
-      id: 3001,
+      id: '3001',
       bank: "BBVA Provincial",
       accountNumber: "0108-0003-0003-0003-0003",
       accountHolder: "Sofia Gomez",
@@ -216,7 +216,7 @@ export const doctors: Doctor[] = [
     }],
     slotDuration: 30,
     schedule: defaultSchedule,
-    sellerId: 2,
+    sellerId: '2',
     status: 'inactive',
     lastPaymentDate: '2024-03-15',
     email: 'sofia.gomez.dr@email.com',
@@ -228,7 +228,7 @@ export const doctors: Doctor[] = [
     nextPaymentDate: '2024-04-15',
   },
   { 
-    id: 4, 
+    id: '4', 
     name: "Dr. Luis Fernandez", 
     cedula: "V-11.222.333",
     specialty: "Pediatría", 
@@ -242,11 +242,11 @@ export const doctors: Doctor[] = [
     aiHint: "male doctor",
     description: "Pediatra apasionado por el cuidado integral de los niños, desde el nacimiento hasta la adolescencia. Foco en la prevención, crecimiento y desarrollo saludable.",
     services: [
-      { id: 401, name: "Consulta Pediátrica", price: 40 },
-      { id: 402, name: "Vacunación", price: 25 },
+      { id: '401', name: "Consulta Pediátrica", price: 40 },
+      { id: '402', name: "Vacunación", price: 25 },
     ],
     bankDetails: [{
-      id: 4001,
+      id: '4001',
       bank: "Bancamiga",
       accountNumber: "0172-0004-0004-0004-0004",
       accountHolder: "Luis Fernandez",
@@ -254,7 +254,7 @@ export const doctors: Doctor[] = [
     }],
     slotDuration: 30,
     schedule: defaultSchedule,
-    sellerId: 1,
+    sellerId: '1',
     status: 'active',
     lastPaymentDate: '2024-05-29',
     email: 'luis.fernandez.dr@email.com',
@@ -266,7 +266,7 @@ export const doctors: Doctor[] = [
     nextPaymentDate: '2024-06-29',
   },
   { 
-    id: 6, 
+    id: '6', 
     name: "Dr. Javier Torres", 
     cedula: "V-13.131.313",
     specialty: "Ortopedia", 
@@ -280,11 +280,11 @@ export const doctors: Doctor[] = [
     aiHint: "doctor portrait",
     description: "Traumatólogo y Ortopedista especializado en lesiones deportivas y cirugía artroscópica. Mi objetivo es devolver la movilidad y calidad de vida a mis pacientes.",
     services: [
-      { id: 601, name: "Consulta Ortopédica", price: 55 },
-      { id: 602, name: "Infiltración", price: 75 },
+      { id: '601', name: "Consulta Ortopédica", price: 55 },
+      { id: '602', name: "Infiltración", price: 75 },
     ],
     bankDetails: [{
-      id: 6001,
+      id: '6001',
       bank: "Banesco",
       accountNumber: "0134-0006-0006-0006-0006",
       accountHolder: "Javier Torres",
@@ -304,7 +304,7 @@ export const doctors: Doctor[] = [
     nextPaymentDate: '2024-05-30',
   },
   { 
-    id: 7, 
+    id: '7', 
     name: "Dra. Laura Montes", 
     cedula: "V-17.111.222",
     specialty: "Medicina Estética", 
@@ -318,12 +318,12 @@ export const doctors: Doctor[] = [
     aiHint: "aesthetic doctor",
     description: "Médico estético especializada en rejuvenecimiento facial y tratamientos corporales no invasivos. Apasionada por realzar la belleza natural de cada paciente.",
     services: [
-      { id: 701, name: "Aplicación de Toxina Botulínica", price: 250 },
-      { id: 702, name: "Relleno con Ácido Hialurónico", price: 300 },
-      { id: 703, name: "Plasma Rico en Plaquetas (PRP)", price: 150 },
+      { id: '701', name: "Aplicación de Toxina Botulínica", price: 250 },
+      { id: '702', name: "Relleno con Ácido Hialurónico", price: 300 },
+      { id: '703', name: "Plasma Rico en Plaquetas (PRP)", price: 150 },
     ],
     bankDetails: [{
-      id: 7001,
+      id: '7001',
       bank: "Banesco",
       accountNumber: "0134-0007-0007-0007-0007",
       accountHolder: "Laura Montes",
@@ -331,7 +331,7 @@ export const doctors: Doctor[] = [
     }],
     slotDuration: 60,
     schedule: defaultSchedule,
-    sellerId: 3,
+    sellerId: '3',
     status: 'active',
     lastPaymentDate: '2024-05-22',
     email: 'laura.montes.dr@email.com',
@@ -361,10 +361,10 @@ export const appointments: Appointment[] = [
     patientId: "pat-1",
     patientName: "Elena Ríos",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0], // In 2 days
     time: "10:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 }, { id: '102', name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pendiente',
@@ -379,10 +379,10 @@ export const appointments: Appointment[] = [
     patientId: "pat-3",
     patientName: "Maria Castillo",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], // In 5 days
     time: "09:00",
-    services: [ { id: 103, name: "Ecocardiograma", price: 80 } ],
+    services: [ { id: '103', name: "Ecocardiograma", price: 80 } ],
     totalPrice: 80,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
@@ -397,10 +397,10 @@ export const appointments: Appointment[] = [
     patientId: "pat-4",
     patientName: "Carlos Briceño",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date().toISOString().split('T')[0], // Today
     time: "14:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pendiente',
@@ -415,10 +415,10 @@ export const appointments: Appointment[] = [
     patientId: "paciente@example.com",
     patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0], // Tomorrow
     time: "11:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 }, { id: '102', name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
@@ -434,10 +434,10 @@ export const appointments: Appointment[] = [
     patientId: "pat-2",
     patientName: "Jorge Paez",
     doctorName: "Dr. Carlos Sanchez",
-    doctorId: 2,
+    doctorId: '2',
     date: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString().split('T')[0], // In 3 days
     time: "14:00",
-    services: [ { id: 201, name: "Consulta Dermatológica", price: 45 } ],
+    services: [ { id: '201', name: "Consulta Dermatológica", price: 45 } ],
     totalPrice: 45,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pendiente',
@@ -453,10 +453,10 @@ export const appointments: Appointment[] = [
     patientId: "pat-6",
     patientName: "Luis Ramirez",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString().split('T')[0], // 15 days ago
     time: "11:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
@@ -471,10 +471,10 @@ export const appointments: Appointment[] = [
     patientId: "paciente@example.com",
     patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0], // 10 days ago
     time: "14:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 } ],
     totalPrice: 50,
     paymentMethod: 'transferencia',
     paymentStatus: 'Pagado',
@@ -489,10 +489,10 @@ export const appointments: Appointment[] = [
     patientId: "paciente@example.com",
     patientName: "Paciente de Prueba",
     doctorName: "Dr. Ana Rodriguez",
-    doctorId: 1,
+    doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString().split('T')[0], // 5 days ago
     time: "10:00",
-    services: [ { id: 101, name: "Consulta Cardiológica", price: 50 }, { id: 102, name: "Electrocardiograma (EKG)", price: 30 } ],
+    services: [ { id: '101', name: "Consulta Cardiológica", price: 50 }, { id: '102', name: "Electrocardiograma (EKG)", price: 30 } ],
     totalPrice: 80,
     paymentMethod: 'efectivo',
     paymentStatus: 'Pagado',
@@ -507,35 +507,35 @@ export const appointments: Appointment[] = [
 export const mockExpenses: Expense[] = [
   { 
     id: 'exp-1', 
-    doctorId: 1, 
+    doctorId: '1', 
     date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     description: 'Alquiler de consultorio', 
     amount: 500 
   },
   { 
     id: 'exp-2', 
-    doctorId: 1, 
+    doctorId: '1', 
     date: new Date(new Date().getFullYear(), new Date().getMonth(), 5).toISOString().split('T')[0],
     description: 'Materiales médicos', 
     amount: 150 
   },
   { 
     id: 'exp-3', 
-    doctorId: 1, 
+    doctorId: '1', 
     date: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 10).toISOString().split('T')[0],
     description: 'Pago de servicios (luz, agua)', 
     amount: 80 
   },
   { 
     id: 'exp-4', 
-    doctorId: 1, 
+    doctorId: '1', 
     date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString().split('T')[0],
     description: 'Suscripción software médico', 
     amount: 45 
   },
   { 
     id: 'exp-5', 
-    doctorId: 1, 
+    doctorId: '1', 
     date: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 20).toISOString().split('T')[0],
     description: 'Insumos de oficina', 
     amount: 35 
@@ -546,27 +546,27 @@ export const mockExpenses: Expense[] = [
 export const mockSellerPayments: SellerPayment[] = [
   {
     id: 'pay-1',
-    sellerId: 1,
+    sellerId: '1',
     paymentDate: '2024-05-16',
     amount: 18, // 2 active doctors * $50 * 0.20 = 20, another one * 50 * 0.18 = 9... let's fix this logic later
     period: 'Abril 2024',
     includedDoctors: [
-      { id: 1, name: "Dr. Ana Rodriguez" },
-      { id: 2, name: "Dr. Carlos Sanchez" },
-      { id: 4, name: "Dr. Luis Fernandez" },
+      { id: '1', name: "Dr. Ana Rodriguez" },
+      { id: '2', name: "Dr. Carlos Sanchez" },
+      { id: '4', name: "Dr. Luis Fernandez" },
     ],
     paymentProofUrl: 'https://placehold.co/400x300.png',
     transactionId: 'TXN-SUMA-20240516-001'
   },
   {
     id: 'pay-2',
-    sellerId: 1,
+    sellerId: '1',
     paymentDate: '2024-04-16',
     amount: 20.00,
     period: 'Marzo 2024',
     includedDoctors: [
-      { id: 1, name: "Dr. Ana Rodriguez" },
-      { id: 2, name: "Dr. Carlos Sanchez" },
+      { id: '1', name: "Dr. Ana Rodriguez" },
+      { id: '2', name: "Dr. Carlos Sanchez" },
     ],
     paymentProofUrl: 'https://placehold.co/400x300.png',
     transactionId: 'TXN-SUMA-20240416-001'
@@ -575,7 +575,7 @@ export const mockSellerPayments: SellerPayment[] = [
 
 export const mockMarketingMaterials: MarketingMaterial[] = [
     {
-        id: 1,
+        id: '1',
         type: 'image',
         title: 'Banner para Redes Sociales',
         description: 'Banner promocional para usar en Instagram, Facebook y otras redes.',
@@ -583,7 +583,7 @@ export const mockMarketingMaterials: MarketingMaterial[] = [
         thumbnailUrl: 'https://placehold.co/600x400.png',
     },
     {
-        id: 2,
+        id: '2',
         type: 'video',
         title: 'Video Explicativo de SUMA',
         description: 'Video corto que explica los beneficios de la plataforma para los médicos.',
@@ -591,7 +591,7 @@ export const mockMarketingMaterials: MarketingMaterial[] = [
         thumbnailUrl: 'https://placehold.co/600x400.png',
     },
     {
-        id: 3,
+        id: '3',
         type: 'file',
         title: 'Folleto Informativo (PDF)',
         description: 'Documento PDF con toda la información clave para presentar a los médicos.',
@@ -599,7 +599,7 @@ export const mockMarketingMaterials: MarketingMaterial[] = [
         thumbnailUrl: 'https://placehold.co/600x400.png',
     },
     {
-        id: 4,
+        id: '4',
         type: 'url',
         title: 'Artículo de Blog: Beneficios de la Telemedicina',
         description: 'Enlace a un artículo relevante que puedes compartir con los doctores.',
@@ -646,12 +646,12 @@ export const mockSupportTickets: SupportTicket[] = [
 ];
 
 export const mockDoctorPayments: DoctorPayment[] = [
-  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456' },
-  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457' },
-  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123458' },
-  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123459' },
+  { id: 'dp-1', doctorId: '1', doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456' },
+  { id: 'dp-2', doctorId: '2', doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457' },
+  { id: 'dp-3', doctorId: '4', doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123458' },
+  { id: 'dp-4', doctorId: '7', doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123459' },
   // This doctor's payment is pending approval
-  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460' },
+  { id: 'dp-5', doctorId: '3', doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460' },
 ];
 
 
