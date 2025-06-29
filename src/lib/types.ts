@@ -1,5 +1,6 @@
 
 
+
 export type BankDetail = {
   id: string;
   bank: string;
@@ -70,7 +71,6 @@ export type Doctor = {
   bankDetails: BankDetail[];
   expenses: Expense[];
   coupons: Coupon[];
-  supportTickets: SupportTicket[];
   schedule: Schedule;
   slotDuration: 30 | 60;
   sellerId: string | null;
@@ -156,6 +156,7 @@ export type DoctorPayment = {
   status: 'Paid' | 'Pending' | 'Rejected';
   paymentProofUrl: string | null;
   transactionId: string;
+  readByAdmin?: boolean;
 };
 
 
@@ -165,8 +166,10 @@ export type AdminSupportTicket = {
     userName: string;
     userRole: 'doctor' | 'seller';
     subject: string;
+    description: string;
     status: 'abierto' | 'cerrado';
     date: string;
+    readByAdmin?: boolean;
 };
 
 export type AdminNotification = {

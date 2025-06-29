@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, type Seller, type BankDetail } from '@/lib/types';
+import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -104,6 +104,7 @@ export default function SellerDashboardPage() {
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
 
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
@@ -122,11 +123,12 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
 
     try {
-        const [seller, allDocs, allPayments, materials] = await Promise.all([
+        const [seller, allDocs, allPayments, materials, allTickets] = await Promise.all([
             firestoreService.getSeller(user.id),
             firestoreService.getDoctors(),
             firestoreService.getSellerPayments(),
-            firestoreService.getMarketingMaterials()
+            firestoreService.getMarketingMaterials(),
+            firestoreService.getSupportTickets(),
         ]);
         
         if (seller) {
@@ -134,6 +136,7 @@ export default function SellerDashboardPage() {
             setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
             setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
             setMarketingMaterials(materials);
+            setSupportTickets(allTickets.filter(t => t.userId === user.email));
         }
     } catch (error) {
         console.error("Error fetching seller data:", error);
@@ -504,11 +507,20 @@ export default function SellerDashboardPage() {
                             </Dialog>
                         </div></CardHeader>
                         <CardContent>
-                            <Table className="hidden md:table">
-                                <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Última Respuesta</TableHead><TableHead className="text-center">Estado</TableHead></TableRow></TableHeader>
-                                <TableBody><TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow></TableBody>
-                            </Table>
-                            <div className="space-y-4 md:hidden"><p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p></div>
+                           <Table>
+                              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+                              <TableBody>
+                              {supportTickets.map(ticket => (
+                                  <TableRow key={ticket.id}>
+                                      <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                      <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
+                                      <TableCell className="text-right"><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
+                                  </TableRow>
+                              ))}
+                               {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
+                              </TableBody>
+                          </Table>
                         </CardContent>
                     </Card>
                 </div>

@@ -18,7 +18,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import * as mockData from './data';
-import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, SupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial } from './types';
+import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial } from './types';
 
 
 // Helper to convert Firestore Timestamps to strings
@@ -79,7 +79,7 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
 export const seedDatabase = async () => {
     const batch = writeBatch(db);
 
-    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings", "marketingMaterials"];
+    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings", "marketingMaterials", "supportTickets"];
     
     // Clear existing collections
     for (const col of collectionsToClear) {
@@ -102,6 +102,7 @@ export const seedDatabase = async () => {
     mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", item.id), prepareData(item)));
     mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", item.id), prepareData(item)));
     mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", item.id), prepareData(item)));
+    mockData.mockAdminSupportTickets.forEach(item => batch.set(doc(db, "supportTickets", item.id), prepareData(item)));
     
     // Seed settings (special case)
     const settingsRef = doc(db, "settings", "main");
@@ -144,6 +145,7 @@ export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerP
 export const getCompanyExpenses = () => getCollectionData<CompanyExpense>('companyExpenses');
 export const getCoupons = () => getCollectionData<Coupon>('coupons');
 export const getMarketingMaterials = () => getCollectionData<MarketingMaterial>('marketingMaterials');
+export const getSupportTickets = () => getCollectionData<AdminSupportTicket>('supportTickets');
 export const getSettings = () => getDocumentData<AppSettings>('settings', 'main');
 
 // --- Data Mutation Functions ---
@@ -181,6 +183,13 @@ export const addMarketingMaterial = async (materialData: Omit<MarketingMaterial,
 export const updateMarketingMaterial = async (id: string, data: Partial<MarketingMaterial>) => updateDoc(doc(db, 'marketingMaterials', id), data);
 export const deleteMarketingMaterial = async (id: string) => deleteDoc(doc(db, 'marketingMaterials', id));
 
+// Support Ticket
+export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id'>) => {
+    const dataWithDefaults = { ...ticketData, readByAdmin: false };
+    return addDoc(collection(db, 'supportTickets'), dataWithDefaults);
+}
+export const updateSupportTicket = async (id: string, data: Partial<AdminSupportTicket>) => updateDoc(doc(db, 'supportTickets', id), data);
+
 
 // Settings & Related Sub-collections
 export const updateSettings = async (data: Partial<AppSettings>) => updateDoc(doc(db, 'settings', 'main'), data);
@@ -190,5 +199,24 @@ export const deleteCoupon = async (id: string) => deleteDoc(doc(db, 'coupons', i
 
 // Payments
 export const addSellerPayment = async (paymentData: Omit<SellerPayment, 'id'>) => addDoc(collection(db, 'sellerPayments'), paymentData);
-export const addDoctorPayment = async (paymentData: Omit<DoctorPayment, 'id'>) => addDoc(collection(db, 'doctorPayments'), paymentData);
+export const addDoctorPayment = async (paymentData: Omit<DoctorPayment, 'id'>) => {
+    const dataWithDefaults = { ...paymentData, readByAdmin: false };
+    return addDoc(collection(db, 'doctorPayments'), dataWithDefaults);
+};
 export const updateDoctorPaymentStatus = async (id: string, status: DoctorPayment['status']) => updateDoc(doc(db, 'doctorPayments', id), { status });
+
+// Notifications
+export const batchUpdateNotificationsAsRead = async (ticketIds: string[], paymentIds: string[]) => {
+    const batch = writeBatch(db);
+    ticketIds.forEach(id => {
+        const docRef = doc(db, "supportTickets", id);
+        batch.update(docRef, { readByAdmin: true });
+    });
+    paymentIds.forEach(id => {
+        const docRef = doc(db, "doctorPayments", id);
+        batch.update(docRef, { readByAdmin: true });
+    });
+    if (ticketIds.length > 0 || paymentIds.length > 0) {
+        await batch.commit();
+    }
+}

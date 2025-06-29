@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, SupportTicket, DoctorPayment } from '@/lib/types';
+import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2 } from 'lucide-react';
 import {
@@ -255,6 +255,7 @@ export default function DoctorDashboardPage() {
   const [selectedChatPatient, setSelectedChatPatient] = useState<Patient | null>(null);
 
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
   const [isReportPaymentDialogOpen, setIsReportPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
@@ -266,20 +267,22 @@ export default function DoctorDashboardPage() {
     setIsLoading(true);
 
     try {
-        const docData = await firestoreService.getDoctor(user.id);
+        const [docData, docAppointments, allPatients, docPayments, allTickets] = await Promise.all([
+            firestoreService.getDoctor(user.id),
+            firestoreService.getDoctorAppointments(user.id),
+            firestoreService.getPatients(),
+            firestoreService.getDoctorPayments(),
+            firestoreService.getSupportTickets()
+        ]);
+
         if (docData) {
             setDoctorData(docData);
             setProfileForm(docData);
             setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
-
-            const [docAppointments, allPatients, docPayments] = await Promise.all([
-                firestoreService.getDoctorAppointments(docData.id),
-                firestoreService.getPatients(),
-                firestoreService.getDoctorPayments()
-            ]);
             setAppointments(docAppointments);
             setPatients(allPatients);
             setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
+            setSupportTickets(allTickets.filter(t => t.userId === user.email));
         }
     } catch (error) {
         console.error("Error fetching doctor data:", error);
@@ -671,7 +674,7 @@ export default function DoctorDashboardPage() {
   
   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!doctorData) return;
+    if (!user || user.role !== 'doctor') return;
     
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
@@ -687,16 +690,17 @@ export default function DoctorDashboardPage() {
       return;
     }
 
-    const newTicket: SupportTicket = {
-        id: `ticket-${Date.now()}`,
+    const newTicket: Omit<AdminSupportTicket, 'id'> = {
+        userId: user.email,
+        userName: user.name,
+        userRole: 'doctor',
         status: 'abierto',
         date: new Date().toISOString().split('T')[0],
-        lastReply: 'Enviado',
-        ...result.data,
+        description: result.data.description,
+        subject: result.data.subject,
     };
 
-    const updatedTickets = [...(doctorData.supportTickets || []), newTicket];
-    await firestoreService.updateDoctor(doctorData.id, { supportTickets: updatedTickets });
+    await firestoreService.addSupportTicket(newTicket);
     
     fetchData();
     setIsSupportDialogOpen(false);
@@ -1628,7 +1632,7 @@ export default function DoctorDashboardPage() {
                           <Table>
                               <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
-                              {(doctorData.supportTickets || []).map(ticket => (
+                              {supportTickets.map(ticket => (
                                   <TableRow key={ticket.id}>
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
@@ -1636,7 +1640,7 @@ export default function DoctorDashboardPage() {
                                       <TableCell className="text-right"><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
-                               {(doctorData.supportTickets || []).length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
+                               {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                       </CardContent>

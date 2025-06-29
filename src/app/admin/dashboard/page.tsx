@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -160,6 +160,10 @@ export default function AdminDashboardPage() {
   // States for Marketing
   const [isMarketingDialogOpen, setIsMarketingDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MarketingMaterial | null>(null);
+  
+  // States for Support
+  const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
 
 
   // States for Settings & Company Finances
@@ -206,7 +210,7 @@ export default function AdminDashboardPage() {
   
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    const [docs, sells, pats, apps, docPays, sellPays, materials] = await Promise.all([
+    const [docs, sells, pats, apps, docPays, sellPays, materials, tickets] = await Promise.all([
         firestoreService.getDoctors(),
         firestoreService.getSellers(),
         firestoreService.getPatients(),
@@ -214,6 +218,7 @@ export default function AdminDashboardPage() {
         firestoreService.getDoctorPayments(),
         firestoreService.getSellerPayments(),
         firestoreService.getMarketingMaterials(),
+        firestoreService.getSupportTickets(),
     ]);
     setDoctors(docs);
     setSellers(sells);
@@ -222,6 +227,7 @@ export default function AdminDashboardPage() {
     setDoctorPayments(docPays);
     setSellerPayments(sellPays);
     setMarketingMaterials(materials);
+    setSupportTickets(tickets);
     setIsLoading(false);
   }, []);
 
@@ -346,6 +352,7 @@ export default function AdminDashboardPage() {
                 joinDate: new Date().toISOString().split('T')[0],
                 subscriptionStatus: 'inactive',
                 nextPaymentDate: new Date().toISOString().split('T')[0],
+                coupons: [],
             };
             await firestoreService.addDoctor(newDoctorData);
             toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
@@ -585,6 +592,17 @@ export default function AdminDashboardPage() {
       description: "El pago ha sido marcado como 'Rechazado'.",
     });
     fetchData();
+  };
+  
+  const handleUpdateTicketStatus = async (ticketId: string, status: 'abierto' | 'cerrado') => {
+    await firestoreService.updateSupportTicket(ticketId, { status });
+    toast({ title: "Ticket Actualizado", description: `El ticket ha sido marcado como "${status}".` });
+    fetchData();
+  };
+  
+  const handleViewTicket = (ticket: AdminSupportTicket) => {
+    setSelectedTicket(ticket);
+    setIsSupportDetailDialogOpen(true);
   };
 
   const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1553,12 +1571,17 @@ export default function AdminDashboardPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="outline" size="sm">
+                                                <Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}>
                                                     <Eye className="mr-2 h-4 w-4" /> Ver Ticket
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                     {supportTickets.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="h-24 text-center">No hay tickets de soporte.</TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                          </div>
@@ -1579,7 +1602,7 @@ export default function AdminDashboardPage() {
 
                                         <Separator />
                                         
-                                        <Button variant="outline" size="sm" className="w-full">
+                                        <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewTicket(ticket)}>
                                             <Eye className="mr-2 h-4 w-4" /> Ver Ticket
                                         </Button>
                                     </div>
@@ -1850,6 +1873,46 @@ export default function AdminDashboardPage() {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* Support Ticket Detail Dialog */}
+        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Detalle del Ticket de Soporte</DialogTitle>
+                    <DialogDescription>Ticket ID: {selectedTicket?.id}</DialogDescription>
+                </DialogHeader>
+                {selectedTicket && (
+                    <div className="space-y-4 py-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold">Estado:</span>
+                            <Badge className={cn(selectedTicket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{selectedTicket.status}</Badge>
+                        </div>
+                        <Separator/>
+                        <div>
+                            <p className="text-sm font-semibold">Usuario:</p>
+                            <p className="text-sm">{selectedTicket.userName} ({selectedTicket.userRole})</p>
+                            <p className="text-xs text-muted-foreground">{selectedTicket.userId}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold">Asunto:</p>
+                            <p>{selectedTicket.subject}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold">Descripción del Problema:</p>
+                            <p className="text-sm p-3 bg-muted rounded-md">{selectedTicket.description}</p>
+                        </div>
+                    </div>
+                )}
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+                    {selectedTicket?.status === 'abierto' && (
+                        <Button onClick={() => handleUpdateTicketStatus(selectedTicket!.id, 'cerrado')}>
+                            <CheckCircle className="mr-2 h-4 w-4"/> Marcar como Resuelto
+                        </Button>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
 
       {/* Seller Dialogs */}

@@ -124,9 +124,6 @@ export const doctors: Doctor[] = [
     coupons: [
       { id: 'coupon-1', code: 'ANAFIRST', discountType: 'percentage', value: 15, scope: '1' }
     ],
-    supportTickets: [
-       { id: 'ticket-3', subject: 'Duda sobre el horario de trabajo', status: 'abierto', date: '2024-05-28', lastReply: 'Hace 1 día' }
-    ],
     slotDuration: 30,
     schedule: {
         monday: { active: true, slots: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "17:00" }] },
@@ -169,7 +166,6 @@ export const doctors: Doctor[] = [
     bankDetails: [{ id: '2001', bank: "Banco de Venezuela", accountNumber: "0102-0002-0002-0002-0002", accountHolder: "Carlos Sanchez", idNumber: "V-10.987.654" }],
     expenses: [],
     coupons: [],
-    supportTickets: [],
     slotDuration: 60,
     schedule: defaultSchedule,
     sellerId: '1',
@@ -201,7 +197,6 @@ export const doctors: Doctor[] = [
     bankDetails: [{ id: '3001', bank: "BBVA Provincial", accountNumber: "0108-0003-0003-0003-0003", accountHolder: "Sofia Gomez", idNumber: "V-14.567.890" }],
     expenses: [],
     coupons: [],
-    supportTickets: [],
     slotDuration: 30,
     schedule: defaultSchedule,
     sellerId: '2',
@@ -288,18 +283,18 @@ export const marketingMaterials: MarketingMaterial[] = [
 ];
 
 export const mockDoctorPayments: DoctorPayment[] = [
-  { id: 'dp-1', doctorId: '1', doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456' },
-  { id: 'dp-2', doctorId: '2', doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457' },
-  { id: 'dp-3', doctorId: '4', doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123458' },
-  { id: 'dp-4', doctorId: '7', doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123459' },
-  { id: 'dp-5', doctorId: '3', doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460' },
+  { id: 'dp-1', doctorId: '1', doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456', readByAdmin: true },
+  { id: 'dp-2', doctorId: '2', doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457', readByAdmin: true },
+  { id: 'dp-3', doctorId: '4', doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123458', readByAdmin: true },
+  { id: 'dp-4', doctorId: '7', doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123459', readByAdmin: true },
+  { id: 'dp-5', doctorId: '3', doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460', readByAdmin: false },
 ];
 
 
 export const mockAdminSupportTickets: AdminSupportTicket[] = [
-    { id: 'ticket-admin-1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', status: 'abierto', date: '2024-05-20' },
-    { id: 'ticket-admin-2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', status: 'abierto', date: '2024-05-28' },
-    { id: 'ticket-admin-3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', status: 'cerrado', date: '2024-05-15' },
+    { id: 'ticket-admin-1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', description: 'No estoy segura de cómo se calcula la comisión para uno de mis médicos.', status: 'abierto', date: '2024-05-20', readByAdmin: false },
+    { id: 'ticket-admin-2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', description: '¿Cómo puedo bloquear un día completo en mi calendario?', status: 'abierto', date: '2024-05-28', readByAdmin: false },
+    { id: 'ticket-admin-3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true },
 ];
 
 export const mockAdminNotifications: AdminNotification[] = [
