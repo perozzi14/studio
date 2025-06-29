@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, mockSupportTickets, type SupportTicket } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, mockSupportTickets, type SupportTicket, mockDoctorPayments as allDoctorPayments, type DoctorPayment } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,7 +156,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee } = useSettings();
+  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee, companyBankDetails } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -209,6 +209,15 @@ export default function DoctorDashboardPage() {
 
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
   const [selectedChatPatient, setSelectedChatPatient] = useState<Patient | null>(null);
+
+  // States for Subscription Payment Reporting
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(allDoctorPayments);
+  const [isReportPaymentDialogOpen, setIsReportPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+
   const uniquePatients = useMemo(() => {
     const patientIds = new Set<string>();
     const unique: Patient[] = [];
@@ -795,26 +804,43 @@ export default function DoctorDashboardPage() {
     doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
   
-  const handlePaySubscription = (e: React.FormEvent) => {
+    const handleReportPayment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!doctorData || !paymentAmount || !paymentDate || !paymentRef || !paymentProof) {
+        toast({
+            variant: "destructive",
+            title: "Faltan datos",
+            description: "Por favor, completa todos los campos y sube el comprobante.",
+        });
+        return;
+    }
+
+    const newPayment: DoctorPayment = {
+        id: `dp-${Date.now()}`,
+        doctorId: doctorData.id,
+        doctorName: doctorData.name,
+        date: paymentDate,
+        amount: parseFloat(paymentAmount),
+        status: 'Pending',
+        paymentProofUrl: URL.createObjectURL(paymentProof),
+        transactionId: paymentRef,
+    };
+
+    setDoctorPayments(prev => [newPayment, ...prev]);
+    setDoctorData(prev => prev ? { ...prev, subscriptionStatus: 'pending_payment' } : null);
+    
     toast({
-      title: "Procesando Pago...",
-      description: "Esta es una simulación. En un entorno real, se conectaría con una pasarela de pago.",
+        title: "¡Reporte Enviado!",
+        description: "Tu pago ha sido reportado y está pendiente de aprobación por el administrador.",
     });
 
-    setTimeout(() => {
-       if (!doctorData) return;
-        setDoctorData({
-            ...doctorData,
-            subscriptionStatus: 'active',
-            status: 'active'
-        });
-        toast({
-            title: "¡Pago Exitoso!",
-            description: "Tu suscripción ha sido renovada. Gracias por ser parte de SUMA.",
-        });
-    }, 2000);
-  }
+    setIsReportPaymentDialogOpen(false);
+    // Reset form fields
+    setPaymentAmount('');
+    setPaymentDate('');
+    setPaymentRef('');
+    setPaymentProof(null);
+  };
 
 
   if (isLoading || !user || !doctorData || !financialStats || !profileForm) {
@@ -1294,69 +1320,89 @@ export default function DoctorDashboardPage() {
 
               {currentTab === 'subscription' && (
                 <div className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><CreditCard/> Mi Suscripción</CardTitle>
-                            <CardDescription>Consulta el estado de tu membresía y realiza tus pagos.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Estado Actual</h3>
-                                <div className="p-4 border rounded-lg space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <span>Estado:</span>
-                                        <Badge className={cn({
-                                            'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
-                                            'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
-                                            'bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive',
-                                        })}>
-                                            {doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago Pendiente' : 'Inactiva'}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>Próximo Pago:</span>
-                                        <span className="font-medium">{format(new Date(doctorData.nextPaymentDate), "d 'de' LLLL, yyyy", {locale: es})}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>Monto Mensual:</span>
-                                        <span className="font-semibold">${doctorSubscriptionFee.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Tu suscripción se renueva mensualmente para mantener tu perfil activo y visible para miles de pacientes.
-                                </p>
-                            </div>
-                             <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Realizar Pago</h3>
-                                {doctorData.subscriptionStatus === 'active' ? (
-                                    <div className="flex flex-col items-center justify-center h-full p-6 border-2 border-dashed rounded-lg text-center">
-                                        <CheckCircle className="h-12 w-12 text-green-500 mb-4"/>
-                                        <p className="font-semibold">¡Tu suscripción está al día!</p>
-                                        <p className="text-sm text-muted-foreground">Tu próximo cobro se realizará automáticamente.</p>
-                                    </div>
-                                ) : (
-                                    <form className="p-4 border rounded-lg space-y-4" onSubmit={handlePaySubscription}>
-                                        <p className="font-semibold">Pagar con Tarjeta de Crédito/Débito</p>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="cardNumber">Número de Tarjeta</Label>
-                                            <Input id="cardNumber" placeholder="0000 0000 0000 0000" />
+                    <div className="grid md:grid-cols-5 gap-8 items-start">
+                        <div className="md:col-span-3 space-y-8">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><CreditCard/> Estado de tu Suscripción</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                     <div className="p-4 border rounded-lg space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span>Estado:</span>
+                                            <Badge className={cn({
+                                                'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
+                                                'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
+                                                'bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive',
+                                            })}>
+                                                {doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago Pendiente' : 'Inactiva'}
+                                            </Badge>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="expiryDate">Fecha Exp.</Label>
-                                                <Input id="expiryDate" placeholder="MM/AA" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="cvc">CVC</Label>
-                                                <Input id="cvc" placeholder="123" />
-                                            </div>
+                                        <div className="flex justify-between items-center">
+                                            <span>Próximo Pago:</span>
+                                            <span className="font-medium">{format(new Date(doctorData.nextPaymentDate), "d 'de' LLLL, yyyy", {locale: es})}</span>
                                         </div>
-                                        <Button type="submit" className="w-full">Pagar ${doctorSubscriptionFee.toFixed(2)}</Button>
-                                    </form>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                        <div className="flex justify-between items-center">
+                                            <span>Monto Mensual:</span>
+                                            <span className="font-semibold">${doctorSubscriptionFee.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Mantén tu suscripción activa para asegurar tu visibilidad en la plataforma.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle>Historial de Pagos de Suscripción</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Fecha Reporte</TableHead><TableHead>Monto</TableHead><TableHead>Referencia</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {doctorPayments.filter(p => p.doctorId === doctorData.id).map(p => (
+                                                <TableRow key={p.id}>
+                                                    <TableCell>{format(new Date(p.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                    <TableCell className="font-mono">${p.amount.toFixed(2)}</TableCell>
+                                                    <TableCell className="font-mono text-xs">{p.transactionId}</TableCell>
+                                                    <TableCell>
+                                                         <Badge className={cn({
+                                                            'bg-green-600 text-white': p.status === 'Paid',
+                                                            'bg-amber-500 text-white': p.status === 'Pending',
+                                                            'bg-red-600 text-white': p.status === 'Rejected',
+                                                        })}>
+                                                            {p.status === 'Paid' ? 'Pagado' : p.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="md:col-span-2 space-y-8">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Realizar Pago</CardTitle>
+                                    <CardDescription>Usa una de nuestras cuentas para pagar y luego reporta tu pago aquí.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {companyBankDetails.map(bd => (
+                                        <div key={bd.id} className="text-sm p-3 border rounded-lg bg-muted/40">
+                                            <p className="font-bold">{bd.bank}</p>
+                                            <p><span className="text-muted-foreground">Titular:</span> {bd.accountHolder}</p>
+                                            <p><span className="text-muted-foreground">Cuenta:</span> <span className="font-mono">{bd.accountNumber}</span></p>
+                                            <p><span className="text-muted-foreground">ID:</span> {bd.idNumber}</p>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                                <CardFooter>
+                                    <Button className="w-full" onClick={() => setIsReportPaymentDialogOpen(true)} disabled={doctorData.subscriptionStatus === 'pending_payment'}>
+                                        <FileUp className="mr-2 h-4 w-4" /> {doctorData.subscriptionStatus === 'pending_payment' ? 'Pago ya Reportado' : 'Reportar Pago'}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                    </div>
                 </div>
               )}
 
@@ -2049,6 +2095,39 @@ export default function DoctorDashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+       <Dialog open={isReportPaymentDialogOpen} onOpenChange={setIsReportPaymentDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reportar Pago de Suscripción</DialogTitle>
+              <DialogDescription>Completa los datos de la transferencia que realizaste.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleReportPayment}>
+              <div className="space-y-4 py-4">
+                  <div>
+                      <Label htmlFor="payment-amount">Monto Pagado ({currency})</Label>
+                      <Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorSubscriptionFee.toFixed(2)} required />
+                  </div>
+                   <div>
+                      <Label htmlFor="payment-date">Fecha del Pago</Label>
+                      <Input id="payment-date" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required />
+                  </div>
+                   <div>
+                      <Label htmlFor="payment-ref">Número de Referencia</Label>
+                      <Input id="payment-ref" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="00123456" required />
+                  </div>
+                  <div>
+                      <Label htmlFor="payment-proof">Comprobante de Pago</Label>
+                      <Input id="payment-proof" type="file" accept="image/*" onChange={(e) => setPaymentProof(e.target.files ? e.target.files[0] : null)} required />
+                  </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit">Enviar Reporte</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -795,15 +796,16 @@ export type DoctorPayment = {
   amount: number;
   status: 'Paid' | 'Pending' | 'Rejected';
   paymentProofUrl: string | null;
+  transactionId: string;
 };
 
 export const mockDoctorPayments: DoctorPayment[] = [
-  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
-  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
-  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
-  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png'},
+  { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456' },
+  { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457' },
+  { id: 'dp-3', doctorId: 4, doctorName: 'Dr. Luis Fernandez', date: '2024-05-29', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123458' },
+  { id: 'dp-4', doctorId: 7, doctorName: 'Dra. Laura Montes', date: '2024-05-22', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123459' },
   // This doctor's payment is pending approval
-  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png'},
+  { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460' },
 ];
 
 
