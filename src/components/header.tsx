@@ -76,6 +76,17 @@ export function Header() {
     { href: "/admin/dashboard?view=settings", label: "Configuración" },
   ];
 
+  const doctorNavLinks = [
+    { href: "/doctor/dashboard?view=appointments", label: "Citas" },
+    { href: "/doctor/dashboard?view=finances", label: "Finanzas" },
+    { href: "/doctor/dashboard?view=profile", label: "Mi Perfil" },
+    { href: "/doctor/dashboard?view=services", label: "Servicios" },
+    { href: "/doctor/dashboard?view=schedule", label: "Horario" },
+    { href: "/doctor/dashboard?view=bank-details", label: "Cuentas" },
+    { href: "/doctor/dashboard?view=coupons", label: "Cupones" },
+    { href: "/doctor/dashboard?view=support", label: "Soporte" },
+  ];
+
   const dashboardHref = user?.role === 'doctor' 
     ? '/doctor/dashboard' 
     : user?.role === 'seller'
@@ -108,6 +119,17 @@ export function Header() {
             const isActive = currentViewParam === linkView;
             return (
               <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} asChild>
+                <Link href={link.href}>{link.label}</Link>
+              </Button>
+            );
+          })}
+          
+          {user?.role === 'doctor' && pathname.startsWith('/doctor') && doctorNavLinks.map((link) => {
+            const currentViewParam = searchParams.get('view') || 'appointments';
+            const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
+            const isActive = currentViewParam === linkView;
+            return (
+              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} size="sm" asChild>
                 <Link href={link.href}>{link.label}</Link>
               </Button>
             );
@@ -374,6 +396,18 @@ export function Header() {
                    <div className="flex flex-col gap-3">
                     <p className="text-muted-foreground font-semibold text-sm">PANEL ADMIN</p>
                     {adminNavLinks.map((link) => (
+                      <SheetClose key={link.href} asChild>
+                        <Link href={link.href} className="text-lg font-medium hover:text-primary">
+                          {link.label}
+                        </Link>
+                      </SheetClose>
+                    ))}
+                   </div>
+                )}
+                {user?.role === 'doctor' && pathname.startsWith('/doctor') && (
+                   <div className="flex flex-col gap-3">
+                    <p className="text-muted-foreground font-semibold text-sm">PANEL DOCTOR</p>
+                    {doctorNavLinks.map((link) => (
                       <SheetClose key={link.href} asChild>
                         <Link href={link.href} className="text-lg font-medium hover:text-primary">
                           {link.label}

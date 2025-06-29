@@ -56,7 +56,6 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
@@ -231,9 +230,6 @@ export default function DoctorDashboardPage() {
     }
   }, [user, router, coupons]);
   
-  const handleTabChange = (value: string) => {
-    router.push(`/doctor/dashboard?view=${value}`);
-  };
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
     const today = new Date();
@@ -669,19 +665,9 @@ export default function DoctorDashboardPage() {
           <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
           <p className="text-muted-foreground mb-8">Gestiona tu perfil, servicios y citas.</p>
 
-           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
-                  <TabsTrigger value="appointments">Citas</TabsTrigger>
-                  <TabsTrigger value="finances">Finanzas</TabsTrigger>
-                  <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
-                  <TabsTrigger value="services">Servicios</TabsTrigger>
-                  <TabsTrigger value="schedule">Horario</TabsTrigger>
-                  <TabsTrigger value="bank-details">Cuentas</TabsTrigger>
-                  <TabsTrigger value="coupons">Cupones</TabsTrigger>
-                  <TabsTrigger value="support">Soporte</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="appointments" className="mt-6">
+          <>
+              {currentTab === 'appointments' && (
+              <div className="mt-6">
                 <div className="space-y-8">
                     <Card>
                         <CardHeader>
@@ -827,18 +813,20 @@ export default function DoctorDashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="finances" className="mt-6">
+              {currentTab === 'finances' && (
+              <div className="mt-6">
                 <div className="space-y-6">
-                    <Tabs defaultValue="month" onValueChange={(value) => setTimeRange(value as any)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                            <TabsTrigger value="today">Hoy</TabsTrigger>
-                            <TabsTrigger value="week">Esta Semana</TabsTrigger>
-                            <TabsTrigger value="month">Este Mes</TabsTrigger>
-                            <TabsTrigger value="year">Este Año</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
+                    <div className="w-full">
+                        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+                            <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
+                            <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
+                            <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
+                            <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                        </div>
+                    </div>
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                       <Card>
@@ -1057,9 +1045,11 @@ export default function DoctorDashboardPage() {
                       </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="profile" className="mt-6">
+              {currentTab === 'profile' && (
+              <div className="mt-6">
                 <div className="space-y-6">
                   <Card>
                       <CardHeader>
@@ -1180,9 +1170,11 @@ export default function DoctorDashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="services" className="mt-6">
+              {currentTab === 'services' && (
+              <div className="mt-6">
                 <Card>
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
@@ -1217,9 +1209,11 @@ export default function DoctorDashboardPage() {
                       </Table>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
+              )}
               
-              <TabsContent value="schedule" className="mt-6">
+              {currentTab === 'schedule' && (
+              <div className="mt-6">
                  <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><CalendarClock /> Mi Horario de Trabajo</CardTitle>
@@ -1272,9 +1266,11 @@ export default function DoctorDashboardPage() {
                         })}
                     </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="bank-details" className="mt-6">
+              {currentTab === 'bank-details' && (
+              <div className="mt-6">
                 <Card>
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
@@ -1349,9 +1345,11 @@ export default function DoctorDashboardPage() {
                       </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="coupons" className="mt-6">
+              {currentTab === 'coupons' && (
+              <div className="mt-6">
                 <Card>
                     <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
@@ -1393,9 +1391,11 @@ export default function DoctorDashboardPage() {
                         </Table>
                     </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
+              )}
 
-              <TabsContent value="support" className="mt-6">
+              {currentTab === 'support' && (
+              <div className="mt-6">
                   <Card>
                       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div>
@@ -1440,8 +1440,9 @@ export default function DoctorDashboardPage() {
                           </Table>
                       </CardContent>
                   </Card>
-              </TabsContent>
-            </Tabs>
+              </div>
+              )}
+          </>
         </div>
       </main>
 
