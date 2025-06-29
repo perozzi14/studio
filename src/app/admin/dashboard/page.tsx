@@ -151,6 +151,69 @@ export default function AdminDashboardPage() {
         prevDoctors.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc)
       );
   };
+  
+    const handleSaveDoctor = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('doc-name') as string;
+    const email = formData.get('doc-email') as string;
+    const specialty = formData.get('doc-specialty') as string;
+    const city = formData.get('doc-city') as string;
+    const address = formData.get('doc-address') as string;
+    const sellerId = formData.get('doc-seller') as string;
+
+    if (!name || !email || !specialty || !city || !address) {
+        toast({ variant: 'destructive', title: 'Faltan datos', description: 'Por favor, completa todos los campos del médico.' });
+        return;
+    }
+
+    if (editingDoctor) {
+        const updatedDoctor = {
+            ...editingDoctor,
+            name, email, specialty, city, address,
+            sellerId: sellerId === 'null' ? null : parseInt(sellerId, 10),
+        };
+        setDoctors(prev => prev.map(doc => doc.id === editingDoctor.id ? updatedDoctor : doc));
+        toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
+    } else {
+        const newDoctor: Doctor = {
+            id: Date.now(),
+            name, email, specialty, city, address,
+            sellerId: sellerId === 'null' ? null : parseInt(sellerId, 10),
+            cedula: '',
+            sector: '',
+            rating: 0,
+            reviewCount: 0,
+            profileImage: 'https://placehold.co/400x400.png',
+            bannerImage: 'https://placehold.co/1200x400.png',
+            aiHint: 'doctor portrait',
+            description: '',
+            services: [],
+            bankDetails: [],
+            slotDuration: 30,
+            schedule: {
+                monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+                saturday: { active: false, slots: [] },
+                sunday: { active: false, slots: [] },
+            },
+            status: 'inactive',
+            lastPaymentDate: new Date().toISOString().split('T')[0],
+            whatsapp: '',
+            lat: 0, lng: 0,
+            joinDate: new Date().toISOString().split('T')[0],
+            subscriptionStatus: 'inactive',
+            nextPaymentDate: new Date().toISOString().split('T')[0],
+        };
+        setDoctors(prev => [newDoctor, ...prev]);
+        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
+    }
+    setIsDoctorDialogOpen(false);
+    setEditingDoctor(null);
+  };
 
   const handleOpenDoctorDialog = (doctor: Doctor | null) => {
     setEditingDoctor(doctor);
@@ -160,6 +223,40 @@ export default function AdminDashboardPage() {
   const handleViewDoctorDetails = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
     setIsDetailDialogOpen(true);
+  };
+  
+    const handleSaveSeller = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const commission = parseFloat(formData.get('commission') as string) / 100;
+
+    if (!name || !email || isNaN(commission)) {
+        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos correctamente." });
+        return;
+    }
+
+    if (editingSeller) {
+        const updatedSeller = { ...editingSeller, name, email, commissionRate: commission };
+        setSellers(prev => prev.map(s => s.id === editingSeller.id ? updatedSeller : s));
+        toast({ title: "Vendedora Actualizada", description: `El perfil de ${name} ha sido guardado.` });
+    } else {
+        const newSeller: Seller = {
+            id: Date.now(),
+            name,
+            email,
+            commissionRate: commission,
+            phone: '',
+            profileImage: 'https://placehold.co/400x400.png',
+            referralCode: `REF${Date.now()}`,
+            bankDetails: [],
+        };
+        setSellers(prev => [newSeller, ...prev]);
+        toast({ title: "Vendedora Registrada", description: `El perfil de ${name} ha sido creado.` });
+    }
+    setIsSellerDialogOpen(false);
+    setEditingSeller(null);
   };
   
   const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', item: any) => {
@@ -1380,31 +1477,52 @@ export default function AdminDashboardPage() {
                                 <Button size="sm" onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}><PlusCircle className="mr-2"/> Cupón</Button>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Código</TableHead>
-                                            <TableHead>Tipo</TableHead>
-                                            <TableHead>Valor</TableHead>
-                                            <TableHead>Alcance</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
+                                <div className="hidden md:block">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Código</TableHead>
+                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Valor</TableHead>
+                                                <TableHead>Alcance</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                        {coupons.map(coupon => (
+                                            <TableRow key={coupon.id}>
+                                                <TableCell className="font-mono">{coupon.code}</TableCell>
+                                                <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
+                                                <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
+                                                <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
+                                                <TableCell className="text-right flex items-center justify-end gap-2">
+                                                    <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                    <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="h-4 w-4"/></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                <div className="space-y-4 md:hidden">
                                     {coupons.map(coupon => (
-                                        <TableRow key={coupon.id}>
-                                            <TableCell className="font-mono">{coupon.code}</TableCell>
-                                            <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
-                                            <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
-                                            <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="h-4 w-4"/></Button>
-                                            </TableCell>
-                                        </TableRow>
+                                        <div key={coupon.id} className="p-4 border rounded-lg space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold font-mono">{coupon.code}</p>
+                                                    <p className="text-xs text-muted-foreground">{coupon.scope === 'general' ? 'General' : `Dr. ${doctors.find(d => d.id === coupon.scope)?.name}`}</p>
+                                                </div>
+                                                <Badge variant="secondary">{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</Badge>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                                <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                            </div>
+                                        </div>
                                     ))}
-                                    </TableBody>
-                                </Table>
+                                    {coupons.length === 0 && <p className="text-center text-muted-foreground py-8">No hay cupones creados.</p>}
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -1422,24 +1540,26 @@ export default function AdminDashboardPage() {
                     {editingSeller ? 'Actualiza la información de la vendedora.' : 'Completa el formulario para agregar una nueva vendedora.'}
                 </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Nombre</Label>
-                    <Input id="name" defaultValue={editingSeller?.name || ''} className="col-span-3" />
+            <form onSubmit={handleSaveSeller}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">Nombre</Label>
+                        <Input id="name" name="name" defaultValue={editingSeller?.name || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="email" className="text-right">Email</Label>
+                        <Input id="email" name="email" type="email" defaultValue={editingSeller?.email || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
+                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 20) * 100} className="col-span-3" required />
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">Email</Label>
-                    <Input id="email" type="email" defaultValue={editingSeller?.email || ''} className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
-                    <Input id="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.2) * 100} className="col-span-3" />
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit">Guardar</Button>
-            </DialogFooter>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar</Button>
+                </DialogFooter>
+            </form>
         </DialogContent>
       </Dialog>
       
@@ -1563,46 +1683,54 @@ export default function AdminDashboardPage() {
                     Completa la información del perfil del médico.
                 </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-name" className="text-right">Nombre</Label>
-                    <Input id="doc-name" defaultValue={editingDoctor?.name || ''} className="col-span-3" />
+             <form onSubmit={handleSaveDoctor}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-name" className="text-right">Nombre</Label>
+                        <Input id="doc-name" name="doc-name" defaultValue={editingDoctor?.name || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-email" className="text-right">Email</Label>
+                        <Input id="doc-email" name="doc-email" type="email" defaultValue={editingDoctor?.email || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
+                        <Select name="doc-specialty" defaultValue={editingDoctor?.specialty}>
+                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                            <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-address" className="text-right">Dirección</Label>
+                        <Input id="doc-address" name="doc-address" defaultValue={editingDoctor?.address || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
+                         <Select name="doc-city" defaultValue={editingDoctor?.city}>
+                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                            <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-seller" className="text-right">Referido por</Label>
+                        <Select name="doc-seller" defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Selecciona una vendedora" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
+                                {sellers.map(s => (
+                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-email" className="text-right">Email</Label>
-                    <Input id="doc-email" type="email" defaultValue={editingDoctor?.email || ''} className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
-                    <Input id="doc-specialty" defaultValue={editingDoctor?.specialty || ''} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-address" className="text-right">Dirección</Label>
-                    <Input id="doc-address" defaultValue={editingDoctor?.address || ''} className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
-                    <Input id="doc-city" defaultValue={editingDoctor?.city || ''} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="doc-seller" className="text-right">Referido por</Label>
-                     <Select defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
-                        <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Selecciona una vendedora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
-                            {sellers.map(s => (
-                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit">Guardar Cambios</Button>
-            </DialogFooter>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Cambios</Button>
+                </DialogFooter>
+             </form>
         </DialogContent>
       </Dialog>
       

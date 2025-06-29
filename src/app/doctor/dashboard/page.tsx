@@ -626,6 +626,11 @@ export default function DoctorDashboardPage() {
     setEditingCoupon(null);
   };
   
+  const handleDeleteCoupon = (couponId: number) => {
+    setCoupons(prev => prev.filter(c => c.id !== couponId));
+    toast({ title: 'Cupón Eliminado' });
+  };
+  
   const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
@@ -1736,7 +1741,7 @@ export default function DoctorDashboardPage() {
                                     <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
                                     <TableCell className="text-right flex items-center justify-end gap-2">
                                         <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                        <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                        <Button size="icon" variant="destructive" onClick={() => handleDeleteCoupon(coupon.id)}><Trash2 className="h-4 w-4"/></Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

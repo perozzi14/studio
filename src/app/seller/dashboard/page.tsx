@@ -2,10 +2,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, sellers, type Seller, type BankDetail } from '@/lib/data';
+import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, sellers as allSellers, type Seller, type BankDetail } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -96,6 +96,8 @@ export default function SellerDashboardPage() {
   
   const [isPaymentDetailDialogOpen, setIsPaymentDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SellerPayment | null>(null);
+  
+  const currentTab = searchParams.get('view') || 'referrals';
 
   useEffect(() => {
     if (user === undefined) return;
@@ -104,7 +106,7 @@ export default function SellerDashboardPage() {
     } else if (user.role !== 'seller') {
       router.push('/');
     } else {
-      const currentSeller = sellers.find(s => s.email.toLowerCase() === user.email.toLowerCase());
+      const currentSeller = allSellers.find(s => s.email.toLowerCase() === user.email.toLowerCase());
       setSellerData(currentSeller || null);
       setIsLoading(false);
     }
@@ -125,9 +127,10 @@ export default function SellerDashboardPage() {
   }, [doctorSubscriptionFee, sellerData]);
 
   const financeStats = useMemo(() => {
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, nextPaymentDate: '' };
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
-    const totalEarned = mockSellerPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalEarned = mockSellerPayments.filter(p => p.sellerId === sellerData.id).reduce((sum, payment) => sum + payment.amount, 0);
     
     const now = new Date();
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
@@ -141,11 +144,11 @@ export default function SellerDashboardPage() {
       totalEarned,
       nextPaymentDate,
     };
-  }, [referredDoctors, commissionPerDoctor]);
+  }, [referredDoctors, commissionPerDoctor, sellerData]);
 
   const copyReferralLink = () => {
-    if (!user?.referralCode) return;
-    const link = `${window.location.origin}/auth/register?ref=${user.referralCode}`;
+    if (!sellerData?.referralCode) return;
+    const link = `${window.location.origin}/auth/register?ref=${sellerData.referralCode}`;
     navigator.clipboard.writeText(link);
     toast({
       title: "¡Enlace Copiado!",
@@ -217,7 +220,7 @@ export default function SellerDashboardPage() {
     );
   }
   
-  const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register?ref=${user.referralCode}`;
+  const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register?ref=${sellerData.referralCode}`;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
