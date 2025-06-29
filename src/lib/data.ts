@@ -6,6 +6,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -222,7 +223,7 @@ export const doctors: Doctor[] = [
     sellerId: 1,
     status: 'active',
     lastPaymentDate: '2024-05-28',
-    email: 'ana.rodriguez.dr@email.com',
+    email: 'doctor@admin.com',
     whatsapp: '0414-1234567',
     lat: 10.4996,
     lng: -66.8528,
@@ -712,6 +713,7 @@ export const mockMarketingMaterials: MarketingMaterial[] = [
 
 export type SupportTicket = {
     id: string;
+    userId: string; // email of user
     subject: string;
     status: 'abierto' | 'cerrado';
     date: string;
@@ -719,8 +721,10 @@ export type SupportTicket = {
 }
 
 export const mockSupportTickets: SupportTicket[] = [
+    // Seller tickets
     {
         id: 'ticket-1',
+        userId: 'vendedora@venta.com',
         subject: 'Problema con la comisión de un referido',
         status: 'abierto',
         date: '2024-05-20',
@@ -728,11 +732,29 @@ export const mockSupportTickets: SupportTicket[] = [
     },
     {
         id: 'ticket-2',
+        userId: 'vendedora@venta.com',
         subject: 'Cómo actualizar los datos de un médico',
         status: 'cerrado',
         date: '2024-05-15',
         lastReply: 'Hace 5 días',
     },
+    // Doctor tickets for doctor@admin.com (Dr. Ana Rodriguez)
+     {
+        id: 'ticket-3',
+        userId: 'doctor@admin.com',
+        subject: 'Duda sobre el horario de trabajo',
+        status: 'abierto',
+        date: '2024-05-28',
+        lastReply: 'Hace 1 día',
+    },
+    {
+        id: 'ticket-4',
+        userId: 'doctor@admin.com',
+        subject: 'Paciente no asistió a la cita',
+        status: 'cerrado',
+        date: '2024-05-18',
+        lastReply: 'Hace 1 semana',
+    }
 ];
 
 export type DoctorPayment = {
@@ -777,7 +799,7 @@ export const mockAdminSupportTickets: AdminSupportTicket[] = [
     },
     {
         id: 'ticket-admin-2',
-        userId: 'ana.rodriguez.dr@email.com',
+        userId: 'doctor@admin.com',
         userName: 'Dr. Ana Rodriguez',
         userRole: 'doctor',
         subject: 'Duda sobre el horario de trabajo',

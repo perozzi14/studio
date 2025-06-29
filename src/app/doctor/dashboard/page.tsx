@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, mockSupportTickets, type SupportTicket } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -58,6 +59,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useSettings } from '@/lib/settings';
 
 
 const chartConfig = {
@@ -153,9 +155,13 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
+  const { coupons, setCoupons } = useSettings();
+  
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [doctorCoupons, setDoctorCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
@@ -192,7 +198,10 @@ export default function DoctorDashboardPage() {
     { key: 'saturday', label: 'Sábado' },
     { key: 'sunday', label: 'Domingo' },
   ] as { key: keyof Schedule; label: string }[]);
-
+  
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user === undefined) return;
@@ -201,7 +210,7 @@ export default function DoctorDashboardPage() {
     } else if (user.role !== 'doctor') {
       router.push('/dashboard');
     } else {
-      const loggedInDoctor = doctors.find(d => d.id === 1);
+      const loggedInDoctor = doctors.find(d => d.email.toLowerCase() === user.email.toLowerCase());
       if (loggedInDoctor) {
         setDoctorData(loggedInDoctor);
         setPublicProfileUrl(`${window.location.origin}/doctors/${loggedInDoctor.id}`);
@@ -211,10 +220,13 @@ export default function DoctorDashboardPage() {
 
         const doctorExpenses = mockExpenses.filter(exp => exp.doctorId === loggedInDoctor.id);
         setExpenses(doctorExpenses);
+
+        setDoctorCoupons(coupons.filter(c => c.scope === loggedInDoctor.id));
+        setSupportTickets(mockSupportTickets.filter(t => t.userId === user.email));
       }
       setIsLoading(false);
     }
-  }, [user, router]);
+  }, [user, router, coupons]);
   
   const handleTabChange = (value: string) => {
     router.push(`/doctor/dashboard?view=${value}`);
@@ -509,7 +521,6 @@ export default function DoctorDashboardPage() {
     setExpenses(expenses.filter(e => e.id !== expenseId));
   };
   
-
   const handleUpdateAttendance = (appointmentId: string, attendance: 'Atendido' | 'No Asistió') => {
     setAppointments(prev =>
       prev.map(appt =>
@@ -535,6 +546,73 @@ export default function DoctorDashboardPage() {
         description: "La URL de tu perfil público ha sido copiada.",
     });
   };
+
+  const handleSaveCoupon = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!doctorData) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const code = formData.get('code') as string;
+    const discountType = formData.get('discountType') as 'percentage' | 'fixed';
+    const value = parseFloat(formData.get('value') as string);
+    
+    if (!code || !discountType || isNaN(value)) {
+        toast({ variant: 'destructive', title: 'Faltan datos', description: 'Por favor, completa todos los campos.' });
+        return;
+    }
+    
+    if (editingCoupon) {
+        const updatedCoupons = coupons.map(c => 
+            c.id === editingCoupon.id ? { ...c, code, discountType, value } : c
+        );
+        setCoupons(updatedCoupons);
+        toast({ title: 'Cupón actualizado' });
+    } else {
+        const newCoupon: Coupon = {
+            id: Date.now(),
+            code: code.toUpperCase(),
+            discountType,
+            value,
+            scope: doctorData.id,
+        };
+        setCoupons([...coupons, newCoupon]);
+        toast({ title: 'Cupón creado' });
+    }
+    
+    setIsCouponDialogOpen(false);
+    setEditingCoupon(null);
+  };
+  
+  const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const subject = formData.get('subject') as string;
+    const description = formData.get('description') as string;
+    
+    if (!subject || !description) return;
+
+    const newTicket: SupportTicket = {
+      id: `ticket-${Date.now()}`,
+      userId: user.email,
+      subject,
+      status: 'abierto',
+      date: new Date().toISOString().split('T')[0],
+      lastReply: 'Recién enviado',
+    };
+    
+    setSupportTickets(prev => [newTicket, ...prev]);
+
+    toast({
+      title: "Ticket Enviado",
+      description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA.",
+    });
+    
+    setIsSupportDialogOpen(false);
+    (e.target as HTMLFormElement).reset();
+  };
+
 
   if (isLoading || !user || !doctorData || !financialStats) {
     return (
@@ -1163,31 +1241,92 @@ export default function DoctorDashboardPage() {
               </TabsContent>
 
               <TabsContent value="coupons" className="mt-6">
-                  <Card>
-                      <CardHeader>
+                <Card>
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
                           <CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle>
                           <CardDescription>Crea y gestiona cupones para atraer más pacientes.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                              <Tag className="h-12 w-12" />
-                              <p>La funcionalidad de gestión de cupones estará disponible próximamente.</p>
-                          </div>
-                      </CardContent>
-                  </Card>
+                        </div>
+                        <Button onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}>
+                            <PlusCircle className="mr-2"/> Crear Cupón
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Código</TableHead>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Valor</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {doctorCoupons.map(coupon => (
+                                <TableRow key={coupon.id}>
+                                    <TableCell className="font-mono">{coupon.code}</TableCell>
+                                    <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
+                                    <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
+                                    <TableCell className="text-right flex items-center justify-end gap-2">
+                                        <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                        <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                             {doctorCoupons.length === 0 && (
+                                  <TableRow>
+                                      <TableCell colSpan={4} className="h-24 text-center">No has creado cupones.</TableCell>
+                                  </TableRow>
+                              )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="support" className="mt-6">
                   <Card>
-                      <CardHeader>
-                          <CardTitle className="flex items-center gap-2"><LifeBuoy /> Soporte y Ayuda</CardTitle>
-                          <CardDescription>Encuentra respuestas a tus preguntas y contacta a nuestro equipo.</CardDescription>
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                            <CardTitle className="flex items-center gap-2"><LifeBuoy /> Soporte y Ayuda</CardTitle>
+                            <CardDescription>Encuentra respuestas a tus preguntas y contacta a nuestro equipo.</CardDescription>
+                          </div>
+                           <Button onClick={() => setIsSupportDialogOpen(true)}>
+                              <MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Ticket
+                          </Button>
                       </CardHeader>
                       <CardContent>
-                          <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                              <LifeBuoy className="h-12 w-12" />
-                              <p>El centro de ayuda estará disponible próximamente.</p>
-                          </div>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Fecha</TableHead>
+                                      <TableHead>Asunto</TableHead>
+                                      <TableHead>Estado</TableHead>
+                                      <TableHead className="text-right">Acciones</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                              {supportTickets.map(ticket => (
+                                  <TableRow key={ticket.id}>
+                                      <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                      <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                      <TableCell>
+                                          <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                              {ticket.status}
+                                          </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                           <Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                               {supportTickets.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell>
+                                    </TableRow>
+                                )}
+                              </TableBody>
+                          </Table>
                       </CardContent>
                   </Card>
               </TabsContent>
@@ -1331,6 +1470,61 @@ export default function DoctorDashboardPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        <Dialog open={isCouponDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCoupon(null); setIsCouponDialogOpen(isOpen); }}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
+                  <DialogDescription>Completa la información para el cupón de descuento.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSaveCoupon}>
+                <div className="space-y-4 py-4">
+                    <div><Label htmlFor="code">Código</Label><Input id="code" name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
+                    <div><Label>Tipo de Descuento</Label>
+                        <RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
+                            <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
+                            <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
+                        </RadioGroup>
+                    </div>
+                    <div><Label htmlFor="value">Valor</Label><Input id="value" name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Cupón</Button>
+                </DialogFooter>
+              </form>
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Abrir un Ticket de Soporte</DialogTitle>
+                    <DialogDescription>
+                        Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateTicket}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="subject" className="text-right">Asunto</Label>
+                            <Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="description" className="text-right">Descripción</Label>
+                            <Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">Cancelar</Button>
+                        </DialogClose>
+                        <Button type="submit">Enviar Ticket</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 }
