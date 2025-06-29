@@ -4,6 +4,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -791,4 +792,53 @@ export const mockAdminSupportTickets: AdminSupportTicket[] = [
         status: 'cerrado',
         date: '2024-05-15',
     },
+];
+
+export type AdminNotification = {
+    id: string;
+    type: 'payment' | 'new_doctor' | 'support_ticket';
+    title: string;
+    description: string;
+    date: string; // ISO string
+    read: boolean;
+    link: string;
+};
+
+export const mockAdminNotifications: AdminNotification[] = [
+    {
+        id: 'notif-admin-1',
+        type: 'payment',
+        title: 'Pago Pendiente de Aprobación',
+        description: 'El Dr. Sofia Gomez ha reportado un pago de suscripción.',
+        date: new Date(new Date().setDate(new Date().getDate() - 0)).toISOString(),
+        read: false,
+        link: '/admin/dashboard?view=finances'
+    },
+    {
+        id: 'notif-admin-2',
+        type: 'support_ticket',
+        title: 'Nuevo Ticket de Soporte',
+        description: 'Vendedora Principal ha abierto un nuevo ticket.',
+        date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(),
+        read: false,
+        link: '/admin/dashboard?view=support'
+    },
+    {
+        id: 'notif-admin-3',
+        type: 'new_doctor',
+        title: 'Nuevo Médico Registrado',
+        description: 'Dra. Laura Montes se ha unido a la plataforma.',
+        date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
+        read: true,
+        link: '/admin/dashboard?view=doctors'
+    },
+    {
+        id: 'notif-admin-4',
+        type: 'payment',
+        title: 'Pago Aprobado',
+        description: 'Has aprobado el pago de Dr. Luis Fernandez.',
+        date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString(),
+        read: true,
+        link: '/admin/dashboard?view=finances'
+    }
 ];

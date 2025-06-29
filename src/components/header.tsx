@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -30,6 +30,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { useState, useMemo } from "react";
+import { mockAdminNotifications, type AdminNotification } from "@/lib/data";
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 export function Header() {
@@ -37,6 +41,25 @@ export function Header() {
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>(mockAdminNotifications);
+  const adminUnreadCount = useMemo(() => adminNotifications.filter(n => !n.read).length, [adminNotifications]);
+
+  const markAdminNotificationsAsRead = () => {
+    setTimeout(() => {
+        setAdminNotifications(prev => prev.map(n => ({...n, read: true})));
+    }, 500);
+  };
+  
+  const getAdminNotificationIcon = (type: AdminNotification['type']) => {
+    switch(type) {
+        case 'payment': return <DollarSign className="h-4 w-4 text-green-500" />;
+        case 'new_doctor': return <UserPlus className="h-4 w-4 text-blue-500" />;
+        case 'support_ticket': return <Ticket className="h-4 w-4 text-orange-500" />;
+        default: return <BellRing className="h-4 w-4 text-primary" />;
+    }
+  };
+
 
   const patientNavLinks = [
     { href: "/find-a-doctor", label: "Buscar Médico" },
@@ -62,6 +85,7 @@ export function Header() {
     : '/dashboard';
 
   const isPatient = user?.role === 'patient';
+  const isAdmin = user?.role === 'admin';
 
 
   return (
@@ -88,6 +112,46 @@ export function Header() {
               </Button>
             );
           })}
+
+          {user && isAdmin && (
+            <Popover onOpenChange={(open) => { if (open) markAdminNotificationsAsRead() }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative ml-2">
+                  <Bell className="h-5 w-5" />
+                  {adminUnreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
+                  <span className="sr-only">Ver notificaciones de admin</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 md:w-96">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <h4 className="font-medium text-sm">Notificaciones</h4>
+                </div>
+                {adminNotifications.length > 0 ? (
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
+                    {adminNotifications.map(n => (
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
+                        <div className="mt-1">
+                          {getAdminNotificationIcon(n.type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
           
           {user && isPatient && (
             <Popover onOpenChange={(open) => {
@@ -206,6 +270,46 @@ export function Header() {
           )}
         </nav>
         <div className="md:hidden ml-auto flex items-center gap-1">
+          {user && isAdmin && (
+            <Popover onOpenChange={(open) => { if (open) markAdminNotificationsAsRead() }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {adminUnreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
+                  <span className="sr-only">Ver notificaciones de admin</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <h4 className="font-medium text-sm">Notificaciones</h4>
+                </div>
+                {adminNotifications.length > 0 ? (
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
+                    {adminNotifications.map(n => (
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
+                        <div className="mt-1">
+                          {getAdminNotificationIcon(n.type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
+
           {user && isPatient && (
             <Popover onOpenChange={(open) => {
               if (open && unreadCount > 0) {
