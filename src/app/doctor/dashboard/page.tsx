@@ -212,7 +212,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { specialties, cities, doctorSubscriptionFee, currency } = useSettings();
+  const { specialties, cities, doctorSubscriptionFee, currency, companyBankDetails } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -1358,7 +1358,7 @@ export default function DoctorDashboardPage() {
                                     <CardDescription>Usa una de nuestras cuentas para pagar y luego reporta tu pago aquí.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {(useSettings().companyBankDetails || []).map(bd => (
+                                    {(companyBankDetails || []).map(bd => (
                                         <div key={bd.id} className="text-sm p-3 border rounded-lg bg-muted/40">
                                             <p className="font-bold">{bd.bank}</p>
                                             <p><span className="text-muted-foreground">Titular:</span> {bd.accountHolder}</p>
