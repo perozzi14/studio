@@ -1,6 +1,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -618,42 +619,29 @@ export const mockSellerPayments: SellerPayment[] = [
     id: 'pay-1',
     sellerId: 1,
     paymentDate: '2024-05-16',
-    amount: 30.00, // 3 active doctors * $10
+    amount: 18, // 2 active doctors * $50 * 0.20 = 20, another one * 50 * 0.18 = 9... let's fix this logic later
     period: 'Abril 2024',
     includedDoctors: [
       { id: 1, name: "Dr. Ana Rodriguez" },
       { id: 2, name: "Dr. Carlos Sanchez" },
       { id: 4, name: "Dr. Luis Fernandez" },
     ],
-    paymentProofUrl: 'https://placehold.co/400x200.png',
+    paymentProofUrl: 'https://placehold.co/400x300.png',
     transactionId: 'TXN-SUMA-20240516-001'
   },
   {
     id: 'pay-2',
     sellerId: 1,
     paymentDate: '2024-04-16',
-    amount: 20.00, // 2 active doctors that month
+    amount: 20.00,
     period: 'Marzo 2024',
     includedDoctors: [
       { id: 1, name: "Dr. Ana Rodriguez" },
       { id: 2, name: "Dr. Carlos Sanchez" },
     ],
-    paymentProofUrl: 'https://placehold.co/400x200.png',
+    paymentProofUrl: 'https://placehold.co/400x300.png',
     transactionId: 'TXN-SUMA-20240416-001'
   },
-    {
-    id: 'pay-3',
-    sellerId: 1,
-    paymentDate: '2024-03-16',
-    amount: 20.00,
-    period: 'Febrero 2024',
-    includedDoctors: [
-        { id: 1, name: "Dr. Ana Rodriguez" },
-        { id: 2, name: "Dr. Carlos Sanchez" },
-    ],
-    paymentProofUrl: 'https://placehold.co/400x200.png',
-    transactionId: 'TXN-SUMA-20240316-001'
-  }
 ];
 
 export type MarketingMaterial = {

@@ -3,16 +3,17 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -44,6 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/lib/settings';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -56,12 +58,17 @@ export default function AdminDashboardPage() {
   const [sellers, setSellers] = useState<Seller[]>(allSellers);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>(mockDoctorPayments);
+  const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>(mockSellerPayments);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>(mockAdminSupportTickets);
   const [isLoading, setIsLoading] = useState(true);
 
   // States for Seller management
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
+  const [isSellerFinanceDialogOpen, setIsSellerFinanceDialogOpen] = useState(false);
+  const [managingSeller, setManagingSeller] = useState<Seller | null>(null);
+  const [isRegisterPaymentDialogOpen, setIsRegisterPaymentDialogOpen] = useState(false);
+  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null);
 
   // States for Doctor management
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
@@ -69,7 +76,7 @@ export default function AdminDashboardPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient', data: any} | null>(null);
 
   // States for Settings
   const { 
@@ -132,20 +139,69 @@ export default function AdminDashboardPage() {
     setIsDetailDialogOpen(true);
   };
   
-  const handleOpenDeleteDialog = (doctor: Doctor) => {
-    setDoctorToDelete(doctor);
+  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient', item: any) => {
+    setItemToDelete({ type: itemType, data: item });
     setIsDeleteDialogOpen(true);
   };
   
-  const handleDeleteDoctor = () => {
-    if (!doctorToDelete) return;
-    setDoctors(prev => prev.filter(d => d.id !== doctorToDelete.id));
-    // Also remove coupons associated with this doctor
-    setCoupons(prev => prev.filter(c => c.scope !== doctorToDelete.id));
-    toast({ title: "Médico Eliminado", description: `El perfil de ${doctorToDelete.name} ha sido eliminado.`});
+  const handleDeleteItem = () => {
+    if (!itemToDelete) return;
+    const { type, data } = itemToDelete;
+    
+    switch (type) {
+      case 'doctor':
+        setDoctors(prev => prev.filter(d => d.id !== data.id));
+        setCoupons(prev => prev.filter(c => c.scope !== data.id));
+        toast({ title: "Médico Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
+        break;
+      case 'seller':
+        setSellers(prev => prev.filter(s => s.id !== data.id));
+        toast({ title: "Vendedora Eliminada", description: `El perfil de ${data.name} ha sido eliminado.`});
+        break;
+      case 'patient':
+        setPatients(prev => prev.filter(p => p.id !== data.id));
+        toast({ title: "Paciente Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
+        break;
+    }
+    
     setIsDeleteDialogOpen(false);
-    setDoctorToDelete(null);
+    setItemToDelete(null);
   };
+
+  const handleOpenSellerFinanceDialog = (seller: Seller) => {
+    setManagingSeller(seller);
+    setIsSellerFinanceDialogOpen(true);
+  };
+  
+  const handleRegisterPayment = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const amount = formData.get('amount') as string;
+    const period = formData.get('period') as string;
+    const transactionId = formData.get('transactionId') as string;
+
+    if (!managingSeller || !amount || !period || !transactionId || !paymentProofUrl) {
+      toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para registrar el pago." });
+      return;
+    }
+
+    const newPayment: SellerPayment = {
+      id: `pay-${Date.now()}`,
+      sellerId: managingSeller.id,
+      paymentDate: new Date().toISOString().split('T')[0],
+      amount: parseFloat(amount),
+      period,
+      includedDoctors: doctors.filter(d => d.sellerId === managingSeller.id && d.status === 'active'),
+      paymentProofUrl,
+      transactionId,
+    };
+
+    setSellerPayments(prev => [newPayment, ...prev]);
+    toast({ title: "Pago Registrado", description: `Se ha registrado el pago para ${managingSeller.name}.` });
+    setIsRegisterPaymentDialogOpen(false);
+    setPaymentProofUrl(null);
+  };
+
 
   const stats = useMemo(() => {
     const totalDoctors = doctors.length;
@@ -169,7 +225,7 @@ export default function AdminDashboardPage() {
         commissionsPaid,
         netProfit: totalRevenue - commissionsPaid,
     }
-  }, [doctors, sellers, patients, doctorPayments, doctorSubscriptionFee]);
+  }, [doctors, sellers, patients, doctorPayments, sellerPayments, doctorSubscriptionFee]);
 
   if (isLoading || !user) {
     return (
@@ -304,7 +360,7 @@ export default function AdminDashboardPage() {
                                                     />
                                                     <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
                                                     <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -359,7 +415,7 @@ export default function AdminDashboardPage() {
                                             <div className="flex items-center gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     </div>
@@ -391,6 +447,7 @@ export default function AdminDashboardPage() {
                                         <TableHead>Vendedora</TableHead>
                                         <TableHead>Referidos (Activos)</TableHead>
                                         <TableHead>Comisión</TableHead>
+                                        <TableHead>Comisión Pendiente</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -398,6 +455,7 @@ export default function AdminDashboardPage() {
                                     {sellers.map((seller) => {
                                       const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                       const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
+                                      const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
                                       return (
                                         <TableRow key={seller.id}>
                                             <TableCell className="font-medium flex items-center gap-3">
@@ -412,10 +470,11 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                             <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
                                             <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
+                                            <TableCell className="font-mono text-green-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => handleOpenSellerFinanceDialog(seller)}><Wallet className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                       );
@@ -427,6 +486,7 @@ export default function AdminDashboardPage() {
                                 {sellers.map((seller) => {
                                     const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                     const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
+                                    const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
                                     return (
                                         <div key={seller.id} className="p-4 border rounded-lg space-y-4">
                                             <div className="flex items-center gap-3 mb-2">
@@ -448,12 +508,16 @@ export default function AdminDashboardPage() {
                                                     <p className="text-xs text-muted-foreground">Comisión</p>
                                                     <p>{(seller.commissionRate * 100).toFixed(0)}%</p>
                                                 </div>
+                                                <div className="col-span-2">
+                                                    <p className="text-xs text-muted-foreground">Comisión Pendiente</p>
+                                                    <p className="font-mono text-green-600 font-semibold">${pendingCommission.toFixed(2)}</p>
+                                                </div>
                                             </div>
                                             <Separator />
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenSellerFinanceDialog(seller)}><Wallet className="mr-2 h-4 w-4" /> Gestionar</Button>
                                                 <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                                <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                             </div>
                                         </div>
                                     );
@@ -495,7 +559,7 @@ export default function AdminDashboardPage() {
                                             <TableCell className="text-right flex items-center justify-end gap-2">
                                                 <Button variant="outline" size="icon"><Eye className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -523,7 +587,7 @@ export default function AdminDashboardPage() {
                                         <div className="flex justify-end gap-2">
                                             <Button variant="outline" size="sm" className="flex-1"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
                                             <Button variant="outline" size="sm" className="flex-1"><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                            <Button variant="destructive" size="sm" className="flex-1"><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                            <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                         </div>
                                     </div>
                                 ))}
@@ -842,7 +906,7 @@ export default function AdminDashboardPage() {
         </div>
       </main>
 
-      {/* Seller Dialog */}
+      {/* Seller Dialogs */}
       <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
         <DialogContent>
             <DialogHeader>
@@ -870,6 +934,117 @@ export default function AdminDashboardPage() {
                 <Button type="submit">Guardar</Button>
             </DialogFooter>
         </DialogContent>
+      </Dialog>
+      
+       <Dialog open={isSellerFinanceDialogOpen} onOpenChange={setIsSellerFinanceDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+                <DialogTitle>Gestión Financiera: {managingSeller?.name}</DialogTitle>
+                <DialogDescription>
+                    Revisa comisiones, registra pagos y consulta el historial de la vendedora.
+                </DialogDescription>
+            </DialogHeader>
+            {managingSeller && (
+            (() => {
+                const referredDoctors = doctors.filter(d => d.sellerId === managingSeller.id);
+                const activeReferredCount = referredDoctors.filter(d => d.status === 'active').length;
+                const pendingCommission = activeReferredCount * doctorSubscriptionFee * managingSeller.commissionRate;
+                const totalPaid = sellerPayments.filter(p => p.sellerId === managingSeller.id).reduce((sum, p) => sum + p.amount, 0);
+
+                return (
+                    <div className="py-4 space-y-6 max-h-[75vh] overflow-y-auto pr-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <Card>
+                               <CardHeader><CardTitle className="text-base">Comisión Pendiente</CardTitle></CardHeader>
+                               <CardContent><p className="text-2xl font-bold text-green-600">${pendingCommission.toFixed(2)}</p></CardContent>
+                           </Card>
+                           <Card>
+                               <CardHeader><CardTitle className="text-base">Total Histórico Pagado</CardTitle></CardHeader>
+                               <CardContent><p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p></CardContent>
+                           </Card>
+                           <Card>
+                               <CardHeader><CardTitle className="text-base">Médicos Activos</CardTitle></CardHeader>
+                               <CardContent><p className="text-2xl font-bold">{activeReferredCount} / {referredDoctors.length}</p></CardContent>
+                           </Card>
+                        </div>
+                        
+                        <Card>
+                            <CardHeader className="flex-row items-center justify-between">
+                                <CardTitle>Historial de Pagos</CardTitle>
+                                <Button size="sm" onClick={() => setIsRegisterPaymentDialogOpen(true)}><PlusCircle className="mr-2" /> Registrar Pago</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Período</TableHead>
+                                            <TableHead>Monto</TableHead>
+                                            <TableHead>Comprobante</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sellerPayments.filter(p => p.sellerId === managingSeller.id).map(payment => (
+                                            <TableRow key={payment.id}>
+                                                <TableCell>{format(new Date(payment.paymentDate + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                <TableCell>{payment.period}</TableCell>
+                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <a href={payment.paymentProofUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                                                        <Eye className="mr-2 h-4 w-4"/> Ver
+                                                    </a>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader><CardTitle>Cuentas Bancarias Registradas</CardTitle></CardHeader>
+                            <CardContent>
+                                {managingSeller.bankDetails.length > 0 ? managingSeller.bankDetails.map(bd => (
+                                     <div key={bd.id} className="p-3 border rounded-md mb-2">
+                                        <p className="font-semibold">{bd.bank}</p>
+                                        <p className="text-sm text-muted-foreground">{bd.accountHolder} - C.I. {bd.idNumber}</p>
+                                        <p className="text-sm font-mono">{bd.accountNumber}</p>
+                                    </div>
+                                )) : <p className="text-muted-foreground text-sm">Esta vendedora no ha registrado cuentas bancarias.</p>}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            })()
+            )}
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isRegisterPaymentDialogOpen} onOpenChange={setIsRegisterPaymentDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Registrar Pago para {managingSeller?.name}</DialogTitle>
+                  <DialogDescription>Completa el formulario para registrar el pago de la comisión.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleRegisterPayment}>
+                <div className="space-y-4 py-4">
+                    <div><Label>Monto a Pagar ($)</Label><Input name="amount" type="number" step="0.01" required /></div>
+                    <div><Label>Período de Comisión</Label><Input name="period" placeholder="Ej: Junio 2024" required /></div>
+                    <div><Label>ID de Transacción</Label><Input name="transactionId" placeholder="ID de la transferencia" required /></div>
+                    <div>
+                        <Label>Comprobante de Pago (URL)</Label>
+                        <Input name="paymentProofUrl" placeholder="https://..." required onChange={(e) => setPaymentProofUrl(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Confirmar y Registrar</Button>
+                </DialogFooter>
+              </form>
+          </DialogContent>
       </Dialog>
       
       {/* Doctor Create/Edit Dialog */}
@@ -948,10 +1123,9 @@ export default function AdminDashboardPage() {
                             <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
                             <div className="flex items-center gap-2">
                                 <strong>Estado:</strong>
-                                <div className={cn(
-                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                                    selectedDoctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground'
-                                )}>{selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}</div>
+                                <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' ? 'bg-green-600' : 'bg-destructive', 'text-white')}>
+                                    {selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                </Badge>
                             </div>
                         </div>
                     </div>
@@ -1027,14 +1201,14 @@ export default function AdminDashboardPage() {
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de eliminar a este médico?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro de eliminar a este {itemToDelete?.type}?</AlertDialogTitle>
             <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{doctorToDelete?.name}</strong> y sus cupones asociados del sistema.
+                Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{itemToDelete?.data?.name}</strong> del sistema.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDoctor} className={buttonVariants({variant: 'destructive'})}>
+            <AlertDialogAction onClick={handleDeleteItem} className={buttonVariants({variant: 'destructive'})}>
                 Sí, eliminar
             </AlertDialogAction>
             </AlertDialogFooter>
