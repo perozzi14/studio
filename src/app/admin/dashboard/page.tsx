@@ -150,7 +150,6 @@ export default function AdminDashboardPage() {
 
   // States for Settings & Company Finances
   const { 
-      settings,
       doctorSubscriptionFee,
       cities,
       specialties,
@@ -239,8 +238,12 @@ export default function AdminDashboardPage() {
 
 
   useEffect(() => {
-    setTempSubscriptionFee(doctorSubscriptionFee.toString());
-    setTempLogoUrl(logoUrl);
+    if (doctorSubscriptionFee) {
+        setTempSubscriptionFee(doctorSubscriptionFee.toString());
+    }
+    if (logoUrl) {
+        setTempLogoUrl(logoUrl);
+    }
   }, [doctorSubscriptionFee, logoUrl]);
   
   const handleSaveSettings = async () => {

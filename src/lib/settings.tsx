@@ -1,55 +1,214 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { specialties as initialSpecialties, cities as initialCities, mockCoupons, type Coupon, mockCompanyBankDetails, type BankDetail, mockCompanyExpenses, type CompanyExpense } from './data';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import * as firestoreService from './firestoreService';
+import type { AppSettings, Coupon, CompanyExpense, BankDetail } from './types';
+import { useToast } from '@/hooks/use-toast';
 
 interface SettingsContextType {
+  settings: AppSettings | null;
   doctorSubscriptionFee: number;
-  setDoctorSubscriptionFee: (fee: number) => void;
   cities: string[];
-  setCities: (cities: string[]) => void;
   specialties: string[];
-  setSpecialties: (specialties: string[]) => void;
-  coupons: Coupon[];
-  setCoupons: (coupons: Coupon[]) => void;
   timezone: string;
-  setTimezone: (timezone: string) => void;
   logoUrl: string;
-  setLogoUrl: (url: string) => void;
   currency: string;
-  setCurrency: (currency: string) => void;
   companyBankDetails: BankDetail[];
-  setCompanyBankDetails: (details: BankDetail[]) => void;
   companyExpenses: CompanyExpense[];
-  setCompanyExpenses: (expenses: CompanyExpense[]) => void;
+  coupons: Coupon[];
+
+  updateSetting: (key: keyof Omit<AppSettings, 'cities' | 'specialties' | 'companyBankDetails'>, value: any) => Promise<void>;
+  
+  addListItem: (listName: 'cities' | 'specialties', item: string) => Promise<void>;
+  updateListItem: (listName: 'cities' | 'specialties', oldItem: string, newItem: string) => Promise<void>;
+  deleteListItem: (listName: 'cities' | 'specialties', item: string) => Promise<void>;
+  
+  addCompanyExpense: (expense: Omit<CompanyExpense, 'id'>) => Promise<void>;
+  updateCompanyExpense: (id: string, data: Partial<CompanyExpense>) => Promise<void>;
+  deleteCompanyExpense: (id: string) => Promise<void>;
+
+  addCoupon: (coupon: Omit<Coupon, 'id'>) => Promise<void>;
+  updateCoupon: (id: string, data: Partial<Coupon>) => Promise<void>;
+  deleteCoupon: (id: string) => Promise<void>;
+  
+  addBankDetail: (bankDetail: Omit<BankDetail, 'id'>) => Promise<void>;
+  updateBankDetail: (id: string, data: Partial<BankDetail>) => Promise<void>;
+  deleteBankDetail: (id: string) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+const skeletonContextValue: SettingsContextType = {
+  settings: null,
+  doctorSubscriptionFee: 50, // A sensible default
+  cities: [],
+  specialties: [],
+  timezone: '',
+  logoUrl: '',
+  currency: 'USD',
+  companyBankDetails: [],
+  companyExpenses: [],
+  coupons: [],
+  updateSetting: async () => {},
+  addListItem: async () => {},
+  updateListItem: async () => {},
+  deleteListItem: async () => {},
+  addCompanyExpense: async () => {},
+  updateCompanyExpense: async () => {},
+  deleteCompanyExpense: async () => {},
+  addCoupon: async () => {},
+  updateCoupon: async () => {},
+  deleteCoupon: async () => {},
+  addBankDetail: async () => {},
+  updateBankDetail: async () => {},
+  deleteBankDetail: async () => {},
+};
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [doctorSubscriptionFee, setDoctorSubscriptionFee] = useState<number>(50);
-  const [cities, setCities] = useState<string[]>(initialCities);
-  const [specialties, setSpecialties] = useState<string[]>(initialSpecialties);
-  const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
-  const [timezone, setTimezone] = useState<string>('America/Caracas');
-  const [logoUrl, setLogoUrl] = useState<string>('/logo.svg'); // Placeholder
-  const [currency, setCurrency] = useState<string>('USD');
-  const [companyBankDetails, setCompanyBankDetails] = useState<BankDetail[]>(mockCompanyBankDetails);
-  const [companyExpenses, setCompanyExpenses] = useState<CompanyExpense[]>(mockCompanyExpenses);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [companyExpenses, setCompanyExpenses] = useState<CompanyExpense[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const [settingsData, expensesData, couponsData] = await Promise.all([
+          firestoreService.getSettings(),
+          firestoreService.getCompanyExpenses(),
+          firestoreService.getCoupons()
+        ]);
+        setSettings(settingsData);
+        setCompanyExpenses(expensesData);
+        setCoupons(couponsData);
+    } catch (error) {
+        console.error("Failed to fetch settings:", error);
+        toast({ variant: 'destructive', title: "Error de Carga", description: "No se pudo cargar la configuración."});
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const updateSetting = useCallback(async (key: keyof AppSettings, value: any) => {
+    if (!settings) return;
+    const newSettings = { ...settings, [key]: value };
+    await firestoreService.updateSettings({ [key]: value });
+    setSettings(newSettings);
+  }, [settings]);
+  
+  const addListItem = useCallback(async (listName: 'cities' | 'specialties', item: string) => {
+    if (!settings || !item) return;
+    const list = settings[listName] || [];
+    if (list.map(i => i.toLowerCase()).includes(item.toLowerCase())) {
+        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `"${item}" ya existe en la lista.` });
+        return;
+    }
+    const newList = [...list, item];
+    await updateSetting(listName, newList);
+  }, [settings, updateSetting, toast]);
+
+  const updateListItem = useCallback(async (listName: 'cities' | 'specialties', oldItem: string, newItem: string) => {
+    if (!settings || !newItem) return;
+    const list = settings[listName] || [];
+    const newList = list.map(item => item === oldItem ? newItem : item);
+    await updateSetting(listName, newList);
+  }, [settings, updateSetting]);
+
+  const deleteListItem = useCallback(async (listName: 'cities' | 'specialties', itemToDelete: string) => {
+    if (!settings) return;
+    const list = settings[listName] || [];
+    const newList = list.filter(item => item !== itemToDelete);
+    await updateSetting(listName, newList);
+  }, [settings, updateSetting]);
+
+  const addCompanyExpense = useCallback(async (expense: Omit<CompanyExpense, 'id'>) => {
+    await firestoreService.addCompanyExpense(expense);
+    fetchData();
+  }, [fetchData]);
+
+  const updateCompanyExpense = useCallback(async (id: string, data: Partial<CompanyExpense>) => {
+    await firestoreService.updateCompanyExpense(id, data);
+    fetchData();
+  }, [fetchData]);
+  
+  const deleteCompanyExpense = useCallback(async (id: string) => {
+    await firestoreService.deleteCompanyExpense(id);
+    fetchData();
+  }, [fetchData]);
+
+  const addCoupon = useCallback(async (coupon: Omit<Coupon, 'id'>) => {
+    await firestoreService.addCoupon(coupon);
+    fetchData();
+  }, [fetchData]);
+
+  const updateCoupon = useCallback(async (id: string, data: Partial<Coupon>) => {
+    await firestoreService.updateCoupon(id, data);
+    fetchData();
+  }, [fetchData]);
+
+  const deleteCoupon = useCallback(async (id: string) => {
+    await firestoreService.deleteCoupon(id);
+    fetchData();
+  }, [fetchData]);
+
+  const addBankDetail = useCallback(async (bankDetail: Omit<BankDetail, 'id'>) => {
+    if (!settings) return;
+    const newList = [...(settings.companyBankDetails || []), { ...bankDetail, id: `bank-${Date.now()}` }];
+    await updateSetting('companyBankDetails', newList);
+  }, [settings, updateSetting]);
+
+  const updateBankDetail = useCallback(async (id: string, data: Partial<BankDetail>) => {
+    if (!settings) return;
+    const newList = settings.companyBankDetails.map(bd => bd.id === id ? { ...bd, ...data } : bd);
+    await updateSetting('companyBankDetails', newList);
+  }, [settings, updateSetting]);
+  
+  const deleteBankDetail = useCallback(async (id: string) => {
+    if (!settings) return;
+    const newList = settings.companyBankDetails.filter(bd => bd.id !== id);
+    await updateSetting('companyBankDetails', newList);
+  }, [settings, updateSetting]);
 
 
-  const value = { 
-    doctorSubscriptionFee, setDoctorSubscriptionFee,
-    cities, setCities,
-    specialties, setSpecialties,
-    coupons, setCoupons,
-    timezone, setTimezone,
-    logoUrl, setLogoUrl,
-    currency, setCurrency,
-    companyBankDetails, setCompanyBankDetails,
-    companyExpenses, setCompanyExpenses
-   };
+  const value: SettingsContextType = {
+    settings,
+    doctorSubscriptionFee: settings?.doctorSubscriptionFee || 0,
+    cities: settings?.cities || [],
+    specialties: settings?.specialties || [],
+    timezone: settings?.timezone || '',
+    logoUrl: settings?.logoUrl || '',
+    currency: settings?.currency || 'USD',
+    companyBankDetails: settings?.companyBankDetails || [],
+    companyExpenses,
+    coupons,
+    updateSetting,
+    addListItem,
+    updateListItem,
+    deleteListItem,
+    addCompanyExpense,
+    updateCompanyExpense,
+    deleteCompanyExpense,
+    addCoupon,
+    updateCoupon,
+    deleteCoupon,
+    addBankDetail,
+    updateBankDetail,
+    deleteBankDetail,
+  };
+
+  if (isLoading) {
+    return (
+      <SettingsContext.Provider value={skeletonContextValue}>
+        {children}
+      </SettingsContext.Provider>
+    );
+  }
 
   return (
     <SettingsContext.Provider value={value}>

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import type { Appointment } from './data';
+import type { Appointment } from './types';
 import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -29,7 +29,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const checkAndSetNotifications = useCallback((appointments: Appointment[]) => {
-    const newNotifications: Notification[] = [];
+    const newNotificationsMap = new Map<string, Notification>();
     const now = new Date();
 
     appointments.forEach(appt => {
@@ -38,8 +38,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       const createNotification = (timeframe: '24h' | '3h') => {
         const id = `${appt.id}-${timeframe}`;
-        // Avoid creating duplicate notifications that are already in the state
-        if (notifications.some(n => n.id === id)) return;
         
         const title = timeframe === '24h' 
           ? `Recordatorio: Cita Mañana`
@@ -47,7 +45,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         
         const description = `Tu cita con ${appt.doctorName} es en aprox. ${timeframe === '24h' ? '24 horas' : '3 horas'}. Por favor, recuerda llegar unos minutos antes. Estado: ${appt.paymentStatus}.`;
         
-        newNotifications.push({
+        newNotificationsMap.set(id, {
           id,
           appointmentId: appt.id,
           title,
@@ -67,17 +65,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    if (newNotifications.length > 0) {
+    if (newNotificationsMap.size > 0) {
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNewNotifications = newNotifications.filter(n => !existingIds.has(n.id));
-        if (uniqueNewNotifications.length === 0) return prev;
+        const uniqueNewNotifications = Array.from(newNotificationsMap.values()).filter(n => !existingIds.has(n.id));
+        
+        if (uniqueNewNotifications.length === 0) {
+            return prev;
+        }
         
         setUnreadCount(prevUnread => prevUnread + uniqueNewNotifications.length);
         return [...uniqueNewNotifications, ...prev].sort((a,b) => b.id.localeCompare(a.id));
       });
     }
-  }, [notifications]);
+  }, []);
 
   const markAllAsRead = useCallback(() => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
