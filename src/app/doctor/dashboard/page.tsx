@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -181,6 +181,7 @@ export default function DoctorDashboardPage() {
 
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
+  const [publicProfileUrl, setPublicProfileUrl] = useState('');
   
   const [weekDays, setWeekDays] = useState([
     { key: 'monday', label: 'Lunes' },
@@ -203,6 +204,7 @@ export default function DoctorDashboardPage() {
       const loggedInDoctor = doctors.find(d => d.id === 1);
       if (loggedInDoctor) {
         setDoctorData(loggedInDoctor);
+        setPublicProfileUrl(`${window.location.origin}/doctors/${loggedInDoctor.id}`);
         
         const doctorAppointments = mockAppointments.filter(appt => appt.doctorId === loggedInDoctor.id);
         setAppointments(doctorAppointments);
@@ -524,6 +526,14 @@ export default function DoctorDashboardPage() {
       const patient = patients.find(p => p.id === appointment.patientId);
       setSelectedAppointment({ ...appointment, patient });
       setIsDetailDialogOpen(true);
+  };
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(publicProfileUrl);
+    toast({
+        title: "¡Enlace Copiado!",
+        description: "La URL de tu perfil público ha sido copiada.",
+    });
   };
 
   if (isLoading || !user || !doctorData || !financialStats) {
@@ -943,29 +953,44 @@ export default function DoctorDashboardPage() {
               </TabsContent>
 
               <TabsContent value="profile" className="mt-6">
-                <Card>
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2"><User />Mi Perfil</CardTitle>
-                      <CardDescription>Actualiza tu información pública y de contacto.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <form className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Nombre Completo</Label>
-                            <Input id="name" defaultValue={doctorData.name} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="specialty">Especialidad</Label>
-                            <Input id="specialty" defaultValue={doctorData.specialty} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="address">Dirección del Consultorio</Label>
-                            <Input id="address" defaultValue={doctorData.address} />
-                          </div>
-                          <Button>Guardar Cambios</Button>
-                      </form>
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                          <CardTitle className="flex items-center gap-2"><User />Mi Perfil</CardTitle>
+                          <CardDescription>Actualiza tu información pública y de contacto.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <form className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="name">Nombre Completo</Label>
+                                <Input id="name" defaultValue={doctorData.name} />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="specialty">Especialidad</Label>
+                                <Input id="specialty" defaultValue={doctorData.specialty} />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="address">Dirección del Consultorio</Label>
+                                <Input id="address" defaultValue={doctorData.address} />
+                              </div>
+                              <Button>Guardar Cambios</Button>
+                          </form>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><LinkIcon /> Tu Enlace Público</CardTitle>
+                            <CardDescription>Comparte este enlace con tus pacientes para que puedan agendar citas directamente.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col sm:flex-row items-stretch gap-2">
+                            <Input value={publicProfileUrl} readOnly className="text-sm bg-background flex-1"/>
+                            <Button onClick={handleCopyUrl} className="w-full sm:w-auto" disabled={!publicProfileUrl}>
+                                <Copy className="mr-2 h-4 w-4"/>
+                                Copiar Enlace
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
               </TabsContent>
 
               <TabsContent value="services" className="mt-6">
