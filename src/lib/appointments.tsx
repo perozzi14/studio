@@ -19,7 +19,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   const fetchAppointments = useCallback(async () => {
-    if(user?.role === 'patient') {
+    if(user?.role === 'patient' && user.id) {
       const patientAppointments = await firestoreService.getPatientAppointments(user.id);
       setAppointments(patientAppointments);
     }

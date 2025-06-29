@@ -275,7 +275,7 @@ export default function DoctorDashboardPage() {
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!user || user.role !== 'doctor') return;
+    if (!user || user.role !== 'doctor' || !user.id) return;
     setIsLoading(true);
 
     const docData = await firestoreService.getDoctor(user.id);

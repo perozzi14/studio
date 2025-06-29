@@ -52,6 +52,10 @@ async function getCollectionData<T>(collectionName: string): Promise<T[]> {
 
 // Generic Get Document Function
 async function getDocumentData<T>(collectionName: string, id: string): Promise<T | null> {
+    if (!id || typeof id !== 'string') {
+        console.error(`Invalid ID provided to getDocumentData for collection ${collectionName}:`, id);
+        return null;
+    }
     try {
         const docRef = doc(db, collectionName, id);
         const docSnap = await getDoc(docRef);
@@ -149,6 +153,7 @@ export const seedDatabase = async () => {
 export const getDoctors = () => getCollectionData<Doctor>('doctors');
 export const getDoctor = (id: string) => getDocumentData<Doctor>('doctors', id);
 export const getSellers = () => getCollectionData<Seller>('sellers');
+export const getSeller = (id: string) => getDocumentData<Seller>('sellers', id);
 export const getPatients = () => getCollectionData<Patient>('patients');
 export const getPatient = (id: string) => getDocumentData<Patient>('patients', id);
 export const getAppointments = () => getCollectionData<Appointment>('appointments');

@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, mockSellerPayments, mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, sellers as allSellers, type Seller, type BankDetail } from '@/lib/data';
+import * as firestoreService from '@/lib/firestoreService';
+import { mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, type Seller, type BankDetail } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -84,8 +85,11 @@ export default function SellerDashboardPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { doctorSubscriptionFee } = useSettings();
+  
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
+  const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
+  const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
 
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
@@ -99,27 +103,32 @@ export default function SellerDashboardPage() {
   
   const currentTab = searchParams.get('view') || 'referrals';
 
-  useEffect(() => {
-    if (user === undefined) return;
-    if (user === null) {
-      router.push('/auth/login');
-    } else if (user.role !== 'seller') {
-      router.push('/');
-    } else {
-      const currentSeller = allSellers.find(s => s.email.toLowerCase() === user.email.toLowerCase());
-      setSellerData(currentSeller || null);
-      setIsLoading(false);
+  const fetchData = useCallback(async () => {
+    if (!user || user.role !== 'seller' || !user.id) return;
+    setIsLoading(true);
+
+    const [seller, allDocs, allPayments] = await Promise.all([
+        firestoreService.getSeller(user.id),
+        firestoreService.getDoctors(),
+        firestoreService.getSellerPayments()
+    ]);
+    
+    if (seller) {
+        setSellerData(seller);
+        setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
+        setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
     }
-  }, [user, router]);
+    
+    setIsLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
   
   const handleTabChange = (value: string) => {
     router.push(`/seller/dashboard?view=${value}`);
   };
-
-  const referredDoctors = useMemo(() => {
-    if (!sellerData) return [];
-    return allDoctors.filter(d => d.sellerId === sellerData.id);
-  }, [sellerData]);
 
   const commissionPerDoctor = useMemo(() => {
     if (!sellerData) return 0;
@@ -130,7 +139,7 @@ export default function SellerDashboardPage() {
     if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, nextPaymentDate: '' };
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
-    const totalEarned = mockSellerPayments.filter(p => p.sellerId === sellerData.id).reduce((sum, payment) => sum + payment.amount, 0);
+    const totalEarned = sellerPayments.reduce((sum, payment) => sum + payment.amount, 0);
     
     const now = new Date();
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
@@ -144,7 +153,7 @@ export default function SellerDashboardPage() {
       totalEarned,
       nextPaymentDate,
     };
-  }, [referredDoctors, commissionPerDoctor, sellerData]);
+  }, [referredDoctors, commissionPerDoctor, sellerData, sellerPayments]);
 
   const copyReferralLink = () => {
     if (!sellerData?.referralCode) return;
@@ -173,29 +182,34 @@ export default function SellerDashboardPage() {
     setIsBankDetailDialogOpen(true);
   };
   
-  const handleSaveBankDetail = () => {
+  const handleSaveBankDetail = async () => {
     if (!sellerData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
+    
     const newBankDetail: BankDetail = {
-      id: editingBankDetail ? editingBankDetail.id : Date.now(),
+      id: editingBankDetail ? editingBankDetail.id : `bank-${Date.now()}`,
       bank: bankName,
       accountHolder: accountHolder,
       idNumber: idNumber,
       accountNumber: accountNumber,
     };
+    
     let updatedBankDetails;
     if (editingBankDetail) {
       updatedBankDetails = sellerData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
     } else {
       updatedBankDetails = [...sellerData.bankDetails, newBankDetail];
     }
-    setSellerData({ ...sellerData, bankDetails: updatedBankDetails });
+    
+    await firestoreService.updateSeller(sellerData.id, { bankDetails: updatedBankDetails });
+    fetchData(); // Refresh data from Firestore
     setIsBankDetailDialogOpen(false);
   };
 
-  const handleDeleteBankDetail = (bankDetailId: number) => {
+  const handleDeleteBankDetail = async (bankDetailId: string) => {
     if (!sellerData) return;
     const updatedBankDetails = sellerData.bankDetails.filter(bd => bd.id !== bankDetailId);
-    setSellerData({ ...sellerData, bankDetails: updatedBankDetails });
+    await firestoreService.updateSeller(sellerData.id, { bankDetails: updatedBankDetails });
+    fetchData(); // Refresh data from Firestore
   };
 
   const handleViewPaymentDetails = (payment: SellerPayment) => {
@@ -377,7 +391,7 @@ export default function SellerDashboardPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {mockSellerPayments.length > 0 ? mockSellerPayments.map((payment) => (
+                                        {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
                                             <TableRow key={payment.id}>
                                                 <TableCell className="font-medium">{format(new Date(payment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                                 <TableCell>{payment.period}</TableCell>
@@ -399,7 +413,7 @@ export default function SellerDashboardPage() {
                                 </Table>
 
                                 <div className="space-y-4 md:hidden">
-                                     {mockSellerPayments.length > 0 ? mockSellerPayments.map((payment) => (
+                                     {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
                                         <div key={payment.id} className="p-4 border rounded-lg space-y-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
