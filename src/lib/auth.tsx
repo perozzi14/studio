@@ -4,8 +4,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
-import type { Patient } from './types';
+import type { Patient, Doctor, Seller } from './types';
 
+// The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
   role: 'patient' | 'doctor' | 'seller' | 'admin';
   referralCode?: string;
@@ -15,7 +16,7 @@ interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
   login: (email: string, name?: string) => void;
   logout: () => void;
-  updateUser: (data: Partial<Omit<User, 'role' | 'email'>>) => void;
+  updateUser: (data: Partial<Patient>) => void;
   toggleFavoriteDoctor: (doctorId: string) => void;
 }
 
@@ -44,7 +45,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
     
-    // Check if it's a doctor, seller, or patient
     const [doctors, sellers, patients] = await Promise.all([
         firestoreService.getDoctors(),
         firestoreService.getSellers(),
@@ -52,13 +52,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
 
     const doctor = doctors.find(d => d.email.toLowerCase() === lowerEmail);
-    if (doctor) return { ...doctor, role: 'doctor', favoriteDoctorIds: [] };
+    if (doctor) {
+      // Ensure the returned object conforms to the User (which extends Patient) type
+      return {
+        age: null,
+        gender: null,
+        favoriteDoctorIds: [],
+        ...doctor,
+        phone: doctor.whatsapp, // Map doctor's whatsapp to patient's phone field
+        role: 'doctor',
+      };
+    }
 
     const seller = sellers.find(s => s.email.toLowerCase() === lowerEmail);
-    if (seller) return { ...seller, age: null, gender: null, cedula: null, role: 'seller', favoriteDoctorIds: [] };
+    if (seller) {
+      // Ensure the returned object conforms to the User (which extends Patient) type
+      return { 
+        age: null, 
+        gender: null, 
+        cedula: null, 
+        favoriteDoctorIds: [],
+        ...seller,
+        role: 'seller', 
+      };
+    }
     
     const patient = patients.find(p => p.email.toLowerCase() === lowerEmail);
-    if (patient) return { ...patient, role: 'patient' };
+    if (patient) {
+      return { ...patient, role: 'patient' };
+    }
 
     return null;
   }, []);
@@ -96,9 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // Register new patient
-      const newPatient: Omit<Patient, 'id'> = { email, name, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
-      const docRef = await firestoreService.addPatient(newPatient);
-      const newUser: User = { id: docRef.id, ...newPatient, role: 'patient' };
+      const newPatientData: Omit<Patient, 'id'> = { email, name, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+      const newPatientId = await firestoreService.addPatient(newPatientData);
+      const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
       router.push('/dashboard');
@@ -111,14 +133,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  const updateUser = async (data: Partial<Omit<User, 'role' | 'email'>>) => {
-    if (!user) return;
+  const updateUser = async (data: Partial<Patient>) => {
+    if (!user || user.role !== 'patient' || !user.id) return;
     
-    const updateData: Partial<Patient> = { ...data };
-    await firestoreService.updatePatient(user.id, updateData);
+    await firestoreService.updatePatient(user.id, data);
 
     const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
+    setUser(updatedUser as User);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
