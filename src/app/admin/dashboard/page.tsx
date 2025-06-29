@@ -7,14 +7,14 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2 } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -103,6 +103,14 @@ const BankDetailFormSchema = z.object({
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
 });
 
+const MarketingMaterialSchema = z.object({
+  title: z.string().min(3, "El título es requerido."),
+  description: z.string().min(10, "La descripción es requerida."),
+  type: z.enum(['image', 'video', 'file', 'url']),
+  url: z.string().url("La URL no es válida."),
+  thumbnailUrl: z.string().url("La URL de la miniatura no es válida."),
+});
+
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -118,6 +126,7 @@ export default function AdminDashboardPage() {
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
+  const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // States for Seller management
@@ -142,11 +151,16 @@ export default function AdminDashboardPage() {
 
   // States for Deletion
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', data: any} | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{type: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank' | 'marketing', data: any} | null>(null);
 
   // State for Payment Approval
   const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
   const [viewingProofUrl, setViewingProofUrl] = useState<string | null>(null);
+
+  // States for Marketing
+  const [isMarketingDialogOpen, setIsMarketingDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<MarketingMaterial | null>(null);
+
 
   // States for Settings & Company Finances
   const { 
@@ -192,13 +206,14 @@ export default function AdminDashboardPage() {
   
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    const [docs, sells, pats, apps, docPays, sellPays] = await Promise.all([
+    const [docs, sells, pats, apps, docPays, sellPays, materials] = await Promise.all([
         firestoreService.getDoctors(),
         firestoreService.getSellers(),
         firestoreService.getPatients(),
         firestoreService.getAppointments(),
         firestoreService.getDoctorPayments(),
         firestoreService.getSellerPayments(),
+        firestoreService.getMarketingMaterials(),
     ]);
     setDoctors(docs);
     setSellers(sells);
@@ -206,6 +221,7 @@ export default function AdminDashboardPage() {
     setAppointments(apps);
     setDoctorPayments(docPays);
     setSellerPayments(sellPays);
+    setMarketingMaterials(materials);
     setIsLoading(false);
   }, []);
 
@@ -391,7 +407,7 @@ export default function AdminDashboardPage() {
         setEditingSeller(null);
   };
   
-  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', item: any) => {
+  const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank' | 'marketing', item: any) => {
     setItemToDelete({ type: itemType, data: item });
     setIsDeleteDialogOpen(true);
   };
@@ -433,6 +449,10 @@ export default function AdminDashboardPage() {
         case 'bank':
             await deleteBankDetail(data.id);
             toast({ title: "Cuenta Bancaria Eliminada", description: `La cuenta de ${data.bank} ha sido eliminada.`});
+            break;
+        case 'marketing':
+            await firestoreService.deleteMarketingMaterial(data.id);
+            toast({ title: "Material de Marketing Eliminado", description: `El material "${data.title}" ha sido eliminado.`});
             break;
         }
     } catch(err) {
@@ -706,6 +726,36 @@ export default function AdminDashboardPage() {
     }
     setIsCompanyBankDetailDialogOpen(false);
     setEditingCompanyBankDetail(null);
+  };
+
+  const handleSaveMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const formData = new FormData(e.currentTarget);
+      const dataToValidate = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        type: formData.get('type') as MarketingMaterial['type'],
+        url: formData.get('url') as string,
+        thumbnailUrl: formData.get('thumbnailUrl') as string,
+      };
+
+      const result = MarketingMaterialSchema.safeParse(dataToValidate);
+      if (!result.success) {
+          toast({ variant: 'destructive', title: 'Errores de Validación', description: result.error.errors.map(e => e.message).join(' ') });
+          return;
+      }
+      
+      if (editingMaterial) {
+          await firestoreService.updateMarketingMaterial(editingMaterial.id, result.data);
+          toast({ title: "Material Actualizado", description: "El material de marketing ha sido modificado." });
+      } else {
+          await firestoreService.addMarketingMaterial(result.data);
+          toast({ title: "Material Agregado", description: "El nuevo material de marketing está disponible." });
+      }
+      
+      fetchData();
+      setIsMarketingDialogOpen(false);
+      setEditingMaterial(null);
   };
 
 
@@ -1423,6 +1473,52 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
                 )}
+                
+                {currentTab === 'marketing' && (
+                <div className="mt-6">
+                    <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <CardTitle className="flex items-center gap-2"><ShoppingBag/> Material de Marketing</CardTitle>
+                                <CardDescription>Gestiona los recursos que las vendedoras usan para promocionar SUMA.</CardDescription>
+                            </div>
+                            <Button onClick={() => { setEditingMaterial(null); setIsMarketingDialogOpen(true); }}>
+                                <PlusCircle className="mr-2"/> Añadir Material
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Título</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Descripción</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {marketingMaterials.map((material) => (
+                                        <TableRow key={material.id}>
+                                            <TableCell className="font-medium">{material.title}</TableCell>
+                                            <TableCell className="capitalize">{material.type}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{material.description}</TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {marketingMaterials.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center">No hay materiales de marketing cargados.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+                )}
 
                 {currentTab === 'support' && (
                  <div className="mt-6">
@@ -1721,6 +1817,40 @@ export default function AdminDashboardPage() {
            </>
         </div>
       </main>
+
+      {/* Marketing Dialog */}
+      <Dialog open={isMarketingDialogOpen} onOpenChange={setIsMarketingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingMaterial ? "Editar Material" : "Añadir Nuevo Material"}</DialogTitle>
+            <DialogDescription>Completa la información del recurso de marketing.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveMaterial}>
+            <div className="grid gap-4 py-4">
+              <div><Label htmlFor="title">Título</Label><Input id="title" name="title" defaultValue={editingMaterial?.title} /></div>
+              <div><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" defaultValue={editingMaterial?.description} /></div>
+              <div><Label htmlFor="type">Tipo de Material</Label>
+                <Select name="type" defaultValue={editingMaterial?.type || 'image'}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="image"><div className="flex items-center gap-2"><ImageIcon/> Imagen</div></SelectItem>
+                    <SelectItem value="video"><div className="flex items-center gap-2"><Video/> Video</div></SelectItem>
+                    <SelectItem value="file"><div className="flex items-center gap-2"><FileText/> Archivo (PDF, etc.)</div></SelectItem>
+                    <SelectItem value="url"><div className="flex items-center gap-2"><LinkIcon/> Enlace</div></SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label htmlFor="url">URL del Recurso</Label><Input id="url" name="url" defaultValue={editingMaterial?.url} placeholder="https://..."/></div>
+              <div><Label htmlFor="thumbnailUrl">URL de la Miniatura</Label><Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={editingMaterial?.thumbnailUrl} placeholder="https://..."/></div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Seller Dialogs */}
       <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>

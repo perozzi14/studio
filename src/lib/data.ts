@@ -280,7 +280,7 @@ export const mockSellerPayments: SellerPayment[] = [
   },
 ];
 
-export const mockMarketingMaterials: MarketingMaterial[] = [
+export const marketingMaterials: MarketingMaterial[] = [
     { id: '1', type: 'image', title: 'Banner para Redes Sociales', description: 'Banner promocional para usar en Instagram, Facebook y otras redes.', url: 'https://placehold.co/1080x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
     { id: '2', type: 'video', title: 'Video Explicativo de SUMA', description: 'Video corto que explica los beneficios de la plataforma para los médicos.', url: 'https://placehold.co/1920x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
     { id: '3', type: 'file', title: 'Folleto Informativo (PDF)', description: 'Documento PDF con toda la información clave para presentar a los médicos.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' },

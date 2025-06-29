@@ -18,7 +18,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import * as mockData from './data';
-import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, SupportTicket, SellerPayment, DoctorPayment, AppSettings } from './types';
+import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, SupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial } from './types';
 
 
 // Helper to convert Firestore Timestamps to strings
@@ -79,7 +79,7 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
 export const seedDatabase = async () => {
     const batch = writeBatch(db);
 
-    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings"];
+    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings", "marketingMaterials"];
     
     // Clear existing collections
     for (const col of collectionsToClear) {
@@ -101,6 +101,7 @@ export const seedDatabase = async () => {
     mockData.mockCoupons.forEach(item => batch.set(doc(db, "coupons", item.id), prepareData(item)));
     mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", item.id), prepareData(item)));
     mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", item.id), prepareData(item)));
+    mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", item.id), prepareData(item)));
     
     // Seed settings (special case)
     const settingsRef = doc(db, "settings", "main");
@@ -142,6 +143,7 @@ export const getDoctorPayments = () => getCollectionData<DoctorPayment>('doctorP
 export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerPayments');
 export const getCompanyExpenses = () => getCollectionData<CompanyExpense>('companyExpenses');
 export const getCoupons = () => getCollectionData<Coupon>('coupons');
+export const getMarketingMaterials = () => getCollectionData<MarketingMaterial>('marketingMaterials');
 export const getSettings = () => getDocumentData<AppSettings>('settings', 'main');
 
 // --- Data Mutation Functions ---
@@ -173,6 +175,12 @@ export const updateAppointment = async (id: string, data: Partial<Appointment>) 
 export const addCompanyExpense = async (expenseData: Omit<CompanyExpense, 'id'>) => addDoc(collection(db, 'companyExpenses'), expenseData);
 export const updateCompanyExpense = async (id: string, data: Partial<CompanyExpense>) => updateDoc(doc(db, 'companyExpenses', id), data);
 export const deleteCompanyExpense = async (id: string) => deleteDoc(doc(db, 'companyExpenses', id));
+
+// Marketing Material
+export const addMarketingMaterial = async (materialData: Omit<MarketingMaterial, 'id'>) => addDoc(collection(db, 'marketingMaterials'), materialData);
+export const updateMarketingMaterial = async (id: string, data: Partial<MarketingMaterial>) => updateDoc(doc(db, 'marketingMaterials', id), data);
+export const deleteMarketingMaterial = async (id: string) => deleteDoc(doc(db, 'marketingMaterials', id));
+
 
 // Settings & Related Sub-collections
 export const updateSettings = async (data: Partial<AppSettings>) => updateDoc(doc(db, 'settings', 'main'), data);

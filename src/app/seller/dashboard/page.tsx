@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { useSettings } from '@/lib/settings';
-import { mockMarketingMaterials } from '@/lib/data';
 import { z } from 'zod';
 
 const BankDetailFormSchema = z.object({
@@ -98,6 +97,7 @@ export default function SellerDashboardPage() {
   const [sellerData, setSellerData] = useState<Seller | null>(null);
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
+  const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
 
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
@@ -112,16 +112,18 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
 
     try {
-        const [seller, allDocs, allPayments] = await Promise.all([
+        const [seller, allDocs, allPayments, materials] = await Promise.all([
             firestoreService.getSeller(user.id),
             firestoreService.getDoctors(),
-            firestoreService.getSellerPayments()
+            firestoreService.getSellerPayments(),
+            firestoreService.getMarketingMaterials()
         ]);
         
         if (seller) {
             setSellerData(seller);
             setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
             setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
+            setMarketingMaterials(materials);
         }
     } catch (error) {
         console.error("Error fetching seller data:", error);
@@ -409,9 +411,9 @@ export default function SellerDashboardPage() {
                     <Card>
                         <CardHeader><CardTitle>Material de Marketing</CardTitle><CardDescription>Recursos proporcionados por SUMA para ayudarte a promocionar la plataforma.</CardDescription></CardHeader>
                         <CardContent>
-                            {mockMarketingMaterials.length > 0 ? (
+                            {marketingMaterials.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {mockMarketingMaterials.map(material => (<MarketingMaterialCard key={material.id} material={material} />))}
+                                    {marketingMaterials.map(material => (<MarketingMaterialCard key={material.id} material={material} />))}
                                 </div>
                             ) : (<p className="text-center text-muted-foreground py-12">No hay materiales de marketing disponibles en este momento.</p>)}
                         </CardContent>
