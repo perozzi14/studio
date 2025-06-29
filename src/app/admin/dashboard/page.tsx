@@ -211,10 +211,7 @@ export default function AdminDashboardPage() {
     
     const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
 
-    const commissionsPaid = sellers.reduce((acc, seller) => {
-        const referredActiveCount = doctors.filter(d => d.sellerId === seller.id && d.status === 'active').length;
-        return acc + (referredActiveCount * doctorSubscriptionFee * seller.commissionRate);
-    }, 0);
+    const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
 
     return {
         totalDoctors,
@@ -225,7 +222,7 @@ export default function AdminDashboardPage() {
         commissionsPaid,
         netProfit: totalRevenue - commissionsPaid,
     }
-  }, [doctors, sellers, patients, doctorPayments, sellerPayments, doctorSubscriptionFee]);
+  }, [doctors, sellers, patients, doctorPayments, sellerPayments]);
 
   if (isLoading || !user) {
     return (
@@ -448,6 +445,7 @@ export default function AdminDashboardPage() {
                                         <TableHead>Referidos (Activos)</TableHead>
                                         <TableHead>Comisión</TableHead>
                                         <TableHead>Comisión Pendiente</TableHead>
+                                        <TableHead>Total Pagado</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -456,6 +454,7 @@ export default function AdminDashboardPage() {
                                       const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                       const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
                                       const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
+                                      const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
                                       return (
                                         <TableRow key={seller.id}>
                                             <TableCell className="font-medium flex items-center gap-3">
@@ -470,7 +469,8 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                             <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
                                             <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
-                                            <TableCell className="font-mono text-green-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
+                                            <TableCell className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
+                                            <TableCell className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => handleOpenSellerFinanceDialog(seller)}><Wallet className="h-4 w-4" /></Button>
                                                 <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
@@ -487,6 +487,7 @@ export default function AdminDashboardPage() {
                                     const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                     const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
                                     const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
+                                     const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
                                     return (
                                         <div key={seller.id} className="p-4 border rounded-lg space-y-4">
                                             <div className="flex items-center gap-3 mb-2">
@@ -508,9 +509,13 @@ export default function AdminDashboardPage() {
                                                     <p className="text-xs text-muted-foreground">Comisión</p>
                                                     <p>{(seller.commissionRate * 100).toFixed(0)}%</p>
                                                 </div>
-                                                <div className="col-span-2">
+                                                <div>
                                                     <p className="text-xs text-muted-foreground">Comisión Pendiente</p>
-                                                    <p className="font-mono text-green-600 font-semibold">${pendingCommission.toFixed(2)}</p>
+                                                    <p className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Total Pagado</p>
+                                                    <p className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</p>
                                                 </div>
                                             </div>
                                             <Separator />
@@ -956,11 +961,11 @@ export default function AdminDashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                            <Card>
                                <CardHeader><CardTitle className="text-base">Comisión Pendiente</CardTitle></CardHeader>
-                               <CardContent><p className="text-2xl font-bold text-green-600">${pendingCommission.toFixed(2)}</p></CardContent>
+                               <CardContent><p className="text-2xl font-bold text-amber-600">${pendingCommission.toFixed(2)}</p></CardContent>
                            </Card>
                            <Card>
                                <CardHeader><CardTitle className="text-base">Total Histórico Pagado</CardTitle></CardHeader>
-                               <CardContent><p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p></CardContent>
+                               <CardContent><p className="text-2xl font-bold text-green-600">${totalPaid.toFixed(2)}</p></CardContent>
                            </Card>
                            <Card>
                                <CardHeader><CardTitle className="text-base">Médicos Activos</CardTitle></CardHeader>
@@ -1201,7 +1206,7 @@ export default function AdminDashboardPage() {
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de eliminar a este {itemToDelete?.type}?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro de eliminar a este {itemToDelete?.type === 'doctor' ? 'médico' : itemToDelete?.type === 'seller' ? 'vendedora' : 'paciente'}?</AlertDialogTitle>
             <AlertDialogDescription>
                 Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de <strong>{itemToDelete?.data?.name}</strong> del sistema.
             </AlertDialogDescription>
@@ -1216,7 +1221,39 @@ export default function AdminDashboardPage() {
       </AlertDialog>
 
       {/* Settings Dialogs */}
-      <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+      <Dialog open={isCityDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCity(null); setIsCityDialogOpen(isOpen); }}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>{editingCity ? `Editando "${editingCity}"` : 'Agregar Nueva Ciudad'}</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                  <Label htmlFor="city-name">Nombre de la Ciudad</Label>
+                  <Input id="city-name" defaultValue={editingCity || ''} />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                  <Button>Guardar Ciudad</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSpecialtyDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingSpecialty(null); setIsSpecialtyDialogOpen(isOpen); }}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>{editingSpecialty ? `Editando "${editingSpecialty}"` : 'Agregar Nueva Especialidad'}</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                  <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
+                  <Input id="specialty-name" defaultValue={editingSpecialty || ''} />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                  <Button>Guardar Especialidad</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCouponDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCoupon(null); setIsCouponDialogOpen(isOpen); }}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
