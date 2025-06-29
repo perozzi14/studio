@@ -154,7 +154,7 @@ export default function DashboardPage() {
         }
     });
 
-    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime());
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return { upcomingAppointments: upcoming, pastAppointments: past };

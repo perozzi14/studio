@@ -62,6 +62,8 @@ import { useSettings } from '@/lib/settings';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { z } from 'zod';
+import { DaySchedule, Schedule } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ServiceFormSchema = z.object({
   name: z.string().min(3, "El nombre del servicio es requerido."),
@@ -332,10 +334,10 @@ export default function DoctorDashboardPage() {
         }
     });
 
-    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime());
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    return { upcomingAppointments, pastAppointments };
+    return { upcomingAppointments: upcoming, pastAppointments: past };
   }, [appointments]);
   
   const { todayAppointments, tomorrowAppointments } = useMemo(() => {
