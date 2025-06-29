@@ -29,6 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
 
 
 export function Header() {
