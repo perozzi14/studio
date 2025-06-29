@@ -42,6 +42,7 @@ async function getCollectionData<T>(collectionName: string): Promise<T[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         convertTimestamps(data);
+        // Ensure ID is always a string and overwrite any 'id' field from data
         return { id: doc.id, ...data } as T;
     });
   } catch (error) {
@@ -52,6 +53,7 @@ async function getCollectionData<T>(collectionName: string): Promise<T[]> {
 
 // Generic Get Document Function
 async function getDocumentData<T>(collectionName: string, id: string): Promise<T | null> {
+    // The check for string ID is important.
     if (!id || typeof id !== 'string') {
         console.error(`Invalid ID provided to getDocumentData for collection ${collectionName}:`, id);
         return null;
@@ -62,6 +64,7 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
         if (docSnap.exists()) {
             const data = docSnap.data();
             convertTimestamps(data);
+            // Ensure ID is always a string and overwrite any 'id' field from data
             return { id: docSnap.id, ...data } as T;
         }
         return null;
@@ -78,65 +81,36 @@ export const seedDatabase = async () => {
 
     const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings"];
     
+    // Clear existing collections
     for (const col of collectionsToClear) {
         const snapshot = await getDocs(collection(db, col));
         snapshot.docs.forEach(doc => batch.delete(doc.ref));
     }
     
-    // Seed doctors
-    mockData.doctors.forEach(doctor => {
-        const docRef = doc(db, "doctors", doctor.id);
-        batch.set(docRef, doctor);
-    });
+    // Helper to strip the 'id' property from data before writing,
+    // as it's redundant with the document's own ID.
+    const prepareData = <T extends { id: any }>(dataWithId: T): Omit<T, 'id'> => {
+        const { id, ...data } = dataWithId;
+        return data;
+    };
 
-    // Seed sellers
-    mockData.sellers.forEach(seller => {
-        const docRef = doc(db, "sellers", seller.id);
-        batch.set(docRef, seller);
-    });
+    // Seed each collection
+    mockData.doctors.forEach(item => batch.set(doc(db, "doctors", item.id), prepareData(item)));
+    mockData.sellers.forEach(item => batch.set(doc(db, "sellers", item.id), prepareData(item)));
+    mockData.mockPatients.forEach(item => batch.set(doc(db, "patients", item.id), prepareData(item)));
+    mockData.appointments.forEach(item => batch.set(doc(db, "appointments", item.id), prepareData(item)));
+    mockData.mockCompanyExpenses.forEach(item => batch.set(doc(db, "companyExpenses", item.id), prepareData(item)));
+    mockData.mockCoupons.forEach(item => batch.set(doc(db, "coupons", item.id), prepareData(item)));
+    mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", item.id), prepareData(item)));
+    mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", item.id), prepareData(item)));
     
-    // Seed patients
-     mockData.mockPatients.forEach(patient => {
-        const docRef = doc(db, "patients", patient.id);
-        batch.set(docRef, patient);
-    });
-    
-    // Seed appointments
-     mockData.appointments.forEach(appointment => {
-        const docRef = doc(db, "appointments", appointment.id);
-        batch.set(docRef, appointment);
-    });
-    
-    // Seed company expenses
-     mockData.mockCompanyExpenses.forEach(expense => {
-        const docRef = doc(db, "companyExpenses", expense.id);
-        batch.set(docRef, expense);
-    });
-
-    // Seed coupons
-     mockData.mockCoupons.forEach(coupon => {
-        const docRef = doc(db, "coupons", coupon.id);
-        batch.set(docRef, coupon);
-    });
-
-    // Seed doctor payments
-     mockData.mockDoctorPayments.forEach(payment => {
-        const docRef = doc(db, "doctorPayments", payment.id);
-        batch.set(docRef, payment);
-    });
-    
-    // Seed seller payments
-     mockData.mockSellerPayments.forEach(payment => {
-        const docRef = doc(db, "sellerPayments", payment.id);
-        batch.set(docRef, payment);
-    });
-
-    // Seed settings
+    // Seed settings (special case)
     const settingsRef = doc(db, "settings", "main");
     const settingsData: AppSettings = {
         cities: mockData.cities,
         specialties: mockData.specialties,
         doctorSubscriptionFee: 50,
+        // The bank details inside settings are just data, their IDs are fine
         companyBankDetails: mockData.mockCompanyBankDetails,
         timezone: 'America/Caracas',
         logoUrl: '/logo.svg',
