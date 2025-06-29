@@ -24,6 +24,15 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { User, Save } from 'lucide-react';
+import { z } from 'zod';
+
+const PatientProfileSchema = z.object({
+  fullName: z.string().min(3, "El nombre completo es requerido."),
+  age: z.number().int().positive("La edad debe ser un número positivo.").optional().nullable(),
+  gender: z.enum(['masculino', 'femenino', 'otro', '']).optional().nullable(),
+  cedula: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+});
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -53,12 +62,27 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
 
+    const parsedAge = age ? parseInt(age, 10) : null;
+    const result = PatientProfileSchema.safeParse({
+        fullName,
+        age: parsedAge,
+        gender,
+        cedula,
+        phone,
+    });
+
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+        return;
+    }
+
     updateUser({
-      name: fullName,
-      age: age ? parseInt(age, 10) : null,
-      gender: gender || null,
-      cedula: cedula || null,
-      phone: phone || null,
+      name: result.data.fullName,
+      age: result.data.age,
+      gender: result.data.gender,
+      cedula: result.data.cedula,
+      phone: result.data.phone,
     });
     
     toast({

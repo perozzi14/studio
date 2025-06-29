@@ -48,6 +48,59 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { z } from 'zod';
+
+const DoctorFormSchema = z.object({
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
+  email: z.string().email("Por favor, ingresa un correo electrónico válido."),
+  specialty: z.string().min(1, "Debes seleccionar una especialidad."),
+  city: z.string().min(1, "Debes seleccionar una ciudad."),
+  address: z.string().min(5, "La dirección es requerida."),
+  sellerId: z.string().nullable(),
+});
+
+const SellerFormSchema = z.object({
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
+  email: z.string().email("Por favor, ingresa un correo electrónico válido."),
+  commission: z.number().min(0, "La comisión no puede ser negativa.").max(100, "La comisión no puede ser mayor a 100."),
+});
+
+const SellerPaymentFormSchema = z.object({
+    amount: z.number().positive("El monto debe ser un número positivo."),
+    period: z.string().min(3, "El período es requerido."),
+    transactionId: z.string().min(1, "El ID de transacción es requerido."),
+    paymentProofUrl: z.string().url("La URL del comprobante no es válida."),
+});
+
+const PatientFormSchema = z.object({
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
+  email: z.string().email("Correo electrónico inválido."),
+  cedula: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+const ExpenseFormSchema = z.object({
+  date: z.string().min(1, "La fecha es requerida."),
+  description: z.string().min(3, "La descripción es requerida."),
+  amount: z.number().positive("El monto debe ser positivo."),
+  category: z.enum(['operativo', 'marketing', 'personal']),
+});
+
+const NameSchema = z.string().min(2, "El nombre es requerido.");
+
+const CouponFormSchema = z.object({
+  code: z.string().min(3, "El código debe tener al menos 3 caracteres.").toUpperCase(),
+  discountType: z.enum(['percentage', 'fixed']),
+  value: z.number().positive("El valor debe ser positivo."),
+  scope: z.string().min(1, "El alcance es requerido."),
+});
+
+const BankDetailFormSchema = z.object({
+  bank: z.string().min(3, "El nombre del banco es requerido."),
+  accountHolder: z.string().min(3, "El nombre del titular es requerido."),
+  idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
+  accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+});
 
 
 export default function AdminDashboardPage() {
@@ -153,66 +206,73 @@ export default function AdminDashboardPage() {
   };
   
     const handleSaveDoctor = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('doc-name') as string;
-    const email = formData.get('doc-email') as string;
-    const specialty = formData.get('doc-specialty') as string;
-    const city = formData.get('doc-city') as string;
-    const address = formData.get('doc-address') as string;
-    const sellerId = formData.get('doc-seller') as string;
-
-    if (!name || !email || !specialty || !city || !address) {
-        toast({ variant: 'destructive', title: 'Faltan datos', description: 'Por favor, completa todos los campos del médico.' });
-        return;
-    }
-
-    if (editingDoctor) {
-        const updatedDoctor = {
-            ...editingDoctor,
-            name, email, specialty, city, address,
-            sellerId: sellerId === 'null' ? null : parseInt(sellerId, 10),
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const dataToValidate = {
+            name: formData.get('doc-name') as string,
+            email: formData.get('doc-email') as string,
+            specialty: formData.get('doc-specialty') as string,
+            city: formData.get('doc-city') as string,
+            address: formData.get('doc-address') as string,
+            sellerId: formData.get('doc-seller') as string,
         };
-        setDoctors(prev => prev.map(doc => doc.id === editingDoctor.id ? updatedDoctor : doc));
-        toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
-    } else {
-        const newDoctor: Doctor = {
-            id: Date.now(),
-            name, email, specialty, city, address,
-            sellerId: sellerId === 'null' ? null : parseInt(sellerId, 10),
-            cedula: '',
-            sector: '',
-            rating: 0,
-            reviewCount: 0,
-            profileImage: 'https://placehold.co/400x400.png',
-            bannerImage: 'https://placehold.co/1200x400.png',
-            aiHint: 'doctor portrait',
-            description: '',
-            services: [],
-            bankDetails: [],
-            slotDuration: 30,
-            schedule: {
-                monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
-                tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
-                wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
-                thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
-                friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
-                saturday: { active: false, slots: [] },
-                sunday: { active: false, slots: [] },
-            },
-            status: 'inactive',
-            lastPaymentDate: new Date().toISOString().split('T')[0],
-            whatsapp: '',
-            lat: 0, lng: 0,
-            joinDate: new Date().toISOString().split('T')[0],
-            subscriptionStatus: 'inactive',
-            nextPaymentDate: new Date().toISOString().split('T')[0],
-        };
-        setDoctors(prev => [newDoctor, ...prev]);
-        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
-    }
-    setIsDoctorDialogOpen(false);
-    setEditingDoctor(null);
+
+        const result = DoctorFormSchema.safeParse(dataToValidate);
+
+        if (!result.success) {
+            const errorMessage = result.error.errors.map(err => err.message).join(' ');
+            toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
+            return;
+        }
+
+        const { name, email, specialty, city, address, sellerId } = result.data;
+
+        if (editingDoctor) {
+            const updatedDoctor = {
+                ...editingDoctor,
+                name, email, specialty, city, address,
+                sellerId: sellerId === 'null' || !sellerId ? null : parseInt(sellerId, 10),
+            };
+            setDoctors(prev => prev.map(doc => doc.id === editingDoctor.id ? updatedDoctor : doc));
+            toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
+        } else {
+            const newDoctor: Doctor = {
+                id: Date.now(),
+                name, email, specialty, city, address,
+                sellerId: sellerId === 'null' || !sellerId ? null : parseInt(sellerId, 10),
+                cedula: '',
+                sector: '',
+                rating: 0,
+                reviewCount: 0,
+                profileImage: 'https://placehold.co/400x400.png',
+                bannerImage: 'https://placehold.co/1200x400.png',
+                aiHint: 'doctor portrait',
+                description: '',
+                services: [],
+                bankDetails: [],
+                slotDuration: 30,
+                schedule: {
+                    monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                    tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                    wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                    thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+                    friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+                    saturday: { active: false, slots: [] },
+                    sunday: { active: false, slots: [] },
+                },
+                status: 'inactive',
+                lastPaymentDate: new Date().toISOString().split('T')[0],
+                whatsapp: '',
+                lat: 0, lng: 0,
+                joinDate: new Date().toISOString().split('T')[0],
+                subscriptionStatus: 'inactive',
+                nextPaymentDate: new Date().toISOString().split('T')[0],
+            };
+            setDoctors(prev => [newDoctor, ...prev]);
+            toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
+        }
+        setIsDoctorDialogOpen(false);
+        setEditingDoctor(null);
   };
 
   const handleOpenDoctorDialog = (doctor: Doctor | null) => {
@@ -226,37 +286,45 @@ export default function AdminDashboardPage() {
   };
   
     const handleSaveSeller = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const commission = parseFloat(formData.get('commission') as string) / 100;
-
-    if (!name || !email || isNaN(commission)) {
-        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos correctamente." });
-        return;
-    }
-
-    if (editingSeller) {
-        const updatedSeller = { ...editingSeller, name, email, commissionRate: commission };
-        setSellers(prev => prev.map(s => s.id === editingSeller.id ? updatedSeller : s));
-        toast({ title: "Vendedora Actualizada", description: `El perfil de ${name} ha sido guardado.` });
-    } else {
-        const newSeller: Seller = {
-            id: Date.now(),
-            name,
-            email,
-            commissionRate: commission,
-            phone: '',
-            profileImage: 'https://placehold.co/400x400.png',
-            referralCode: `REF${Date.now()}`,
-            bankDetails: [],
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const dataToValidate = {
+            name: formData.get('name') as string,
+            email: formData.get('email') as string,
+            commission: parseFloat(formData.get('commission') as string),
         };
-        setSellers(prev => [newSeller, ...prev]);
-        toast({ title: "Vendedora Registrada", description: `El perfil de ${name} ha sido creado.` });
-    }
-    setIsSellerDialogOpen(false);
-    setEditingSeller(null);
+
+        const result = SellerFormSchema.safeParse(dataToValidate);
+
+        if (!result.success) {
+            const errorMessage = result.error.errors.map(err => err.message).join(' ');
+            toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
+            return;
+        }
+
+        const { name, email, commission } = result.data;
+        const commissionRate = commission / 100;
+
+        if (editingSeller) {
+            const updatedSeller = { ...editingSeller, name, email, commissionRate };
+            setSellers(prev => prev.map(s => s.id === editingSeller.id ? updatedSeller : s));
+            toast({ title: "Vendedora Actualizada", description: `El perfil de ${name} ha sido guardado.` });
+        } else {
+            const newSeller: Seller = {
+                id: Date.now(),
+                name,
+                email,
+                commissionRate,
+                phone: '',
+                profileImage: 'https://placehold.co/400x400.png',
+                referralCode: `REF${Date.now()}`,
+                bankDetails: [],
+            };
+            setSellers(prev => [newSeller, ...prev]);
+            toast({ title: "Vendedora Registrada", description: `El perfil de ${name} ha sido creado.` });
+        }
+        setIsSellerDialogOpen(false);
+        setEditingSeller(null);
   };
   
   const handleOpenDeleteDialog = (itemType: 'doctor' | 'seller' | 'patient' | 'expense' | 'city' | 'specialty' | 'coupon' | 'bank', item: any) => {
@@ -316,20 +384,29 @@ export default function AdminDashboardPage() {
   const handleRegisterPayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const amount = formData.get('amount') as string;
-    const period = formData.get('period') as string;
-    const transactionId = formData.get('transactionId') as string;
+    
+    const dataToValidate = {
+        amount: parseFloat(formData.get('amount') as string),
+        period: formData.get('period') as string,
+        transactionId: formData.get('transactionId') as string,
+        paymentProofUrl: formData.get('paymentProofUrl') as string,
+    };
 
-    if (!managingSeller || !amount || !period || !transactionId || !paymentProofUrl) {
-      toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para registrar el pago." });
-      return;
+    const result = SellerPaymentFormSchema.safeParse(dataToValidate);
+
+    if (!managingSeller || !result.success) {
+        const errorMessage = result.success ? "Faltan datos de la vendedora." : result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: "destructive", title: "Errores de Validación", description: errorMessage });
+        return;
     }
+
+    const { amount, period, transactionId, paymentProofUrl } = result.data;
 
     const newPayment: SellerPayment = {
       id: `pay-${Date.now()}`,
       sellerId: managingSeller.id,
       paymentDate: new Date().toISOString().split('T')[0],
-      amount: parseFloat(amount),
+      amount,
       period,
       includedDoctors: doctors.filter(d => d.sellerId === managingSeller.id && d.status === 'active'),
       paymentProofUrl,
@@ -357,12 +434,27 @@ export default function AdminDashboardPage() {
     if (!editingPatient) return;
     
     const formData = new FormData(e.currentTarget);
-    const updatedPatient: Patient = {
-      ...editingPatient,
+    const dataToValidate = {
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       cedula: formData.get('cedula') as string,
       phone: formData.get('phone') as string,
+    };
+
+    const result = PatientFormSchema.safeParse(dataToValidate);
+    
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
+        return;
+    }
+
+    const updatedPatient: Patient = {
+      ...editingPatient,
+      name: result.data.name,
+      email: result.data.email,
+      cedula: result.data.cedula || null,
+      phone: result.data.phone || null,
     };
     
     setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
@@ -421,27 +513,28 @@ export default function AdminDashboardPage() {
   const handleSaveExpense = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const date = formData.get('date') as string;
-    const description = formData.get('description') as string;
-    const amount = formData.get('amount') as string;
-    const category = formData.get('category') as CompanyExpense['category'];
+    const dataToValidate = {
+      date: formData.get('date') as string,
+      description: formData.get('description') as string,
+      amount: parseFloat(formData.get('amount') as string),
+      category: formData.get('category') as CompanyExpense['category'],
+    };
+    
+    const result = ExpenseFormSchema.safeParse(dataToValidate);
 
-    if (!date || !description || !amount || !category) {
-        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para registrar el gasto." });
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
         return;
     }
 
+    const { date, description, amount, category } = result.data;
+
     if (editingExpense) {
-        setCompanyExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? { ...exp, date, description, amount: parseFloat(amount), category } : exp));
+        setCompanyExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? { ...exp, date, description, amount, category } : exp));
         toast({ title: "Gasto Actualizado", description: "El gasto ha sido modificado exitosamente." });
     } else {
-        const newExpense: CompanyExpense = {
-            id: `cexp-${Date.now()}`,
-            date,
-            description,
-            amount: parseFloat(amount),
-            category,
-        };
+        const newExpense: CompanyExpense = { id: `cexp-${Date.now()}`, date, description, amount, category };
         setCompanyExpenses(prev => [newExpense, ...prev]);
         toast({ title: "Gasto Registrado", description: "El nuevo gasto ha sido agregado." });
     }
@@ -455,17 +548,17 @@ export default function AdminDashboardPage() {
     if (!editingCity) return;
     
     const newName = (e.currentTarget.elements.namedItem('city-name') as HTMLInputElement).value;
-    if (!newName) {
-        toast({ variant: "destructive", title: "Nombre requerido", description: "El nombre de la ciudad no puede estar vacío." });
+    const result = NameSchema.safeParse(newName);
+
+    if (!result.success) {
+        toast({ variant: "destructive", title: "Nombre requerido", description: result.error.errors.map(e => e.message).join(' ') });
         return;
     }
 
     if (editingCity.originalName) {
-        // Editing existing city
         setCities(prev => prev.map(c => c === editingCity.originalName ? newName : c));
         toast({ title: "Ciudad Actualizada" });
     } else {
-        // Adding new city
         setCities(prev => [...prev, newName]);
         toast({ title: "Ciudad Agregada" });
     }
@@ -478,8 +571,10 @@ export default function AdminDashboardPage() {
     if (!editingSpecialty) return;
     
     const newName = (e.currentTarget.elements.namedItem('specialty-name') as HTMLInputElement).value;
-    if (!newName) {
-        toast({ variant: "destructive", title: "Nombre requerido", description: "El nombre de la especialidad no puede estar vacío." });
+    const result = NameSchema.safeParse(newName);
+    
+    if (!result.success) {
+        toast({ variant: "destructive", title: "Nombre requerido", description: result.error.errors.map(e => e.message).join(' ') });
         return;
     }
 
@@ -497,18 +592,26 @@ export default function AdminDashboardPage() {
   const handleSaveCoupon = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const code = formData.get('code') as string;
-    const discountType = formData.get('discountType') as 'percentage' | 'fixed';
-    const value = parseFloat(formData.get('value') as string);
-    const scope = formData.get('scope') as string;
     
-    if (!code || !discountType || isNaN(value) || !scope) {
-        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos para el cupón." });
+    const dataToValidate = {
+      code: formData.get('code') as string,
+      discountType: formData.get('discountType') as 'percentage' | 'fixed',
+      value: parseFloat(formData.get('value') as string),
+      scope: formData.get('scope') as string,
+    };
+
+    const result = CouponFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
         return;
     }
 
+    const { code, discountType, value, scope } = result.data;
+    
     const newCouponData = {
-        code: code.toUpperCase(),
+        code,
         discountType,
         value,
         scope: scope === 'general' ? 'general' : parseInt(scope, 10),
@@ -528,17 +631,22 @@ export default function AdminDashboardPage() {
   const handleSaveBankDetail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const bank = formData.get('bankName') as string;
-    const accountHolder = formData.get('accountHolder') as string;
-    const idNumber = formData.get('idNumber') as string;
-    const accountNumber = formData.get('accountNumber') as string;
+    const dataToValidate = {
+        bank: formData.get('bankName') as string,
+        accountHolder: formData.get('accountHolder') as string,
+        idNumber: formData.get('idNumber') as string,
+        accountNumber: formData.get('accountNumber') as string,
+    };
     
-    if (!bank || !accountHolder || !idNumber || !accountNumber) {
-        toast({ variant: "destructive", title: "Faltan datos", description: "Completa todos los campos." });
+    const result = BankDetailFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
         return;
     }
 
-    const newBankData = { bank, accountHolder, idNumber, accountNumber };
+    const newBankData = result.data;
     
     if (editingCompanyBankDetail) {
         setCompanyBankDetails(prev => prev.map(b => b.id === editingCompanyBankDetail.id ? { ...b, ...newBankData } : b));

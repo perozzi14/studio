@@ -18,6 +18,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { User, Save, Upload } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { z } from 'zod';
+
+const SellerProfileSchema = z.object({
+  fullName: z.string().min(3, "El nombre completo es requerido."),
+  phone: z.string().optional().nullable(),
+  profileImage: z.string().optional().nullable(),
+});
 
 
 export default function SellerProfilePage() {
@@ -53,11 +60,19 @@ export default function SellerProfilePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    const result = SellerProfileSchema.safeParse({ fullName, phone, profileImage });
+
+    if (!result.success) {
+      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+      return;
+    }
 
     updateUser({
-      name: fullName,
-      phone: phone || null,
-      profileImage: profileImage,
+      name: result.data.fullName,
+      phone: result.data.phone,
+      profileImage: result.data.profileImage,
     });
     
     toast({

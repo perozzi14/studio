@@ -15,20 +15,36 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Stethoscope } from "lucide-react";
+import { z } from 'zod';
+import { useToast } from '@/hooks/use-toast';
+
+
+const RegisterSchema = z.object({
+  fullName: z.string().min(3, "El nombre completo es requerido."),
+  email: z.string().email("Correo electrónico inválido."),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres."),
+});
+
 
 export default function RegisterPage() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password && fullName) {
-      // In a real app, you would register the user and then log them in.
-      // For this mock, we'll just log them in directly.
-      login(email, fullName);
+    
+    const result = RegisterSchema.safeParse({ fullName, email, password });
+    
+    if (!result.success) {
+      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      toast({ variant: 'destructive', title: 'Error de Registro', description: errorMessage });
+      return;
     }
+    
+    login(email, fullName);
   };
 
   return (

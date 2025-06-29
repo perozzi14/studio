@@ -47,7 +47,7 @@ const findDoctorsTool = ai.defineTool(
 
 
 const WhatsAppAssistantInputSchema = z.object({
-  query: z.string().describe('La consulta del usuario a través de WhatsApp.'),
+  query: z.string().min(1, 'La consulta no puede estar vacía.').max(500, 'La consulta es demasiado larga.').describe('La consulta del usuario a través de WhatsApp.'),
 });
 export type WhatsAppAssistantInput = z.infer<typeof WhatsAppAssistantInputSchema>;
 

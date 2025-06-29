@@ -15,20 +15,33 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Stethoscope } from "lucide-react";
+import { z } from 'zod';
+import { useToast } from "@/hooks/use-toast";
+
+const LoginSchema = z.object({
+  email: z.string().email("Correo electrónico inválido."),
+  password: z.string().min(1, "La contraseña es requerida."),
+});
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
-      // In a real app, you'd validate the password. Here we just log in.
-      // We'll derive a mock name from the email for the example.
-      const name = email.split('@')[0].replace(/\./g, ' ').replace(/(^\w|\s\w)/g, m => m.toUpperCase());
-      login(email, name);
+    
+    const result = LoginSchema.safeParse({ email, password });
+    
+    if (!result.success) {
+      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+      return;
     }
+    
+    const name = email.split('@')[0].replace(/\./g, ' ').replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+    login(email, name);
   };
 
   return (
