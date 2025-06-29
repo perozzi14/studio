@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, SupportTicket, DoctorPayment } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -212,13 +212,10 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { specialties, cities, doctorSubscriptionFee, currency, coupons } = useSettings();
+  const { specialties, cities, doctorSubscriptionFee, currency } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
-  const [doctorCoupons, setDoctorCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
@@ -227,21 +224,12 @@ export default function DoctorDashboardPage() {
   
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [serviceName, setServiceName] = useState('');
-  const [servicePrice, setServicePrice] = useState('');
 
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
-  const [bankName, setBankName] = useState('');
-  const [accountHolder, setAccountHolder] = useState('');
-  const [idNumber, setIdNumber] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
   
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [expenseDescription, setExpenseDescription] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseDate, setExpenseDate] = useState('');
 
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
@@ -266,7 +254,6 @@ export default function DoctorDashboardPage() {
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
   const [selectedChatPatient, setSelectedChatPatient] = useState<Patient | null>(null);
 
-  // States for Subscription Payment Reporting
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [isReportPaymentDialogOpen, setIsReportPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -278,29 +265,36 @@ export default function DoctorDashboardPage() {
     if (!user || user.role !== 'doctor' || !user.id) return;
     setIsLoading(true);
 
-    const docData = await firestoreService.getDoctor(user.id);
-    if (docData) {
-        setDoctorData(docData);
-        setProfileForm(docData);
-        setDoctorCoupons(coupons.filter(c => c.scope === docData.id));
-        setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
+    try {
+        const docData = await firestoreService.getDoctor(user.id);
+        if (docData) {
+            setDoctorData(docData);
+            setProfileForm(docData);
+            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
 
-        const [docAppointments, allPatients, docPayments] = await Promise.all([
-            firestoreService.getDoctorAppointments(docData.id),
-            firestoreService.getPatients(),
-            firestoreService.getDoctorPayments()
-        ]);
-        setAppointments(docAppointments);
-        setPatients(allPatients);
-        setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
+            const [docAppointments, allPatients, docPayments] = await Promise.all([
+                firestoreService.getDoctorAppointments(docData.id),
+                firestoreService.getPatients(),
+                firestoreService.getDoctorPayments()
+            ]);
+            setAppointments(docAppointments);
+            setPatients(allPatients);
+            setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
+        }
+    } catch (error) {
+        console.error("Error fetching doctor data:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos del panel.' });
+    } finally {
+        setIsLoading(false);
     }
-    
-    setIsLoading(false);
-  }, [user, coupons]);
+  }, [user, toast]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user?.id) {
+        fetchData();
+    }
+  }, [user, fetchData]);
+
 
   const uniquePatients = useMemo(() => {
     const patientIds = new Set<string>();
@@ -315,8 +309,6 @@ export default function DoctorDashboardPage() {
       return acc;
     }, []);
   }, [appointments, patients]);
-
-  
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
     const today = new Date();
@@ -355,29 +347,16 @@ export default function DoctorDashboardPage() {
   }, [appointments]);
 
   const financialStats = useMemo(() => {
-    if (!appointments || !expenses) return null;
+    if (!doctorData || !appointments) return null;
 
     const now = new Date();
     let startDate, endDate;
 
     switch (timeRange) {
-        case 'today':
-            startDate = startOfDay(now);
-            endDate = endOfDay(now);
-            break;
-        case 'week':
-            startDate = startOfWeek(now, { locale: es });
-            endDate = endOfDay(now);
-            break;
-        case 'year':
-            startDate = startOfYear(now);
-            endDate = endOfYear(now);
-            break;
-        case 'month':
-        default:
-            startDate = startOfMonth(now);
-            endDate = endOfMonth(now);
-            break;
+        case 'today': startDate = startOfDay(now); endDate = endOfDay(now); break;
+        case 'week': startDate = startOfWeek(now, { locale: es }); endDate = endOfDay(now); break;
+        case 'year': startDate = startOfYear(now); endDate = endOfYear(now); break;
+        case 'month': default: startDate = startOfMonth(now); endDate = endOfMonth(now); break;
     }
 
     const filteredAppointments = appointments.filter(a => {
@@ -385,7 +364,7 @@ export default function DoctorDashboardPage() {
         return apptDate >= startDate && apptDate <= endDate;
     });
 
-    const filteredExpenses = expenses.filter(e => {
+    const filteredExpenses = (doctorData.expenses || []).filter(e => {
         const expDate = new Date(e.date + 'T00:00:00');
         return expDate >= startDate && expDate <= endDate;
     });
@@ -401,101 +380,68 @@ export default function DoctorDashboardPage() {
         const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const monthlyData: Record<string, { income: number; expenses: number }> = {};
         monthOrder.forEach(m => monthlyData[m] = { income: 0, expenses: 0 });
-
         paidAppointments.forEach(appt => {
             const month = format(new Date(appt.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
             const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
-            if (monthlyData[capitalizedMonth]) {
-                monthlyData[capitalizedMonth].income += appt.totalPrice;
-            }
+            if (monthlyData[capitalizedMonth]) monthlyData[capitalizedMonth].income += appt.totalPrice;
         });
-
         filteredExpenses.forEach(exp => {
             const month = format(new Date(exp.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
             const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
-            if (monthlyData[capitalizedMonth]) {
-                monthlyData[capitalizedMonth].expenses += exp.amount;
-            }
+            if (monthlyData[capitalizedMonth]) monthlyData[capitalizedMonth].expenses += exp.amount;
         });
-        
-        chartData = Object.entries(monthlyData)
-            .map(([label, data]) => ({ label, ...data }))
-            .filter(d => d.income > 0 || d.expenses > 0);
-
+        chartData = Object.entries(monthlyData).map(([label, data]) => ({ label, ...data })).filter(d => d.income > 0 || d.expenses > 0);
     } else if (timeRange === 'month') {
         const weeklyData: Record<string, { income: number; expenses: number }> = {};
-        
         paidAppointments.forEach(appt => {
             const weekNumber = getWeek(new Date(appt.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
             const weekLabel = `Semana ${weekNumber}`;
             if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
             weeklyData[weekLabel].income += appt.totalPrice;
         });
-
         filteredExpenses.forEach(exp => {
             const weekNumber = getWeek(new Date(exp.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
             const weekLabel = `Semana ${weekNumber}`;
             if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
             weeklyData[weekLabel].expenses += exp.amount;
         });
-        
-        chartData = Object.entries(weeklyData)
-          .map(([label, data]) => ({ label, ...data }))
-          .sort((a,b) => parseInt(a.label.split(' ')[1]) - parseInt(b.label.split(' ')[1]));
-
+        chartData = Object.entries(weeklyData).map(([label, data]) => ({ label, ...data })).sort((a,b) => parseInt(a.label.split(' ')[1]) - parseInt(b.label.split(' ')[1]));
     } else if (timeRange === 'week') {
         const dailyData: Record<string, { income: number; expenses: number }> = {};
         const daysOfWeek = eachDayOfInterval({ start: startDate, end: endDate });
         const dayOrder = daysOfWeek.map(d => format(d, "E", { locale: es }));
-        
-        dayOrder.forEach(dayLabel => {
-            dailyData[dayLabel] = { income: 0, expenses: 0 };
-        });
-        
+        dayOrder.forEach(dayLabel => dailyData[dayLabel] = { income: 0, expenses: 0 });
         paidAppointments.forEach(appt => {
             const dayLabel = format(new Date(appt.date + 'T00:00:00'), "E", { locale: es });
             if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].income += appt.totalPrice;
         });
-
         filteredExpenses.forEach(exp => {
             const dayLabel = format(new Date(exp.date + 'T00:00:00'), "E", { locale: es });
             if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].expenses += exp.amount;
         });
-
         chartData = dayOrder.map(label => ({ label, ...dailyData[label] }));
     }
 
-    return {
-        totalRevenue,
-        totalExpenses,
-        netProfit,
-        chartData,
-        paidAppointments,
-        paidAppointmentsCount: paidAppointments.length,
-    };
-}, [appointments, expenses, timeRange]);
-
+    return { totalRevenue, totalExpenses, netProfit, chartData, paidAppointments, paidAppointmentsCount: paidAppointments.length };
+  }, [doctorData, appointments, timeRange]);
 
   const handleConfirmPayment = async (appointmentId: string) => {
     await firestoreService.updateAppointment(appointmentId, { paymentStatus: 'Pagado' });
-    toast({
-        title: "¡Pago Confirmado!",
-        description: "El estado de la cita ha sido actualizado a 'Pagado'.",
-    });
+    toast({ title: "¡Pago Confirmado!", description: "El estado de la cita ha sido actualizado a 'Pagado'." });
     fetchData();
   };
   
   const handleOpenServiceDialog = (service: Service | null) => {
     setEditingService(service);
-    setServiceName(service ? service.name : '');
-    setServicePrice(service ? String(service.price) : '');
     setIsServiceDialogOpen(true);
   };
   
-  const handleSaveService = async () => {
+  const handleSaveService = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const dataToValidate = {
-        name: serviceName,
-        price: parseFloat(servicePrice) || 0,
+        name: formData.get('serviceName') as string,
+        price: parseFloat(formData.get('servicePrice') as string) || 0,
     };
     const result = ServiceFormSchema.safeParse(dataToValidate);
 
@@ -504,7 +450,7 @@ export default function DoctorDashboardPage() {
         return;
     }
     
-    if (!doctorData || !profileForm) return;
+    if (!doctorData) return;
 
     const newService: Service = {
       id: editingService ? editingService.id : `service-${Date.now()}`,
@@ -514,75 +460,66 @@ export default function DoctorDashboardPage() {
 
     let updatedServices;
     if (editingService) {
-      updatedServices = profileForm.services.map(s => s.id === editingService.id ? newService : s);
+      updatedServices = doctorData.services.map(s => s.id === editingService.id ? newService : s);
     } else {
-      updatedServices = [...profileForm.services, newService];
+      updatedServices = [...doctorData.services, newService];
     }
     
     await firestoreService.updateDoctor(doctorData.id, { services: updatedServices });
     fetchData();
     setIsServiceDialogOpen(false);
+    toast({ title: "Servicio Guardado", description: "Tu lista de servicios ha sido actualizada." });
   };
 
   const handleDeleteService = async (serviceId: string) => {
-    if (!doctorData || !profileForm) return;
-    const updatedServices = profileForm.services.filter(s => s.id !== serviceId);
+    if (!doctorData) return;
+    const updatedServices = doctorData.services.filter(s => s.id !== serviceId);
     await firestoreService.updateDoctor(doctorData.id, { services: updatedServices });
     fetchData();
+    toast({ title: "Servicio Eliminado" });
   };
   
-    const handleScheduleChange = <T extends keyof DaySchedule>(
-        dayKey: keyof Schedule,
-        field: T,
-        value: DaySchedule[T]
-    ) => {
-        if (!profileForm) return;
-        const newSchedule = { ...profileForm.schedule };
-        (newSchedule[dayKey] as any)[field] = value;
-        setProfileForm({ ...profileForm, schedule: newSchedule });
-    };
+  const handleScheduleChange = <T extends keyof DaySchedule>(dayKey: keyof Schedule, field: T, value: DaySchedule[T]) => {
+      if (!profileForm) return;
+      const newSchedule = { ...profileForm.schedule };
+      (newSchedule[dayKey] as any)[field] = value;
+      setProfileForm({ ...profileForm, schedule: newSchedule });
+  };
 
-    const handleSlotChange = (
-        dayKey: keyof Schedule,
-        slotIndex: number,
-        timeType: 'start' | 'end',
-        time: string
-    ) => {
-        if (!profileForm) return;
-        const newSchedule = { ...profileForm.schedule };
-        newSchedule[dayKey].slots[slotIndex][timeType] = time;
-        setProfileForm({ ...profileForm, schedule: newSchedule });
-    };
+  const handleSlotChange = (dayKey: keyof Schedule, slotIndex: number, timeType: 'start' | 'end', time: string) => {
+      if (!profileForm) return;
+      const newSchedule = { ...profileForm.schedule };
+      newSchedule[dayKey].slots[slotIndex][timeType] = time;
+      setProfileForm({ ...profileForm, schedule: newSchedule });
+  };
 
-    const handleAddSlot = (dayKey: keyof Schedule) => {
-        if (!profileForm) return;
-        const newSchedule = { ...profileForm.schedule };
-        newSchedule[dayKey].slots.push({ start: '09:00', end: '17:00' });
-        setProfileForm({ ...profileForm, schedule: newSchedule });
-    };
+  const handleAddSlot = (dayKey: keyof Schedule) => {
+      if (!profileForm) return;
+      const newSchedule = { ...profileForm.schedule };
+      newSchedule[dayKey].slots.push({ start: '09:00', end: '17:00' });
+      setProfileForm({ ...profileForm, schedule: newSchedule });
+  };
 
-    const handleRemoveSlot = (dayKey: keyof Schedule, slotIndex: number) => {
-        if (!profileForm) return;
-        const newSchedule = { ...profileForm.schedule };
-        newSchedule[dayKey].slots.splice(slotIndex, 1);
-        setProfileForm({ ...profileForm, schedule: newSchedule });
-    };
+  const handleRemoveSlot = (dayKey: keyof Schedule, slotIndex: number) => {
+      if (!profileForm) return;
+      const newSchedule = { ...profileForm.schedule };
+      newSchedule[dayKey].slots.splice(slotIndex, 1);
+      setProfileForm({ ...profileForm, schedule: newSchedule });
+  };
 
   const handleOpenBankDetailDialog = (bankDetail: BankDetail | null) => {
     setEditingBankDetail(bankDetail);
-    setBankName(bankDetail ? bankDetail.bank : '');
-    setAccountHolder(bankDetail ? bankDetail.accountHolder : '');
-    setIdNumber(bankDetail ? bankDetail.idNumber : '');
-    setAccountNumber(bankDetail ? bankDetail.accountNumber : '');
     setIsBankDetailDialogOpen(true);
   };
   
-  const handleSaveBankDetail = async () => {
+  const handleSaveBankDetail = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const dataToValidate = {
-        bank: bankName,
-        accountHolder: accountHolder,
-        idNumber: idNumber,
-        accountNumber: accountNumber,
+        bank: formData.get('bankName') as string,
+        accountHolder: formData.get('accountHolder') as string,
+        idNumber: formData.get('idNumber') as string,
+        accountNumber: formData.get('accountNumber') as string,
     };
     const result = BankDetailFormSchema.safeParse(dataToValidate);
 
@@ -591,7 +528,7 @@ export default function DoctorDashboardPage() {
         return;
     }
 
-    if (!doctorData || !profileForm) return;
+    if (!doctorData) return;
     
     const newBankDetail: BankDetail = {
       id: editingBankDetail ? editingBankDetail.id : `bank-${Date.now()}`,
@@ -600,48 +537,76 @@ export default function DoctorDashboardPage() {
 
     let updatedBankDetails;
     if (editingBankDetail) {
-      updatedBankDetails = profileForm.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
+      updatedBankDetails = doctorData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
     } else {
-      updatedBankDetails = [...profileForm.bankDetails, newBankDetail];
+      updatedBankDetails = [...doctorData.bankDetails, newBankDetail];
     }
     
     await firestoreService.updateDoctor(doctorData.id, { bankDetails: updatedBankDetails });
     fetchData();
     setIsBankDetailDialogOpen(false);
+    toast({ title: "Cuenta Bancaria Guardada" });
   };
 
   const handleDeleteBankDetail = async (bankDetailId: string) => {
-    if (!doctorData || !profileForm) return;
-    const updatedBankDetails = profileForm.bankDetails.filter(bd => bd.id !== bankDetailId);
+    if (!doctorData) return;
+    const updatedBankDetails = doctorData.bankDetails.filter(bd => bd.id !== bankDetailId);
     await firestoreService.updateDoctor(doctorData.id, { bankDetails: updatedBankDetails });
     fetchData();
+    toast({ title: "Cuenta Bancaria Eliminada" });
   };
 
   const handleOpenExpenseDialog = (expense: Expense | null) => {
     setEditingExpense(expense);
-    setExpenseDescription(expense ? expense.description : '');
-    setExpenseAmount(expense ? String(expense.amount) : '');
-    setExpenseDate(expense ? expense.date : new Date().toISOString().split('T')[0]);
     setIsExpenseDialogOpen(true);
   };
 
-  const handleSaveExpense = () => {
-     // This will be implemented if needed
-     console.log("Saving expense...");
-     setIsExpenseDialogOpen(false);
+  const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+        description: formData.get('expenseDescription') as string,
+        amount: parseFloat(formData.get('expenseAmount') as string) || 0,
+        date: formData.get('expenseDate') as string,
+    };
+    const result = ExpenseFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+    
+    if (!doctorData) return;
+
+    const newExpense: Expense = {
+      id: editingExpense ? editingExpense.id : `expense-${Date.now()}`,
+      ...result.data,
+    };
+
+    let updatedExpenses;
+    if (editingExpense) {
+        updatedExpenses = (doctorData.expenses || []).map(exp => exp.id === editingExpense.id ? newExpense : exp);
+    } else {
+        updatedExpenses = [...(doctorData.expenses || []), newExpense];
+    }
+
+    await firestoreService.updateDoctor(doctorData.id, { expenses: updatedExpenses });
+    fetchData();
+    setIsExpenseDialogOpen(false);
+    toast({ title: "Gasto Guardado" });
   };
 
-  const handleDeleteExpense = (expenseId: string) => {
-     // This will be implemented if needed
-    console.log("Deleting expense...", expenseId);
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!doctorData) return;
+    const updatedExpenses = (doctorData.expenses || []).filter(exp => exp.id !== expenseId);
+    await firestoreService.updateDoctor(doctorData.id, { expenses: updatedExpenses });
+    fetchData();
+    toast({ title: "Gasto Eliminado" });
   };
   
   const handleUpdateAttendance = async (appointmentId: string, attendance: 'Atendido' | 'No Asistió') => {
     await firestoreService.updateAppointment(appointmentId, { attendance });
-    toast({
-      title: "Asistencia Actualizada",
-      description: `La cita ha sido marcada como "${attendance}".`
-    });
+    toast({ title: "Asistencia Actualizada", description: `La cita ha sido marcada como "${attendance}".` });
     fetchData();
   };
 
@@ -654,13 +619,10 @@ export default function DoctorDashboardPage() {
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(publicProfileUrl);
-    toast({
-        title: "¡Enlace Copiado!",
-        description: "La URL de tu perfil público ha sido copiada.",
-    });
+    toast({ title: "¡Enlace Copiado!", description: "La URL de tu perfil público ha sido copiada." });
   };
 
-  const handleSaveCoupon = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveCoupon = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!doctorData) return;
     
@@ -678,20 +640,38 @@ export default function DoctorDashboardPage() {
         toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
         return;
     }
-    console.log("Saving coupon:", result.data);
-    
+
+    const newCoupon: Coupon = {
+        id: editingCoupon ? editingCoupon.id : `coupon-${Date.now()}`,
+        scope: doctorData.id,
+        ...result.data,
+    };
+
+    let updatedCoupons;
+    if (editingCoupon) {
+        updatedCoupons = (doctorData.coupons || []).map(c => c.id === editingCoupon.id ? newCoupon : c);
+    } else {
+        updatedCoupons = [...(doctorData.coupons || []), newCoupon];
+    }
+
+    await firestoreService.updateDoctor(doctorData.id, { coupons: updatedCoupons });
+    fetchData();
     setIsCouponDialogOpen(false);
     setEditingCoupon(null);
+    toast({ title: "Cupón Guardado" });
   };
   
-  const handleDeleteCoupon = (couponId: string) => {
-    console.log("Deleting coupon:", couponId);
+  const handleDeleteCoupon = async (couponId: string) => {
+    if (!doctorData) return;
+    const updatedCoupons = (doctorData.coupons || []).filter(c => c.id !== couponId);
+    await firestoreService.updateDoctor(doctorData.id, { coupons: updatedCoupons });
+    fetchData();
     toast({ title: 'Cupón Eliminado' });
   };
   
-  const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    if (!doctorData) return;
     
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
@@ -707,15 +687,21 @@ export default function DoctorDashboardPage() {
       return;
     }
 
-    console.log("Creating ticket:", result.data);
+    const newTicket: SupportTicket = {
+        id: `ticket-${Date.now()}`,
+        status: 'abierto',
+        date: new Date().toISOString().split('T')[0],
+        lastReply: 'Enviado',
+        ...result.data,
+    };
 
-    toast({
-      title: "Ticket Enviado",
-      description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA.",
-    });
+    const updatedTickets = [...(doctorData.supportTickets || []), newTicket];
+    await firestoreService.updateDoctor(doctorData.id, { supportTickets: updatedTickets });
     
+    fetchData();
     setIsSupportDialogOpen(false);
     (e.target as HTMLFormElement).reset();
+    toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
   };
 
   const handleProfileInputChange = (field: keyof Doctor, value: any) => {
@@ -727,6 +713,7 @@ export default function DoctorDashboardPage() {
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'bannerImage') => {
       if (e.target.files && e.target.files[0] && profileForm) {
         const file = e.target.files[0];
+        // In a real app, upload to storage and get URL. For now, use blob URL.
         const newUrl = URL.createObjectURL(file);
         setProfileForm(prev => ({ ...prev!, [field]: newUrl }));
       }
@@ -749,12 +736,10 @@ export default function DoctorDashboardPage() {
           return;
       }
       
+      // Note: Image upload logic would go here. For now, we save the blob URL.
       await firestoreService.updateDoctor(doctorData.id, result.data as Partial<Doctor>);
       fetchData();
-      toast({
-          title: "¡Perfil Actualizado!",
-          description: "Tu información personal ha sido guardada correctamente.",
-      });
+      toast({ title: "¡Perfil Actualizado!", description: "Tu información personal ha sido guardada correctamente." });
   };
 
   const handleOpenChat = (patient: Patient) => {
@@ -786,49 +771,17 @@ export default function DoctorDashboardPage() {
     }
 
     const doc = new jsPDF();
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text(doctorData.name, 20, 20);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(doctorData.specialty, 20, 27);
-    doc.text(doctorData.address, 20, 34);
-    doc.text(`${doctorData.city}, Venezuela`, 20, 41);
-    
-    // Patient Info
-    doc.line(20, 50, 190, 50); // separator
-    doc.setFont("helvetica", "bold");
-    doc.text("Paciente:", 20, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(selectedAppointment.patient.name, 40, 58);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Cédula:", 130, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Fecha:", 20, 66);
-    doc.setFont("helvetica", "normal");
-    doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
-    doc.line(20, 75, 190, 75); // separator
-
-    // Prescription Body
-    doc.setFontSize(26);
-    doc.text("Rp.", 20, 90);
-    doc.setFontSize(12);
-    const prescriptionText = result.data;
-    const splitText = doc.splitTextToSize(prescriptionText, 160);
-    doc.text(splitText, 25, 100);
-
-    // Footer
-    doc.line(80, 270, 130, 270);
-    doc.text("Firma del Médico", 105, 275, { align: 'center' });
-    doc.text(doctorData.cedula, 105, 280, { align: 'center' });
-
-
+    doc.setFontSize(20); doc.setFont("helvetica", "bold"); doc.text(doctorData.name, 20, 20);
+    doc.setFontSize(12); doc.setFont("helvetica", "normal"); doc.text(doctorData.specialty, 20, 27);
+    doc.text(doctorData.address, 20, 34); doc.text(`${doctorData.city}, Venezuela`, 20, 41);
+    doc.line(20, 50, 190, 50);
+    doc.setFont("helvetica", "bold"); doc.text("Paciente:", 20, 58); doc.setFont("helvetica", "normal"); doc.text(selectedAppointment.patient.name, 40, 58);
+    doc.setFont("helvetica", "bold"); doc.text("Cédula:", 130, 58); doc.setFont("helvetica", "normal"); doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
+    doc.setFont("helvetica", "bold"); doc.text("Fecha:", 20, 66); doc.setFont("helvetica", "normal"); doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
+    doc.line(20, 75, 190, 75);
+    doc.setFontSize(26); doc.text("Rp.", 20, 90); doc.setFontSize(12);
+    const prescriptionText = result.data; const splitText = doc.splitTextToSize(prescriptionText, 160); doc.text(splitText, 25, 100);
+    doc.line(80, 270, 130, 270); doc.text("Firma del Médico", 105, 275, { align: 'center' }); doc.text(doctorData.cedula, 105, 280, { align: 'center' });
     doc.save(`Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`);
   };
   
@@ -836,57 +789,33 @@ export default function DoctorDashboardPage() {
     if (!financialStats || !doctorData) return;
     const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
-
-    // Summary
+    doc.setFontSize(18); doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
+    doc.setFontSize(12); doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
     const summaryData = [
         ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
         ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
         ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
         ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
     ];
-    (doc as any).autoTable({
-        startY: 40,
-        head: [['Concepto', 'Monto']],
-        body: summaryData,
-        theme: 'grid',
-    });
-
+    (doc as any).autoTable({ startY: 40, head: [['Concepto', 'Monto']], body: summaryData, theme: 'grid' });
     let lastY = (doc as any).lastAutoTable.finalY + 15;
     
-    // Income Details
-    doc.setFontSize(14);
-    doc.text("Detalle de Ingresos", 14, lastY);
+    doc.setFontSize(14); doc.text("Detalle de Ingresos", 14, lastY);
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Paciente', 'Servicios', 'Monto']],
-        body: financialStats.paidAppointments.map(a => [
-            format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
-            a.patientName,
-            a.services.map(s => s.name).join(', '),
-            `$${a.totalPrice.toFixed(2)}`
-        ]),
+        body: financialStats.paidAppointments.map(a => [ format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'), a.patientName, a.services.map(s => s.name).join(', '), `$${a.totalPrice.toFixed(2)}` ]),
         theme: 'striped'
     });
     lastY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Expense Details
-    doc.setFontSize(14);
-    doc.text("Detalle de Gastos", 14, lastY);
+    doc.setFontSize(14); doc.text("Detalle de Gastos", 14, lastY);
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Descripción', 'Monto']],
-        body: expenses.map(e => [
-            format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
-            e.description,
-            `$${e.amount.toFixed(2)}`
-        ]),
+        body: (doctorData.expenses || []).map(e => [ format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'), e.description, `$${e.amount.toFixed(2)}` ]),
         theme: 'striped'
     });
-    
     doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
   
@@ -905,23 +834,20 @@ export default function DoctorDashboardPage() {
 
     if (!result.success) {
       const errorMessage = result.error.errors.map((err) => err.message).join(" ");
-      toast({
-        variant: "destructive",
-        title: "Error de Validación",
-        description: errorMessage,
-      });
+      toast({ variant: "destructive", title: "Error de Validación", description: errorMessage });
       return;
     }
 
     const { amount, date, transactionId, paymentProof: proofFile } = result.data;
 
+    // TODO: Upload file to Firebase Storage and get URL. For now, using a placeholder.
     const newPayment: Omit<DoctorPayment, 'id'> = {
       doctorId: doctorData.id,
       doctorName: doctorData.name,
       date: date,
       amount: amount,
       status: "Pending",
-      paymentProofUrl: URL.createObjectURL(proofFile), // Note: This is temporary, upload to storage for real app
+      paymentProofUrl: 'https://placehold.co/400x200.png', 
       transactionId: transactionId,
     };
 
@@ -929,17 +855,9 @@ export default function DoctorDashboardPage() {
     await firestoreService.updateDoctor(doctorData.id, { subscriptionStatus: "pending_payment" });
     fetchData();
 
-    toast({
-      title: "¡Reporte Enviado!",
-      description: "Tu pago ha sido reportado y está pendiente de aprobación por el administrador.",
-    });
-
+    toast({ title: "¡Reporte Enviado!", description: "Tu pago ha sido reportado y está pendiente de aprobación." });
     setIsReportPaymentDialogOpen(false);
-    // Reset form fields
-    setPaymentAmount("");
-    setPaymentDate("");
-    setPaymentRef("");
-    setPaymentProof(null);
+    setPaymentAmount(""); setPaymentDate(""); setPaymentRef(""); setPaymentProof(null);
   };
 
 
@@ -947,19 +865,12 @@ export default function DoctorDashboardPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 container py-12">
-           <div className="space-y-4">
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2" />
-           </div>
-           <div className="mt-8">
-             <Skeleton className="h-96 w-full" />
-           </div>
+        <main className="flex-1 container py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
       </div>
     );
   }
-
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -1250,22 +1161,9 @@ export default function DoctorDashboardPage() {
                             <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
                                 <BarChart accessibilityLayer data={financialStats.chartData}>
                                     <CartesianGrid vertical={false} />
-                                    <XAxis
-                                        dataKey="label"
-                                        tickLine={false}
-                                        tickMargin={10}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickMargin={10}
-                                        tickFormatter={(value) => `$${value}`}
-                                    />
-                                    <ChartTooltip
-                                        cursor={false}
-                                        content={<ChartTooltipContent indicator="dot" />}
-                                    />
+                                    <XAxis dataKey="label" tickLine={false} tickMargin={10} axisLine={false} />
+                                    <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `$${value}`} />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                     <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
                                 </BarChart>
@@ -1273,10 +1171,7 @@ export default function DoctorDashboardPage() {
                           ) : (
                             <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                               <p>
-                                {timeRange === 'today' 
-                                  ? 'La vista de gráfico no está disponible para el día de hoy.'
-                                  : 'No hay datos financieros para mostrar en este período.'
-                                }
+                                {timeRange === 'today' ? 'La vista de gráfico no está disponible para el día de hoy.' : 'No hay datos financieros para mostrar en este período.'}
                               </p>
                             </div>
                           )}
@@ -1286,9 +1181,7 @@ export default function DoctorDashboardPage() {
                    <Card>
                     <CardHeader>
                         <CardTitle>Detalle de Ingresos ({timeRangeLabels[timeRange]})</CardTitle>
-                        <CardDescription>
-                            Lista de todas las citas pagadas en el período seleccionado.
-                        </CardDescription>
+                        <CardDescription>Lista de todas las citas pagadas en el período seleccionado.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table className="hidden md:table">
@@ -1321,7 +1214,6 @@ export default function DoctorDashboardPage() {
                                 )}
                             </TableBody>
                         </Table>
-
                         <div className="space-y-4 md:hidden">
                             {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
                                 <div key={appt.id} className="p-4 border rounded-lg space-y-3">
@@ -1332,15 +1224,10 @@ export default function DoctorDashboardPage() {
                                         </div>
                                         <p className="font-semibold text-lg font-mono">${appt.totalPrice.toFixed(2)}</p>
                                     </div>
-                                    <div className="text-sm">
-                                        <span className="font-semibold">Servicios: </span>
-                                        {appt.services.map(s => s.name).join(', ')}
-                                    </div>
+                                    <div className="text-sm"><span className="font-semibold">Servicios: </span>{appt.services.map(s => s.name).join(', ')}</div>
                                     <Separator/>
                                     <div className="flex justify-end">
-                                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(appt)}>
-                                            <Eye className="mr-2 h-4 w-4" /> Ver Detalles
-                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(appt)}><Eye className="mr-2 h-4 w-4" /> Ver Detalles</Button>
                                     </div>
                                 </div>
                             )) : (
@@ -1349,17 +1236,11 @@ export default function DoctorDashboardPage() {
                         </div>
                     </CardContent>
                   </Card>
-
                   <Card>
                         <CardHeader>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    <CardTitle>Registro de Gastos</CardTitle>
-                                    <CardDescription>Administra todos los gastos de tu consultorio.</CardDescription>
-                                </div>
-                                <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto">
-                                    <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
-                                </Button>
+                                <div><CardTitle>Registro de Gastos</CardTitle><CardDescription>Administra todos los gastos de tu consultorio.</CardDescription></div>
+                                <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
                             </div>
                         </CardHeader>
                       <CardContent>
@@ -1373,7 +1254,7 @@ export default function DoctorDashboardPage() {
                                   </TableRow>
                               </TableHeader>
                               <TableBody>
-                                  {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                  {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
                                       <TableRow key={expense.id}>
                                           <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
                                           <TableCell className="font-medium">{expense.description}</TableCell>
@@ -1386,26 +1267,21 @@ export default function DoctorDashboardPage() {
                                           </TableCell>
                                       </TableRow>
                                   )) : (
-                                      <TableRow>
-                                          <TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell>
-                                      </TableRow>
+                                      <TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>
                                   )}
                               </TableBody>
                           </Table>
 
                           <div className="space-y-4 md:hidden">
-                            {expenses.length > 0 ? expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                            {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
                                 <div key={expense.id} className="p-4 border rounded-lg space-y-4">
                                     <div className="flex justify-between items-start gap-4">
-                                        <div>
-                                            <p className="font-medium">{expense.description}</p>
-                                            <p className="text-sm text-muted-foreground">{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                        </div>
+                                        <div><p className="font-medium">{expense.description}</p><p className="text-sm text-muted-foreground">{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p></div>
                                         <p className="font-semibold text-lg text-right font-mono">${expense.amount.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                            <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                        <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
                                     </div>
                                 </div>
                             )) : (
@@ -1423,9 +1299,7 @@ export default function DoctorDashboardPage() {
                     <div className="grid md:grid-cols-5 gap-8 items-start">
                         <div className="md:col-span-3 space-y-8">
                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><CreditCard/> Estado de tu Suscripción</CardTitle>
-                                </CardHeader>
+                                <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard/> Estado de tu Suscripción</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                      <div className="p-4 border rounded-lg space-y-2">
                                         <div className="flex justify-between items-center">
@@ -1447,9 +1321,7 @@ export default function DoctorDashboardPage() {
                                             <span className="font-semibold">${doctorSubscriptionFee.toFixed(2)}</span>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Mantén tu suscripción activa para asegurar tu visibilidad en la plataforma.
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Mantén tu suscripción activa para asegurar tu visibilidad en la plataforma.</p>
                                 </CardContent>
                             </Card>
                              <Card>
@@ -1545,72 +1417,31 @@ export default function DoctorDashboardPage() {
                               <div className="space-y-4">
                                   <Label className="text-base font-semibold">Información Personal y Contacto</Label>
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                      <div className="space-y-2">
-                                          <Label htmlFor="prof-name">Nombre Completo</Label>
-                                          <Input id="prof-name" value={profileForm.name} onChange={(e) => handleProfileInputChange('name', e.target.value)} />
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label htmlFor="prof-cedula">Cédula de Identidad</Label>
-                                          <Input id="prof-cedula" value={profileForm.cedula} onChange={(e) => handleProfileInputChange('cedula', e.target.value)} />
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label>Correo Electrónico (No editable)</Label>
-                                          <Input value={profileForm.email} disabled />
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label htmlFor="prof-whatsapp">Número de WhatsApp</Label>
-                                          <Input id="prof-whatsapp" value={profileForm.whatsapp} onChange={(e) => handleProfileInputChange('whatsapp', e.target.value)} />
-                                      </div>
+                                      <div className="space-y-2"><Label htmlFor="prof-name">Nombre Completo</Label><Input id="prof-name" value={profileForm.name} onChange={(e) => handleProfileInputChange('name', e.target.value)} /></div>
+                                      <div className="space-y-2"><Label htmlFor="prof-cedula">Cédula de Identidad</Label><Input id="prof-cedula" value={profileForm.cedula} onChange={(e) => handleProfileInputChange('cedula', e.target.value)} /></div>
+                                      <div className="space-y-2"><Label>Correo Electrónico (No editable)</Label><Input value={profileForm.email} disabled /></div>
+                                      <div className="space-y-2"><Label htmlFor="prof-whatsapp">Número de WhatsApp</Label><Input id="prof-whatsapp" value={profileForm.whatsapp} onChange={(e) => handleProfileInputChange('whatsapp', e.target.value)} /></div>
                                   </div>
                               </div>
                               <Separator />
                               <div className="space-y-4">
                                    <Label className="text-base font-semibold">Información Profesional</Label>
-                                   <div className="space-y-2">
-                                       <Label htmlFor="prof-desc">Descripción Pública</Label>
-                                       <Textarea id="prof-desc" value={profileForm.description} onChange={(e) => handleProfileInputChange('description', e.target.value)} rows={4} placeholder="Describe tu experiencia, enfoque y lo que los pacientes pueden esperar..."/>
-                                   </div>
+                                   <div className="space-y-2"><Label htmlFor="prof-desc">Descripción Pública</Label><Textarea id="prof-desc" value={profileForm.description} onChange={(e) => handleProfileInputChange('description', e.target.value)} rows={4} placeholder="Describe tu experiencia..."/></div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                      <div className="space-y-2">
-                                          <Label>Especialidad</Label>
-                                          <Select value={profileForm.specialty} onValueChange={(value) => handleProfileInputChange('specialty', value)}>
-                                              <SelectTrigger><SelectValue /></SelectTrigger>
-                                              <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                                          </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label>Duración de Cita (minutos)</Label>
-                                          <RadioGroup value={profileForm.slotDuration?.toString()} onValueChange={(value) => handleProfileInputChange('slotDuration', parseInt(value))} className="flex gap-4 pt-2">
-                                              <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="30" /> 30 min</Label>
-                                              <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="60" /> 60 min</Label>
-                                          </RadioGroup>
-                                      </div>
+                                      <div className="space-y-2"><Label>Especialidad</Label><Select value={profileForm.specialty} onValueChange={(value) => handleProfileInputChange('specialty', value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+                                      <div className="space-y-2"><Label>Duración de Cita (minutos)</Label><RadioGroup value={profileForm.slotDuration?.toString()} onValueChange={(value) => handleProfileInputChange('slotDuration', parseInt(value))} className="flex gap-4 pt-2"><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="30" /> 30 min</Label><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="60" /> 60 min</Label></RadioGroup></div>
                                    </div>
                               </div>
                               <Separator />
                               <div className="space-y-4">
                                   <Label className="text-base font-semibold">Ubicación del Consultorio</Label>
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                       <div className="space-y-2">
-                                          <Label>Ciudad</Label>
-                                          <Select value={profileForm.city} onValueChange={(value) => handleProfileInputChange('city', value)}>
-                                              <SelectTrigger><SelectValue/></SelectTrigger>
-                                              <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                                          </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                          <Label htmlFor="prof-sector">Sector</Label>
-                                          <Input id="prof-sector" value={profileForm.sector} onChange={(e) => handleProfileInputChange('sector', e.target.value)} />
-                                      </div>
-                                      <div className="space-y-2 md:col-span-3">
-                                          <Label htmlFor="prof-address">Dirección Completa</Label>
-                                          <Input id="prof-address" value={profileForm.address} onChange={(e) => handleProfileInputChange('address', e.target.value)} />
-                                      </div>
+                                       <div className="space-y-2"><Label>Ciudad</Label><Select value={profileForm.city} onValueChange={(value) => handleProfileInputChange('city', value)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+                                      <div className="space-y-2"><Label htmlFor="prof-sector">Sector</Label><Input id="prof-sector" value={profileForm.sector} onChange={(e) => handleProfileInputChange('sector', e.target.value)} /></div>
+                                      <div className="space-y-2 md:col-span-3"><Label htmlFor="prof-address">Dirección Completa</Label><Input id="prof-address" value={profileForm.address} onChange={(e) => handleProfileInputChange('address', e.target.value)} /></div>
                                   </div>
                               </div>
-                              <div className="flex justify-end">
-                                  <Button type="submit">Guardar Cambios</Button>
-                              </div>
+                              <div className="flex justify-end"><Button type="submit">Guardar Cambios</Button></div>
                           </form>
                       </CardContent>
                   </Card>
@@ -1621,10 +1452,7 @@ export default function DoctorDashboardPage() {
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row items-stretch gap-2">
                             <Input value={publicProfileUrl} readOnly className="text-sm bg-background flex-1"/>
-                            <Button onClick={handleCopyUrl} className="w-full sm:w-auto" disabled={!publicProfileUrl}>
-                                <Copy className="mr-2 h-4 w-4"/>
-                                Copiar Enlace
-                            </Button>
+                            <Button onClick={handleCopyUrl} className="w-full sm:w-auto" disabled={!publicProfileUrl}><Copy className="mr-2 h-4 w-4"/>Copiar Enlace</Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -1635,32 +1463,21 @@ export default function DoctorDashboardPage() {
               <div className="mt-6">
                 <Card>
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                          <CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle>
-                          <CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription>
-                      </div>
+                      <div><CardTitle className="flex items-center gap-2"><BriefcaseMedical /> Mis Servicios</CardTitle><CardDescription>Gestiona los servicios que ofreces y sus precios.</CardDescription></div>
                       <Button onClick={() => handleOpenServiceDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Servicio</Button>
                   </CardHeader>
                   <CardContent>
                       <Table>
-                          <TableHeader>
-                              <TableRow>
-                                  <TableHead>Servicio</TableHead>
-                                  <TableHead className="text-right">Precio</TableHead>
-                                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
-                              </TableRow>
-                          </TableHeader>
+                          <TableHeader><TableRow><TableHead>Servicio</TableHead><TableHead className="text-right">Precio</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                           <TableBody>
-                              {profileForm?.services.map(service => (
+                              {(doctorData.services || []).map(service => (
                                   <TableRow key={service.id}>
                                       <TableCell className="font-medium">{service.name}</TableCell>
                                       <TableCell className="text-right">${service.price.toFixed(2)}</TableCell>
-                                      <TableCell className="text-center">
-                                          <div className="flex items-center justify-center gap-2">
+                                      <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
                                             <Button variant="outline" size="icon" onClick={() => handleOpenServiceDialog(service)}><Pencil className="h-4 w-4" /></Button>
                                             <Button variant="destructive" size="icon" onClick={() => handleDeleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
-                                          </div>
-                                      </TableCell>
+                                      </div></TableCell>
                                   </TableRow>
                               ))}
                           </TableBody>
@@ -1673,50 +1490,27 @@ export default function DoctorDashboardPage() {
               {currentTab === 'schedule' && (
               <div className="mt-6">
                  <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><CalendarClock /> Mi Horario de Trabajo</CardTitle>
-                        <CardDescription>Define tu disponibilidad semanal.</CardDescription>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock /> Mi Horario de Trabajo</CardTitle><CardDescription>Define tu disponibilidad semanal.</CardDescription></CardHeader>
                     <CardContent className="space-y-4">
                         {weekDays.map(({ key, label }) => {
                             const daySchedule = profileForm.schedule[key];
                             return (
                                 <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-md border gap-4">
                                     <div className="flex items-center space-x-4">
-                                        <Switch
-                                            id={`switch-${key}`}
-                                            checked={daySchedule.active}
-                                            onCheckedChange={(checked) => handleScheduleChange(key, 'active', checked)}
-                                        />
+                                        <Switch id={`switch-${key}`} checked={daySchedule.active} onCheckedChange={(checked) => handleScheduleChange(key, 'active', checked)} />
                                         <Label htmlFor={`switch-${key}`} className="text-base sm:text-lg min-w-[90px]">{label}</Label>
                                     </div>
                                     {daySchedule.active && (
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 gap-2">
                                             {daySchedule.slots.map((slot, index) => (
                                                 <div key={index} className="flex items-center gap-2">
-                                                    <Input
-                                                        type="time"
-                                                        value={slot.start}
-                                                        onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)}
-                                                        className="w-full sm:w-28"
-                                                    />
+                                                    <Input type="time" value={slot.start} onChange={(e) => handleSlotChange(key, index, 'start', e.target.value)} className="w-full sm:w-28" />
                                                     <span>-</span>
-                                                    <Input
-                                                        type="time"
-                                                        value={slot.end}
-                                                        onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)}
-                                                        className="w-full sm:w-28"
-                                                    />
-                                                    {index > 0 && (
-                                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(key, index)}>
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
+                                                    <Input type="time" value={slot.end} onChange={(e) => handleSlotChange(key, index, 'end', e.target.value)} className="w-full sm:w-28" />
+                                                    {index > 0 && (<Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(key, index)}><X className="h-4 w-4" /></Button>)}
                                                 </div>
                                             ))}
-                                            <Button variant="outline" size="sm" onClick={() => handleAddSlot(key)} className="mt-2 sm:mt-0">
-                                                <PlusCircle className="mr-2 h-4 w-4" /> Agregar
-                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => handleAddSlot(key)} className="mt-2 sm:mt-0"><PlusCircle className="mr-2 h-4 w-4" /> Agregar</Button>
                                         </div>
                                     )}
                                 </div>
@@ -1731,65 +1525,33 @@ export default function DoctorDashboardPage() {
               <div className="mt-6">
                 <Card>
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                          <CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle>
-                          <CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription>
-                      </div>
+                      <div><CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle><CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription></div>
                       <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
                   </CardHeader>
                   <CardContent>
                       <Table className="hidden md:table">
-                          <TableHeader>
-                              <TableRow>
-                                  <TableHead>Banco</TableHead>
-                                  <TableHead>Titular</TableHead>
-                                  <TableHead>Nro. de Cuenta</TableHead>
-                                  <TableHead>C.I./R.I.F.</TableHead>
-                                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
-                              </TableRow>
-                          </TableHeader>
+                          <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                           <TableBody>
-                              {profileForm.bankDetails.map(bd => (
+                              {(doctorData.bankDetails || []).map(bd => (
                                   <TableRow key={bd.id}>
-                                      <TableCell className="font-medium">{bd.bank}</TableCell>
-                                      <TableCell>{bd.accountHolder}</TableCell>
-                                      <TableCell>{bd.accountNumber}</TableCell>
-                                      <TableCell>{bd.idNumber}</TableCell>
-                                      <TableCell className="text-center">
-                                          <div className="flex items-center justify-center gap-2">
-                                              <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                              <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
-                                          </div>
-                                      </TableCell>
+                                      <TableCell className="font-medium">{bd.bank}</TableCell><TableCell>{bd.accountHolder}</TableCell><TableCell>{bd.accountNumber}</TableCell><TableCell>{bd.idNumber}</TableCell>
+                                      <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
+                                          <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                          <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                      </div></TableCell>
                                   </TableRow>
                               ))}
-                              {profileForm.bankDetails.length === 0 && (
-                                  <TableRow>
-                                      <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
-                                  </TableRow>
-                              )}
+                              {(doctorData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
                           </TableBody>
                       </Table>
                       <div className="space-y-4 md:hidden">
-                          {profileForm.bankDetails.length > 0 ? profileForm.bankDetails.map(bd => (
+                          {(doctorData.bankDetails || []).length > 0 ? (doctorData.bankDetails || []).map(bd => (
                               <div key={bd.id} className="p-4 border rounded-lg space-y-4">
                                   <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                      <div>
-                                          <p className="text-xs text-muted-foreground">Banco</p>
-                                          <p className="font-medium">{bd.bank}</p>
-                                      </div>
-                                      <div>
-                                          <p className="text-xs text-muted-foreground">Titular</p>
-                                          <p className="font-medium">{bd.accountHolder}</p>
-                                      </div>
-                                      <div>
-                                          <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
-                                          <p className="font-mono text-sm">{bd.accountNumber}</p>
-                                      </div>
-                                      <div>
-                                          <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
-                                          <p className="font-mono text-sm">{bd.idNumber}</p>
-                                      </div>
+                                      <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
+                                      <div><p className="text-xs text-muted-foreground">Titular</p><p className="font-medium">{bd.accountHolder}</p></div>
+                                      <div><p className="text-xs text-muted-foreground">Nro. Cuenta</p><p className="font-mono text-sm">{bd.accountNumber}</p></div>
+                                      <div><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
                                   </div>
                                   <Separator />
                                   <div className="flex justify-end gap-2">
@@ -1797,9 +1559,7 @@ export default function DoctorDashboardPage() {
                                       <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
                                   </div>
                               </div>
-                          )) : (
-                              <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
-                          )}
+                          )) : (<p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>)}
                       </div>
                   </CardContent>
                 </Card>
@@ -1810,26 +1570,14 @@ export default function DoctorDashboardPage() {
               <div className="mt-6">
                 <Card>
                     <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                          <CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle>
-                          <CardDescription>Crea y gestiona cupones para atraer más pacientes.</CardDescription>
-                        </div>
-                        <Button onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}>
-                            <PlusCircle className="mr-2"/> Crear Cupón
-                        </Button>
+                        <div><CardTitle className="flex items-center gap-2"><Tag /> Cupones de Descuento</CardTitle><CardDescription>Crea y gestiona cupones para atraer más pacientes.</CardDescription></div>
+                        <Button onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}><PlusCircle className="mr-2"/> Crear Cupón</Button>
                     </CardHeader>
                     <CardContent>
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Código</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Valor</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                            <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                             <TableBody>
-                            {doctorCoupons.map(coupon => (
+                            {(doctorData.coupons || []).map(coupon => (
                                 <TableRow key={coupon.id}>
                                     <TableCell className="font-mono">{coupon.code}</TableCell>
                                     <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
@@ -1840,11 +1588,7 @@ export default function DoctorDashboardPage() {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                             {doctorCoupons.length === 0 && (
-                                  <TableRow>
-                                      <TableCell colSpan={4} className="h-24 text-center">No has creado cupones.</TableCell>
-                                  </TableRow>
-                              )}
+                             {(doctorData.coupons || []).length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No has creado cupones.</TableCell></TableRow>)}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -1855,28 +1599,18 @@ export default function DoctorDashboardPage() {
                {currentTab === 'chat' && (
                 <div className="mt-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><MessageSquare/> Chat con Pacientes</CardTitle>
-                            <CardDescription>Comunícate de forma segura con tus pacientes.</CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare/> Chat con Pacientes</CardTitle><CardDescription>Comunícate de forma segura con tus pacientes.</CardDescription></CardHeader>
                         <CardContent>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {uniquePatients.map(patient => (
                                     <Card key={patient.id} className="hover:shadow-md cursor-pointer transition-shadow" onClick={() => handleOpenChat(patient)}>
                                         <CardContent className="p-4 flex items-center gap-4">
-                                            <Avatar>
-                                                <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-semibold">{patient.name}</p>
-                                                <p className="text-sm text-muted-foreground">{patient.email}</p>
-                                            </div>
+                                            <Avatar><AvatarFallback>{patient.name.charAt(0)}</AvatarFallback></Avatar>
+                                            <div><p className="font-semibold">{patient.name}</p><p className="text-sm text-muted-foreground">{patient.email}</p></div>
                                         </CardContent>
                                     </Card>
                                 ))}
-                                {uniquePatients.length === 0 && (
-                                    <p className="col-span-full text-center text-muted-foreground py-12">No tienes pacientes con citas agendadas aún.</p>
-                                )}
+                                {uniquePatients.length === 0 && (<p className="col-span-full text-center text-muted-foreground py-12">No tienes pacientes con citas agendadas aún.</p>)}
                            </div>
                         </CardContent>
                     </Card>
@@ -1887,44 +1621,22 @@ export default function DoctorDashboardPage() {
               <div className="mt-6">
                   <Card>
                       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div>
-                            <CardTitle className="flex items-center gap-2"><LifeBuoy /> Soporte y Ayuda</CardTitle>
-                            <CardDescription>Encuentra respuestas a tus preguntas y contacta a nuestro equipo.</CardDescription>
-                          </div>
-                           <Button onClick={() => setIsSupportDialogOpen(true)}>
-                              <MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Ticket
-                          </Button>
+                          <div><CardTitle className="flex items-center gap-2"><LifeBuoy /> Soporte y Ayuda</CardTitle><CardDescription>Encuentra respuestas a tus preguntas y contacta a nuestro equipo.</CardDescription></div>
+                          <Button onClick={() => setIsSupportDialogOpen(true)}><MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Ticket</Button>
                       </CardHeader>
                       <CardContent>
                           <Table>
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Fecha</TableHead>
-                                      <TableHead>Asunto</TableHead>
-                                      <TableHead>Estado</TableHead>
-                                      <TableHead className="text-right">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
+                              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
-                              {supportTickets.map(ticket => (
+                              {(doctorData.supportTickets || []).map(ticket => (
                                   <TableRow key={ticket.id}>
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                      <TableCell>
-                                          <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                              {ticket.status}
-                                          </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                           <Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button>
-                                      </TableCell>
+                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
+                                      <TableCell className="text-right"><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
-                               {supportTickets.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell>
-                                    </TableRow>
-                                )}
+                               {(doctorData.supportTickets || []).length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                       </CardContent>
@@ -1935,296 +1647,107 @@ export default function DoctorDashboardPage() {
         </div>
       </main>
 
-      {/* Dialogs */}
        <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingService ? "Editar Servicio" : "Agregar Nuevo Servicio"}</DialogTitle>
-                    <DialogDescription>
-                        {editingService ? "Modifica los detalles de este servicio." : "Añade un nuevo servicio a tu lista."}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="serviceName" className="text-right">Servicio</Label>
-                        <Input id="serviceName" value={serviceName} onChange={e => setServiceName(e.target.value)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="servicePrice" className="text-right">Precio ($)</Label>
-                        <Input id="servicePrice" type="number" value={servicePrice} onChange={e => setServicePrice(e.target.value)} className="col-span-3" />
-                    </div>
+                <DialogHeader><DialogTitle>{editingService ? "Editar Servicio" : "Agregar Nuevo Servicio"}</DialogTitle><DialogDescription>{editingService ? "Modifica los detalles de este servicio." : "Añade un nuevo servicio a tu lista."}</DialogDescription></DialogHeader>
+                <form onSubmit={handleSaveService}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="serviceName" className="text-right">Servicio</Label><Input name="serviceName" defaultValue={editingService?.name} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="servicePrice" className="text-right">Precio ($)</Label><Input name="servicePrice" type="number" defaultValue={editingService?.price} className="col-span-3" /></div>
                 </div>
-                <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                      </DialogClose>
-                    <Button type="button" onClick={handleSaveService}>Guardar Cambios</Button>
-                </DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
 
-          <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
+        <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
-                    <DialogDescription>
-                        {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir transferencias."}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="bankName" className="text-right">Banco</Label>
-                        <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
-                        <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
-                        <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
-                        <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
-                    </div>
+                <DialogHeader><DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle><DialogDescription>{editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir transferencias."}</DialogDescription></DialogHeader>
+                <form onSubmit={handleSaveBankDetail}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="bankName" className="text-right">Banco</Label><Input name="bankName" defaultValue={editingBankDetail?.bank} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
                 </div>
-                <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                      </DialogClose>
-                    <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
-                </DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
 
-          <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+        <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle>
-                    <DialogDescription>
-                        Registra un nuevo gasto para llevar un control financiero.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="expenseDate" className="text-right">Fecha</Label>
-                        <Input id="expenseDate" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="expenseDescription" className="text-right">Descripción</Label>
-                        <Input id="expenseDescription" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label>
-                        <Input id="expenseAmount" type="number" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} className="col-span-3" />
-                    </div>
+                <DialogHeader><DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle><DialogDescription>Registra un nuevo gasto para llevar un control financiero.</DialogDescription></DialogHeader>
+                <form onSubmit={handleSaveExpense}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
                 </div>
-                <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                      </DialogClose>
-                    <Button type="button" onClick={handleSaveExpense}>Guardar Gasto</Button>
-                </DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
 
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
             <DialogContent className="sm:max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>Detalles de la Cita</DialogTitle>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>Detalles de la Cita</DialogTitle></DialogHeader>
                 {selectedAppointment && (
                     <div className="py-4 space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2">Información del Paciente</h3>
-                                <p><strong>Nombre:</strong> {selectedAppointment.patientName}</p>
-                                <p><strong>Email:</strong> {selectedAppointment.patient?.email}</p>
-                                <p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p>
-                                <p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p>
-                            </div>
-                             <div>
-                                <h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3>
-                                <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
-                                <p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p>
-                                <p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p>
-                                <p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p>
-                            </div>
+                            <div><h3 className="font-semibold text-lg mb-2">Información del Paciente</h3><p><strong>Nombre:</strong> {selectedAppointment.patientName}</p><p><strong>Email:</strong> {selectedAppointment.patient?.email}</p><p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p><p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p></div>
+                            <div><h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3><p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p><p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p><p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p><p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p></div>
                         </div>
                         <Separator />
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Historia Clínica / Notas</h3>
-                            <Textarea 
-                              placeholder="Añade tus notas sobre la consulta aquí..." 
-                              rows={6}
-                              value={editingClinicalNotes}
-                              onChange={(e) => setEditingClinicalNotes(e.target.value)}
-                              disabled={selectedAppointment.attendance !== 'Atendido'}
-                            />
-                            <div className="flex justify-end mt-2">
-                                <Button onClick={handleSaveClinicalNotes} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Notas</Button>
-                            </div>
-                        </div>
+                        <div><h3 className="font-semibold text-lg mb-2">Historia Clínica / Notas</h3><Textarea placeholder="Añade tus notas sobre la consulta aquí..." rows={6} value={editingClinicalNotes} onChange={(e) => setEditingClinicalNotes(e.target.value)} disabled={selectedAppointment.attendance !== 'Atendido'} /><div className="flex justify-end mt-2"><Button onClick={handleSaveClinicalNotes} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Notas</Button></div></div>
                         <Separator />
-                         <div>
-                            <h3 className="font-semibold text-lg mb-2">Récipé / Indicaciones</h3>
-                            <Textarea 
-                                placeholder="Escribe la prescripción o indicaciones para el paciente." 
-                                rows={6}
-                                value={selectedAppointment.prescription || ''}
-                                onChange={(e) => setSelectedAppointment({...selectedAppointment, prescription: e.target.value})}
-                                disabled={selectedAppointment.attendance !== 'Atendido'}
-                            />
-                            <div className="flex justify-end mt-2">
-                                <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>
-                                    <FileText className="mr-2"/> Generar Récipé PDF
-                                </Button>
-                            </div>
-                        </div>
+                         <div><h3 className="font-semibold text-lg mb-2">Récipé / Indicaciones</h3><Textarea placeholder="Escribe la prescripción o indicaciones para el paciente." rows={6} value={selectedAppointment.prescription || ''} onChange={(e) => setSelectedAppointment({...selectedAppointment, prescription: e.target.value})} disabled={selectedAppointment.attendance !== 'Atendido'} /><div className="flex justify-end mt-2"><Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}><FileText className="mr-2"/> Generar Récipé PDF</Button></div></div>
                     </div>
                 )}
-                <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline">Cerrar</Button>
-                      </DialogClose>
-                </DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
             </DialogContent>
         </Dialog>
         
         <Dialog open={isCouponDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCoupon(null); setIsCouponDialogOpen(isOpen); }}>
           <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
-                  <DialogDescription>Completa la información para el cupón de descuento.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSaveCoupon}>
-                <div className="space-y-4 py-4">
-                    <div><Label htmlFor="code">Código</Label><Input id="code" name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
-                    <div><Label>Tipo de Descuento</Label>
-                        <RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
-                            <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
-                            <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
-                        </RadioGroup>
-                    </div>
-                    <div><Label htmlFor="value">Valor</Label><Input id="value" name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit">Guardar Cupón</Button>
-                </DialogFooter>
-              </form>
+              <DialogHeader><DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle><DialogDescription>Completa la información para el cupón de descuento.</DialogDescription></DialogHeader>
+              <form onSubmit={handleSaveCoupon}><div className="space-y-4 py-4">
+                  <div><Label htmlFor="code">Código</Label><Input id="code" name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
+                  <div><Label>Tipo de Descuento</Label><RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2"><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label></RadioGroup></div>
+                  <div><Label htmlFor="value">Valor</Label><Input id="value" name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
+              </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cupón</Button></DialogFooter></form>
           </DialogContent>
         </Dialog>
         
         <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Abrir un Ticket de Soporte</DialogTitle>
-                    <DialogDescription>
-                        Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.
-                    </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateTicket}>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="subject" className="text-right">Asunto</Label>
-                            <Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="description" className="text-right">Descripción</Label>
-                            <Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">Cancelar</Button>
-                        </DialogClose>
-                        <Button type="submit">Enviar Ticket</Button>
-                    </DialogFooter>
-                </form>
+                <DialogHeader><DialogTitle>Abrir un Ticket de Soporte</DialogTitle><DialogDescription>Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.</DialogDescription></DialogHeader>
+                <form onSubmit={handleCreateTicket}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
+                </div><DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Enviar Ticket</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
         
-      {/* Chat Dialog */}
       <Dialog open={isChatDialogOpen} onOpenChange={setIsChatDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-               <Avatar>
-                  <AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback>
-               </Avatar>
-               Chat con {selectedChatPatient?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Este es un canal de comunicación directo con tu paciente.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-3"><Avatar><AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback></Avatar>Chat con {selectedChatPatient?.name}</DialogTitle>
+            <DialogDescription>Este es un canal de comunicación directo con tu paciente.</DialogDescription>
           </DialogHeader>
           <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
             <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-              {/* Mock messages */}
-              <div className="flex items-end gap-2">
-                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs">
-                  <p className="text-sm">¡Hola, doctor! Quería hacerle una consulta sobre mi tratamiento.</p>
-                </div>
-              </div>
-              <div className="flex items-end gap-2 justify-end">
-                <div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs">
-                  <p className="text-sm">Hola {selectedChatPatient?.name}, claro. Dime, ¿cuál es tu duda?</p>
-                </div>
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={doctorData.profileImage ?? undefined} />
-                  <AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </div>
+              <div className="flex items-end gap-2"><Avatar className="h-8 w-8"><AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback></Avatar><div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs"><p className="text-sm">¡Hola, doctor! Quería hacerle una consulta sobre mi tratamiento.</p></div></div>
+              <div className="flex items-end gap-2 justify-end"><div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs"><p className="text-sm">Hola {selectedChatPatient?.name}, claro. Dime, ¿cuál es tu duda?</p></div><Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage ?? undefined} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar></div>
             </div>
-            <div className="flex items-center gap-2">
-              <Input placeholder="Escribe tu mensaje..." className="flex-1" />
-              <Button><Send className="h-4 w-4" /></Button>
-            </div>
+            <div className="flex items-center gap-2"><Input placeholder="Escribe tu mensaje..." className="flex-1" /><Button><Send className="h-4 w-4" /></Button></div>
           </div>
-           <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cerrar
-              </Button>
-            </DialogClose>
-          </DialogFooter>
+           <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
         </DialogContent>
       </Dialog>
        <Dialog open={isReportPaymentDialogOpen} onOpenChange={setIsReportPaymentDialogOpen}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reportar Pago de Suscripción</DialogTitle>
-              <DialogDescription>Completa los datos de la transferencia que realizaste.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleReportPayment}>
-              <div className="space-y-4 py-4">
-                  <div>
-                      <Label htmlFor="payment-amount">Monto Pagado ({currency})</Label>
-                      <Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorSubscriptionFee.toFixed(2)} required />
-                  </div>
-                   <div>
-                      <Label htmlFor="payment-date">Fecha del Pago</Label>
-                      <Input id="payment-date" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required />
-                  </div>
-                   <div>
-                      <Label htmlFor="payment-ref">Número de Referencia</Label>
-                      <Input id="payment-ref" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="00123456" required />
-                  </div>
-                  <div>
-                      <Label htmlFor="payment-proof">Comprobante de Pago</Label>
-                      <Input id="payment-proof" type="file" accept="image/*" onChange={(e) => setPaymentProof(e.target.files ? e.target.files[0] : null)} required />
-                  </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit">Enviar Reporte</Button>
-              </DialogFooter>
-            </form>
+            <DialogHeader><DialogTitle>Reportar Pago de Suscripción</DialogTitle><DialogDescription>Completa los datos de la transferencia que realizaste.</DialogDescription></DialogHeader>
+            <form onSubmit={handleReportPayment}><div className="space-y-4 py-4">
+                  <div><Label htmlFor="payment-amount">Monto Pagado ({currency})</Label><Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorSubscriptionFee.toFixed(2)} required /></div>
+                  <div><Label htmlFor="payment-date">Fecha del Pago</Label><Input id="payment-date" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required /></div>
+                  <div><Label htmlFor="payment-ref">Número de Referencia</Label><Input id="payment-ref" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="00123456" required /></div>
+                  <div><Label htmlFor="payment-proof">Comprobante de Pago</Label><Input id="payment-proof" type="file" accept="image/*" onChange={(e) => setPaymentProof(e.target.files ? e.target.files[0] : null)} required /></div>
+            </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Enviar Reporte</Button></DialogFooter></form>
           </DialogContent>
         </Dialog>
     </div>

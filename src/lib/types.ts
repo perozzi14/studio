@@ -1,4 +1,5 @@
 
+
 export type BankDetail = {
   id: string;
   bank: string;
@@ -19,6 +20,21 @@ export type Coupon = {
   discountType: 'percentage' | 'fixed';
   value: number;
   scope: 'general' | string; // 'general' or doctorId
+};
+
+export type Expense = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  description: string;
+  amount: number;
+};
+
+export type SupportTicket = {
+    id: string;
+    subject: string;
+    status: 'abierto' | 'cerrado';
+    date: string;
+    lastReply: string;
 };
 
 export type DaySchedule = {
@@ -52,6 +68,9 @@ export type Doctor = {
   description: string;
   services: Service[];
   bankDetails: BankDetail[];
+  expenses: Expense[];
+  coupons: Coupon[];
+  supportTickets: SupportTicket[];
   schedule: Schedule;
   slotDuration: 30 | 60;
   sellerId: string | null;
@@ -108,14 +127,6 @@ export type Appointment = {
   prescription?: string;
 };
 
-export type Expense = {
-  id: string;
-  doctorId: string;
-  date: string; // YYYY-MM-DD
-  description: string;
-  amount: number;
-};
-
 export type SellerPayment = {
   id: string;
   sellerId: string;
@@ -135,15 +146,6 @@ export type MarketingMaterial = {
     url: string;
     thumbnailUrl: string;
 };
-
-export type SupportTicket = {
-    id: string;
-    userId: string; // email of user
-    subject: string;
-    status: 'abierto' | 'cerrado';
-    date: string;
-    lastReply: string;
-}
 
 export type DoctorPayment = {
   id: string;

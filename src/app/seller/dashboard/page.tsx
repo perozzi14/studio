@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { mockMarketingMaterials, mockSupportTickets, type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, type Seller, type BankDetail } from '@/lib/data';
+import { type Doctor, type SellerPayment, type MarketingMaterial, type SupportTicket, type Seller, type BankDetail } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,7 +34,15 @@ import {
 } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { useSettings } from '@/lib/settings';
+import { mockMarketingMaterials } from '@/lib/data';
+import { z } from 'zod';
 
+const BankDetailFormSchema = z.object({
+  bank: z.string().min(3, "El nombre del banco es requerido."),
+  accountHolder: z.string().min(3, "El nombre del titular es requerido."),
+  idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
+  accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+});
 
 function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
     const { toast } = useToast();
@@ -93,10 +101,6 @@ export default function SellerDashboardPage() {
 
   const [isBankDetailDialogOpen, setIsBankDetailDialogOpen] = useState(false);
   const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
-  const [bankName, setBankName] = useState('');
-  const [accountHolder, setAccountHolder] = useState('');
-  const [idNumber, setIdNumber] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
   
   const [isPaymentDetailDialogOpen, setIsPaymentDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SellerPayment | null>(null);
@@ -107,24 +111,31 @@ export default function SellerDashboardPage() {
     if (!user || user.role !== 'seller' || !user.id) return;
     setIsLoading(true);
 
-    const [seller, allDocs, allPayments] = await Promise.all([
-        firestoreService.getSeller(user.id),
-        firestoreService.getDoctors(),
-        firestoreService.getSellerPayments()
-    ]);
-    
-    if (seller) {
-        setSellerData(seller);
-        setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
-        setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
+    try {
+        const [seller, allDocs, allPayments] = await Promise.all([
+            firestoreService.getSeller(user.id),
+            firestoreService.getDoctors(),
+            firestoreService.getSellerPayments()
+        ]);
+        
+        if (seller) {
+            setSellerData(seller);
+            setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
+            setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
+        }
+    } catch (error) {
+        console.error("Error fetching seller data:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos del panel.' });
+    } finally {
+        setIsLoading(false);
     }
-    
-    setIsLoading(false);
-  }, [user]);
+  }, [user, toast]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user?.id) {
+        fetchData();
+    }
+  }, [user, fetchData]);
   
   const handleTabChange = (value: string) => {
     router.push(`/seller/dashboard?view=${value}`);
@@ -146,51 +157,40 @@ export default function SellerDashboardPage() {
     const nextPaymentYear = getMonth(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
 
-    return {
-      totalReferred: referredDoctors.length,
-      activeReferredCount: activeReferred.length,
-      pendingCommission,
-      totalEarned,
-      nextPaymentDate,
-    };
+    return { totalReferred: referredDoctors.length, activeReferredCount: activeReferred.length, pendingCommission, totalEarned, nextPaymentDate };
   }, [referredDoctors, commissionPerDoctor, sellerData, sellerPayments]);
-
-  const copyReferralLink = () => {
-    if (!sellerData?.referralCode) return;
-    const link = `${window.location.origin}/auth/register?ref=${sellerData.referralCode}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "¡Enlace Copiado!",
-      description: "El enlace de referido ha sido copiado al portapapeles.",
-    });
-  };
   
    const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast({
-      title: "Ticket Enviado",
-      description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA.",
-    });
+    toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
   };
 
   const handleOpenBankDetailDialog = (bankDetail: BankDetail | null) => {
     setEditingBankDetail(bankDetail);
-    setBankName(bankDetail ? bankDetail.bank : '');
-    setAccountHolder(bankDetail ? bankDetail.accountHolder : '');
-    setIdNumber(bankDetail ? bankDetail.idNumber : '');
-    setAccountNumber(bankDetail ? bankDetail.accountNumber : '');
     setIsBankDetailDialogOpen(true);
   };
   
-  const handleSaveBankDetail = async () => {
-    if (!sellerData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
+  const handleSaveBankDetail = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+        bank: formData.get('bankName') as string,
+        accountHolder: formData.get('accountHolder') as string,
+        idNumber: formData.get('idNumber') as string,
+        accountNumber: formData.get('accountNumber') as string,
+    };
+    const result = BankDetailFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+    
+    if (!sellerData) return;
     
     const newBankDetail: BankDetail = {
       id: editingBankDetail ? editingBankDetail.id : `bank-${Date.now()}`,
-      bank: bankName,
-      accountHolder: accountHolder,
-      idNumber: idNumber,
-      accountNumber: accountNumber,
+      ...result.data,
     };
     
     let updatedBankDetails;
@@ -201,15 +201,17 @@ export default function SellerDashboardPage() {
     }
     
     await firestoreService.updateSeller(sellerData.id, { bankDetails: updatedBankDetails });
-    fetchData(); // Refresh data from Firestore
+    fetchData();
     setIsBankDetailDialogOpen(false);
+    toast({ title: "Cuenta Bancaria Guardada" });
   };
 
   const handleDeleteBankDetail = async (bankDetailId: string) => {
     if (!sellerData) return;
     const updatedBankDetails = sellerData.bankDetails.filter(bd => bd.id !== bankDetailId);
     await firestoreService.updateSeller(sellerData.id, { bankDetails: updatedBankDetails });
-    fetchData(); // Refresh data from Firestore
+    fetchData();
+    toast({ title: "Cuenta Bancaria Eliminada" });
   };
 
   const handleViewPaymentDetails = (payment: SellerPayment) => {
@@ -221,14 +223,8 @@ export default function SellerDashboardPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 container py-12">
-           <div className="space-y-4">
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2" />
-           </div>
-           <div className="mt-8">
-             <Skeleton className="h-96 w-full" />
-           </div>
+        <main className="flex-1 container py-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
       </div>
     );
@@ -261,7 +257,7 @@ export default function SellerDashboardPage() {
                             </CardHeader>
                             <CardContent className="flex flex-col sm:flex-row items-stretch gap-2">
                                 <Input value={referralLink} readOnly className="text-sm bg-background flex-1"/>
-                                <Button onClick={copyReferralLink} className="w-full sm:w-auto">
+                                <Button onClick={() => navigator.clipboard.writeText(referralLink)} className="w-full sm:w-auto">
                                     <Copy className="mr-2 h-4 w-4"/>
                                     Copiar Enlace
                                 </Button>
@@ -277,38 +273,27 @@ export default function SellerDashboardPage() {
                                 <Table className="hidden md:table">
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Médico</TableHead>
-                                            <TableHead>Contacto</TableHead>
-                                            <TableHead>Especialidad</TableHead>
-                                            <TableHead>Ubicación</TableHead>
-                                            <TableHead>Último Pago</TableHead>
-                                            <TableHead className="text-center">Estado</TableHead>
+                                            <TableHead>Médico</TableHead><TableHead>Contacto</TableHead><TableHead>Especialidad</TableHead>
+                                            <TableHead>Ubicación</TableHead><TableHead>Último Pago</TableHead><TableHead className="text-center">Estado</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {referredDoctors.length > 0 ? referredDoctors.map((doctor) => (
                                             <TableRow key={doctor.id}>
                                                 <TableCell className="font-medium">{doctor.name}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1 text-xs">
-                                                        <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{doctor.email}</span></span>
-                                                        <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{doctor.whatsapp}</span></span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>{doctor.specialty}</TableCell>
-                                                <TableCell>{doctor.city}, {doctor.sector}</TableCell>
+                                                <TableCell><div className="flex flex-col gap-1 text-xs">
+                                                    <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{doctor.email}</span></span>
+                                                    <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{doctor.whatsapp}</span></span>
+                                                </div></TableCell>
+                                                <TableCell>{doctor.specialty}</TableCell><TableCell>{doctor.city}, {doctor.sector}</TableCell>
                                                 <TableCell>{format(new Date(doctor.lastPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
-                                                        {doctor.status === 'active' ? <CheckCircle className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
-                                                        {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
-                                                    </Badge>
-                                                </TableCell>
+                                                <TableCell className="text-center"><Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' && 'bg-green-600 text-white')}>
+                                                    {doctor.status === 'active' ? <CheckCircle className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
+                                                    {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                                </Badge></TableCell>
                                             </TableRow>
                                         )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="h-24 text-center">Aún no tienes médicos referidos. ¡Comparte tu enlace!</TableCell>
-                                            </TableRow>
+                                            <TableRow><TableCell colSpan={6} className="h-24 text-center">Aún no tienes médicos referidos. ¡Comparte tu enlace!</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
@@ -343,94 +328,36 @@ export default function SellerDashboardPage() {
                 <TabsContent value="finances" className="mt-6">
                     <div className="space-y-8">
                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Comisión Pendiente (Este Mes)</CardTitle>
-                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-green-600">${financeStats.pendingCommission.toFixed(2)}</div>
-                                    <p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}/c.u.</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Total General Generado</CardTitle>
-                                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">${financeStats.totalEarned.toFixed(2)}</div>
-                                    <p className="text-xs text-muted-foreground">Suma de todos los pagos recibidos.</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Próxima Fecha de Pago</CardTitle>
-                                    <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{financeStats.nextPaymentDate}</div>
-                                    <p className="text-xs text-muted-foreground">Cierre de ciclo el 15 de cada mes.</p>
-                                </CardContent>
-                            </Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente (Este Mes)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}/c.u.</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total General Generado</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Suma de todos los pagos recibidos.</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Próxima Fecha de Pago</CardTitle><CalendarClock className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{financeStats.nextPaymentDate}</div><p className="text-xs text-muted-foreground">Cierre de ciclo el 15 de cada mes.</p></CardContent></Card>
                         </div>
                          <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle>
-                                <CardDescription>Registro de todas las comisiones que has recibido.</CardDescription>
-                            </CardHeader>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
                             <CardContent>
                                 <Table className="hidden md:table">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Fecha de Pago</TableHead>
-                                            <TableHead>Período de Comisión</TableHead>
-                                            <TableHead>Médicos Pagados</TableHead>
-                                            <TableHead className="text-right">Monto Recibido</TableHead>
-                                            <TableHead className="text-center">Acciones</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
+                                    <TableHeader><TableRow><TableHead>Fecha de Pago</TableHead><TableHead>Período de Comisión</TableHead><TableHead>Médicos Pagados</TableHead><TableHead className="text-right">Monto Recibido</TableHead><TableHead className="text-center">Acciones</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
                                             <TableRow key={payment.id}>
                                                 <TableCell className="font-medium">{format(new Date(payment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                <TableCell>{payment.period}</TableCell>
-                                                <TableCell>{payment.includedDoctors.length}</TableCell>
+                                                <TableCell>{payment.period}</TableCell><TableCell>{payment.includedDoctors.length}</TableCell>
                                                 <TableCell className="text-right font-mono text-green-600 font-semibold">${payment.amount.toFixed(2)}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Button variant="outline" size="sm" onClick={() => handleViewPaymentDetails(payment)}>
-                                                        <Eye className="mr-2 h-4 w-4"/>
-                                                        Ver Detalles
-                                                    </Button>
-                                                </TableCell>
+                                                <TableCell className="text-center"><Button variant="outline" size="sm" onClick={() => handleViewPaymentDetails(payment)}><Eye className="mr-2 h-4 w-4"/>Ver Detalles</Button></TableCell>
                                             </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="h-24 text-center">No has recibido pagos aún.</TableCell>
-                                            </TableRow>
-                                        )}
+                                        )) : (<TableRow><TableCell colSpan={5} className="h-24 text-center">No has recibido pagos aún.</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
-
                                 <div className="space-y-4 md:hidden">
                                      {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
                                         <div key={payment.id} className="p-4 border rounded-lg space-y-3">
                                             <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold">{payment.period}</p>
-                                                    <p className="text-sm text-muted-foreground">Pagado el {format(new Date(payment.paymentDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p>
-                                                </div>
+                                                <div><p className="font-semibold">{payment.period}</p><p className="text-sm text-muted-foreground">Pagado el {format(new Date(payment.paymentDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p></div>
                                                 <p className="text-lg font-bold font-mono text-green-600">${payment.amount.toFixed(2)}</p>
-                                            </div>
-                                            <Separator/>
-                                            <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewPaymentDetails(payment)}>
-                                                <Eye className="mr-2 h-4 w-4"/>
-                                                Ver Detalles del Pago
-                                            </Button>
+                                            </div><Separator/>
+                                            <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewPaymentDetails(payment)}><Eye className="mr-2 h-4 w-4"/>Ver Detalles del Pago</Button>
                                         </div>
-                                     )) : (
-                                        <div className="h-24 text-center flex items-center justify-center text-muted-foreground">No has recibido pagos aún.</div>
-                                     )}
+                                     )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">No has recibido pagos aún.</div>)}
                                 </div>
                             </CardContent>
                         </Card>
@@ -439,65 +366,33 @@ export default function SellerDashboardPage() {
                 <TabsContent value="accounts" className="mt-6">
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div>
-                              <CardTitle className="flex items-center gap-2"><Coins /> Mis Cuentas Bancarias</CardTitle>
-                              <CardDescription>Gestiona tus cuentas para recibir los pagos de comisiones.</CardDescription>
-                          </div>
+                          <div><CardTitle className="flex items-center gap-2"><Coins /> Mis Cuentas Bancarias</CardTitle><CardDescription>Gestiona tus cuentas para recibir los pagos de comisiones.</CardDescription></div>
                           <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
                       </CardHeader>
                       <CardContent>
                           <Table className="hidden md:table">
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Banco</TableHead>
-                                      <TableHead>Titular</TableHead>
-                                      <TableHead>Nro. de Cuenta</TableHead>
-                                      <TableHead>C.I./R.I.F.</TableHead>
-                                      <TableHead className="w-[120px] text-center">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
+                              <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
                                   {sellerData.bankDetails.map(bd => (
                                       <TableRow key={bd.id}>
-                                          <TableCell className="font-medium">{bd.bank}</TableCell>
-                                          <TableCell>{bd.accountHolder}</TableCell>
-                                          <TableCell>{bd.accountNumber}</TableCell>
-                                          <TableCell>{bd.idNumber}</TableCell>
-                                          <TableCell className="text-center">
-                                              <div className="flex items-center justify-center gap-2">
-                                                  <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                                  <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
-                                              </div>
-                                          </TableCell>
+                                          <TableCell className="font-medium">{bd.bank}</TableCell><TableCell>{bd.accountHolder}</TableCell><TableCell>{bd.accountNumber}</TableCell><TableCell>{bd.idNumber}</TableCell>
+                                          <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
+                                              <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                              <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                          </div></TableCell>
                                       </TableRow>
                                   ))}
-                                  {sellerData.bankDetails.length === 0 && (
-                                      <TableRow>
-                                          <TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell>
-                                      </TableRow>
-                                  )}
+                                  {sellerData.bankDetails.length === 0 && (<TableRow><TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                           <div className="space-y-4 md:hidden">
                               {sellerData.bankDetails.length > 0 ? sellerData.bankDetails.map(bd => (
                                   <div key={bd.id} className="p-4 border rounded-lg space-y-4">
                                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                          <div>
-                                              <p className="text-xs text-muted-foreground">Banco</p>
-                                              <p className="font-medium">{bd.bank}</p>
-                                          </div>
-                                          <div>
-                                              <p className="text-xs text-muted-foreground">Titular</p>
-                                              <p className="font-medium">{bd.accountHolder}</p>
-                                          </div>
-                                          <div>
-                                              <p className="text-xs text-muted-foreground">Nro. Cuenta</p>
-                                              <p className="font-mono text-sm">{bd.accountNumber}</p>
-                                          </div>
-                                          <div>
-                                              <p className="text-xs text-muted-foreground">C.I./R.I.F.</p>
-                                              <p className="font-mono text-sm">{bd.idNumber}</p>
-                                          </div>
+                                          <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
+                                          <div><p className="text-xs text-muted-foreground">Titular</p><p className="font-medium">{bd.accountHolder}</p></div>
+                                          <div><p className="text-xs text-muted-foreground">Nro. Cuenta</p><p className="font-mono text-sm">{bd.accountNumber}</p></div>
+                                          <div><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
                                       </div>
                                       <Separator />
                                       <div className="flex justify-end gap-2">
@@ -505,122 +400,46 @@ export default function SellerDashboardPage() {
                                           <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
                                       </div>
                                   </div>
-                              )) : (
-                                  <p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>
-                              )}
+                              )) : (<p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>)}
                           </div>
                       </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="marketing" className="mt-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Material de Marketing</CardTitle>
-                            <CardDescription>Recursos proporcionados por SUMA para ayudarte a promocionar la plataforma.</CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Material de Marketing</CardTitle><CardDescription>Recursos proporcionados por SUMA para ayudarte a promocionar la plataforma.</CardDescription></CardHeader>
                         <CardContent>
                             {mockMarketingMaterials.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {mockMarketingMaterials.map(material => (
-                                        <MarketingMaterialCard key={material.id} material={material} />
-                                    ))}
+                                    {mockMarketingMaterials.map(material => (<MarketingMaterialCard key={material.id} material={material} />))}
                                 </div>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-12">No hay materiales de marketing disponibles en este momento.</p>
-                            )}
+                            ) : (<p className="text-center text-muted-foreground py-12">No hay materiales de marketing disponibles en este momento.</p>)}
                         </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="support" className="mt-6">
                     <Card>
-                        <CardHeader>
-                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    <CardTitle>Soporte Técnico</CardTitle>
-                                    <CardDescription>Gestiona tus tickets de soporte con el equipo de SUMA.</CardDescription>
-                                </div>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full sm:w-auto">
-                                            <MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Abrir un Ticket de Soporte</DialogTitle>
-                                            <DialogDescription>
-                                                Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <form onSubmit={handleCreateTicket}>
-                                            <div className="grid gap-4 py-4">
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="subject" className="text-right">Asunto</Label>
-                                                    <Input id="subject" placeholder="ej., Problema con un referido" className="col-span-3" required />
-                                                </div>
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="description" className="text-right">Descripción</Label>
-                                                    <Textarea id="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required />
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button type="button" variant="secondary">Cancelar</Button>
-                                                </DialogClose>
-                                                <DialogClose asChild>
-                                                    <Button type="submit">Enviar Ticket</Button>
-                                                </DialogClose>
-                                            </DialogFooter>
-                                        </form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </CardHeader>
+                        <CardHeader><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div><CardTitle>Soporte Técnico</CardTitle><CardDescription>Gestiona tus tickets de soporte con el equipo de SUMA.</CardDescription></div>
+                            <Dialog><DialogTrigger asChild><Button className="w-full sm:w-auto"><MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket</Button></DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader><DialogTitle>Abrir un Ticket de Soporte</DialogTitle><DialogDescription>Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.</DialogDescription></DialogHeader>
+                                    <form onSubmit={handleCreateTicket}>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" placeholder="ej., Problema con un referido" className="col-span-3" required /></div>
+                                            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
+                                        </div>
+                                        <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><DialogClose asChild><Button type="submit">Enviar Ticket</Button></DialogClose></DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div></CardHeader>
                         <CardContent>
                             <Table className="hidden md:table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Asunto</TableHead>
-                                        <TableHead>Última Respuesta</TableHead>
-                                        <TableHead className="text-center">Estado</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mockSupportTickets.length > 0 ? mockSupportTickets.map(ticket => (
-                                        <TableRow key={ticket.id}>
-                                            <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
-                                            <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                            <TableCell>{ticket.lastReply}</TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                                    {ticket.status}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
+                                <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Última Respuesta</TableHead><TableHead className="text-center">Estado</TableHead></TableRow></TableHeader>
+                                <TableBody><TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow></TableBody>
                             </Table>
-                            <div className="space-y-4 md:hidden">
-                                {mockSupportTickets.length > 0 ? mockSupportTickets.map(ticket => (
-                                    <div key={ticket.id} className="p-4 border rounded-lg space-y-2">
-                                        <div className="flex justify-between items-start">
-                                            <p className="font-semibold">{ticket.subject}</p>
-                                            <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                                {ticket.status}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Abierto: {format(new Date(ticket.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p>
-                                        <p className="text-sm">Última respuesta: {ticket.lastReply}</p>
-                                    </div>
-                                )) : (
-                                    <p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p>
-                                )}
-                            </div>
+                            <div className="space-y-4 md:hidden"><p className="text-center text-muted-foreground py-8">No tienes tickets de soporte.</p></div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -630,75 +449,31 @@ export default function SellerDashboardPage() {
 
         <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle>
-                    <DialogDescription>
-                        {editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir tus comisiones."}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="bankName" className="text-right">Banco</Label>
-                        <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
-                        <Input id="accountHolder" value={accountHolder} onChange={e => setAccountHolder(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
-                        <Input id="idNumber" value={idNumber} onChange={e => setIdNumber(e.target.value)} className="col-span-3" />
-                    </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
-                        <Input id="accountNumber" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="col-span-3" />
-                    </div>
-                </div>
-                <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                      </DialogClose>
-                    <Button type="button" onClick={handleSaveBankDetail}>Guardar Cambios</Button>
-                </DialogFooter>
+                <DialogHeader><DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle><DialogDescription>{editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir tus comisiones."}</DialogDescription></DialogHeader>
+                <form onSubmit={handleSaveBankDetail}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="bankName" className="text-right">Banco</Label><Input name="bankName" defaultValue={editingBankDetail?.bank} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
+                </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
         
         <Dialog open={isPaymentDetailDialogOpen} onOpenChange={setIsPaymentDetailDialogOpen}>
             <DialogContent className="max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Detalles del Pago</DialogTitle>
-                    <DialogDescription>
-                        Resumen del pago de comisiones para el período {selectedPayment?.period}.
-                    </DialogDescription>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>Detalles del Pago</DialogTitle><DialogDescription>Resumen del pago de comisiones para el período {selectedPayment?.period}.</DialogDescription></DialogHeader>
                 {selectedPayment && (
                     <div className="py-2 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                         <div className="space-y-1">
                             <p><span className="font-semibold">Fecha de Pago:</span> {format(new Date(selectedPayment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
                             <p><span className="font-semibold">Monto:</span> <span className="font-bold text-green-600">${selectedPayment.amount.toFixed(2)}</span></p>
                             <p><span className="font-semibold">ID de Transacción:</span> <span className="font-mono text-xs">{selectedPayment.transactionId}</span></p>
-                        </div>
-                        <Separator/>
-                        <div>
-                            <h4 className="font-semibold mb-2">Comprobante de Pago de SUMA</h4>
-                            <div className="relative aspect-video">
-                                <Image src={selectedPayment.paymentProofUrl} alt="Comprobante de pago" fill className="rounded-md border object-contain" data-ai-hint="payment receipt"/>
-                            </div>
-                        </div>
-                        <Separator/>
-                        <div>
-                            <h4 className="font-semibold mb-2">Médicos Incluidos ({selectedPayment.includedDoctors.length})</h4>
-                            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                                {selectedPayment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}
-                            </ul>
-                        </div>
+                        </div><Separator/>
+                        <div><h4 className="font-semibold mb-2">Comprobante de Pago de SUMA</h4><div className="relative aspect-video"><Image src={selectedPayment.paymentProofUrl} alt="Comprobante de pago" fill className="rounded-md border object-contain" data-ai-hint="payment receipt"/></div></div><Separator/>
+                        <div><h4 className="font-semibold mb-2">Médicos Incluidos ({selectedPayment.includedDoctors.length})</h4><ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">{selectedPayment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}</ul></div>
                     </div>
                 )}
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">Cerrar</Button>
-                    </DialogClose>
-                </DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
             </DialogContent>
         </Dialog>
 
