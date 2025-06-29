@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, mockSupportTickets, type SupportTicket, mockDoctorPayments as allDoctorPayments, type DoctorPayment } from '@/lib/data';
+import { appointments as mockAppointments, doctors, mockExpenses, mockPatients, mockSupportTickets, mockDoctorPayments as allDoctorPayments } from '@/lib/data';
+import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, SupportTicket, DoctorPayment } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp } from 'lucide-react';
 import {
@@ -2282,5 +2283,3 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
-
-    

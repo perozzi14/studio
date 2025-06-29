@@ -6,14 +6,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
-import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments, type Doctor, type Seller, type Patient, type DoctorPayment, type AdminSupportTicket, type Coupon, type SellerPayment, type BankDetail, appointments as initialAppointments, type Appointment, type CompanyExpense } from '@/lib/data';
+import { doctors as allDoctors, sellers as allSellers, mockPatients, mockDoctorPayments, mockAdminSupportTickets, mockSellerPayments } from '@/lib/data';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense } from '@/lib/types';
+import { seedDatabase } from '@/lib/firestoreService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -172,6 +174,29 @@ export default function AdminDashboardPage() {
   const [editingCompanyBankDetail, setEditingCompanyBankDetail] = useState<BankDetail | null>(null);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<CompanyExpense | null>(null);
+  
+  // State for DB Seeding
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      await seedDatabase();
+      toast({
+        title: "Base de Datos Poblada",
+        description: "Los datos de prueba han sido cargados a Firestore exitosamente.",
+      });
+    } catch (error) {
+      console.error("Error seeding database:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al Poblar Base de Datos",
+        description: "Ocurrió un error. Revisa la consola para más detalles.",
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -1536,6 +1561,40 @@ export default function AdminDashboardPage() {
                             </CardContent>
                         </Card>
                       </div>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Database /> Mantenimiento de la Base de Datos
+                          </CardTitle>
+                          <CardDescription>
+                            Usa esta herramienta para cargar los datos iniciales a tu base de datos Firestore.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
+                            <p className="text-sm">
+                              Este proceso borrará los datos existentes y los reemplazará con los datos de prueba del sistema.
+                              <br />
+                              <strong className="text-destructive">Advertencia:</strong> Esta acción es irreversible.
+                            </p>
+                            <Button
+                              variant="secondary"
+                              onClick={handleSeedDatabase}
+                              disabled={isSeeding}
+                            >
+                              {isSeeding ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Poblando Base de Datos...
+                                </>
+                              ) : (
+                                "Poblar Base de Datos con Datos de Prueba"
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
 
                         <div className="grid md:grid-cols-2 gap-6 items-start">
                              <Card>

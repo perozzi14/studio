@@ -1,4 +1,6 @@
 
+import type { Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, AdminNotification, CompanyExpense, BankDetail, Coupon, Schedule } from './types';
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -17,14 +19,6 @@ export const cities = [
   "Valencia",
 ];
 
-export type BankDetail = {
-  id: number;
-  bank: string;
-  accountNumber: string;
-  accountHolder: string;
-  idNumber: string;
-};
-
 export const mockCompanyBankDetails: BankDetail[] = [
   {
     id: 9901,
@@ -42,81 +36,10 @@ export const mockCompanyBankDetails: BankDetail[] = [
   },
 ];
 
-
-export type Service = {
-  id: number;
-  name: string;
-  price: number;
-};
-
-export type Coupon = {
-  id: number;
-  code: string;
-  discountType: 'percentage' | 'fixed';
-  value: number;
-  scope: 'general' | number; // 'general' or doctorId
-};
-
 export const mockCoupons: Coupon[] = [
   { id: 1, code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
   { id: 2, code: 'VERANO20', discountType: 'percentage', value: 20, scope: 1 } // Dr. Ana Rodriguez
 ];
-
-export type DaySchedule = {
-  active: boolean;
-  slots: { start: string; end: string }[];
-};
-
-export type Schedule = {
-  monday: DaySchedule;
-  tuesday: DaySchedule;
-  wednesday: DaySchedule;
-  thursday: DaySchedule;
-  friday: DaySchedule;
-  saturday: DaySchedule;
-  sunday: DaySchedule;
-};
-
-export type Doctor = {
-  id: number;
-  name: string;
-  cedula: string;
-  specialty: string;
-  city: string;
-  address: string;
-  sector: string;
-  rating: number;
-  reviewCount: number;
-  profileImage: string;
-  bannerImage: string;
-  aiHint: string;
-  description: string;
-  services: Service[];
-  bankDetails: BankDetail[];
-  schedule: Schedule;
-  slotDuration: 30 | 60;
-  sellerId: number | null;
-  status: 'active' | 'inactive';
-  lastPaymentDate: string;
-  email: string;
-  whatsapp: string;
-  lat: number;
-  lng: number;
-  joinDate: string;
-  subscriptionStatus: 'active' | 'inactive' | 'pending_payment';
-  nextPaymentDate: string;
-};
-
-export type Seller = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  profileImage: string;
-  referralCode: string;
-  bankDetails: BankDetail[];
-  commissionRate: number;
-};
 
 const defaultSchedule: Schedule = {
     monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -422,16 +345,6 @@ export const doctors: Doctor[] = [
 ];
 
 
-export type Patient = {
-    id: string;
-    name: string;
-    email: string;
-    age: number | null;
-    gender: 'masculino' | 'femenino' | 'otro' | null;
-    phone: string | null;
-    cedula: string | null;
-};
-
 export const mockPatients: Patient[] = [
     { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456' },
     { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678' },
@@ -440,25 +353,6 @@ export const mockPatients: Patient[] = [
     { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210' },
 ];
 
-
-export type Appointment = {
-  id: string;
-  patientId: string;
-  patientName: string;
-  doctorName: string;
-  doctorId: number;
-  date: string;
-  time: string;
-  services: Service[];
-  totalPrice: number;
-  paymentMethod: 'efectivo' | 'transferencia';
-  paymentStatus: 'Pendiente' | 'Pagado';
-  paymentProof: string | null;
-  attendance: 'Atendido' | 'No Asistió' | 'Pendiente';
-  patientConfirmationStatus: 'Pendiente' | 'Confirmada' | 'Cancelada';
-  clinicalNotes?: string;
-  prescription?: string;
-};
 
 export const appointments: Appointment[] = [
   // Upcoming Appointments for Dr. Rodriguez (id: 1)
@@ -610,14 +504,6 @@ export const appointments: Appointment[] = [
   }
 ];
 
-export type Expense = {
-  id: string;
-  doctorId: number;
-  date: string; // YYYY-MM-DD
-  description: string;
-  amount: number;
-};
-
 export const mockExpenses: Expense[] = [
   { 
     id: 'exp-1', 
@@ -657,17 +543,6 @@ export const mockExpenses: Expense[] = [
 ];
 
 
-export type SellerPayment = {
-  id: string;
-  sellerId: number;
-  paymentDate: string; // YYYY-MM-DD
-  amount: number;
-  period: string; // e.g., "Mayo 2024"
-  includedDoctors: { id: number; name: string }[];
-  paymentProofUrl: string;
-  transactionId: string;
-};
-
 export const mockSellerPayments: SellerPayment[] = [
   {
     id: 'pay-1',
@@ -697,15 +572,6 @@ export const mockSellerPayments: SellerPayment[] = [
     transactionId: 'TXN-SUMA-20240416-001'
   },
 ];
-
-export type MarketingMaterial = {
-    id: number;
-    type: 'image' | 'video' | 'file' | 'url';
-    title: string;
-    description: string;
-    url: string;
-    thumbnailUrl: string;
-};
 
 export const mockMarketingMaterials: MarketingMaterial[] = [
     {
@@ -741,15 +607,6 @@ export const mockMarketingMaterials: MarketingMaterial[] = [
         thumbnailUrl: 'https://placehold.co/600x400.png',
     }
 ];
-
-export type SupportTicket = {
-    id: string;
-    userId: string; // email of user
-    subject: string;
-    status: 'abierto' | 'cerrado';
-    date: string;
-    lastReply: string;
-}
 
 export const mockSupportTickets: SupportTicket[] = [
     // Seller tickets
@@ -788,17 +645,6 @@ export const mockSupportTickets: SupportTicket[] = [
     }
 ];
 
-export type DoctorPayment = {
-  id: string;
-  doctorId: number;
-  doctorName: string;
-  date: string;
-  amount: number;
-  status: 'Paid' | 'Pending' | 'Rejected';
-  paymentProofUrl: string | null;
-  transactionId: string;
-};
-
 export const mockDoctorPayments: DoctorPayment[] = [
   { id: 'dp-1', doctorId: 1, doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456' },
   { id: 'dp-2', doctorId: 2, doctorName: 'Dr. Carlos Sanchez', date: '2024-05-25', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123457' },
@@ -808,16 +654,6 @@ export const mockDoctorPayments: DoctorPayment[] = [
   { id: 'dp-5', doctorId: 3, doctorName: 'Dr. Sofia Gomez', date: '2024-06-01', amount: 50, status: 'Pending', paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN123460' },
 ];
 
-
-export type AdminSupportTicket = {
-    id: string;
-    userId: string; 
-    userName: string;
-    userRole: 'doctor' | 'seller';
-    subject: string;
-    status: 'abierto' | 'cerrado';
-    date: string;
-};
 
 export const mockAdminSupportTickets: AdminSupportTicket[] = [
     {
@@ -848,16 +684,6 @@ export const mockAdminSupportTickets: AdminSupportTicket[] = [
         date: '2024-05-15',
     },
 ];
-
-export type AdminNotification = {
-    id: string;
-    type: 'payment' | 'new_doctor' | 'support_ticket';
-    title: string;
-    description: string;
-    date: string; // ISO string
-    read: boolean;
-    link: string;
-};
 
 export const mockAdminNotifications: AdminNotification[] = [
     {
@@ -897,14 +723,6 @@ export const mockAdminNotifications: AdminNotification[] = [
         link: '/admin/dashboard?view=finances'
     }
 ];
-
-export type CompanyExpense = {
-    id: string;
-    date: string; // YYYY-MM-DD
-    description: string;
-    amount: number;
-    category: 'operativo' | 'marketing' | 'personal';
-};
 
 export const mockCompanyExpenses: CompanyExpense[] = [
     { id: 'cexp-1', date: '2024-05-01', description: 'Alquiler de oficina', amount: 800, category: 'operativo' },
