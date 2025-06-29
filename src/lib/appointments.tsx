@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
@@ -8,8 +7,8 @@ import { useAuth } from './auth';
 
 interface AppointmentContextType {
   appointments: Appointment[];
-  addAppointment: (newAppointmentData: Omit<Appointment, 'id'| 'patientId' | 'patientName'>) => void;
-  updateAppointmentConfirmation: (appointmentId: string, status: 'Confirmada' | 'Cancelada') => void;
+  addAppointment: (newAppointmentData: Omit<Appointment, 'id'| 'patientId' | 'patientName'>) => Promise<void>;
+  updateAppointmentConfirmation: (appointmentId: string, status: 'Confirmada' | 'Cancelada') => Promise<void>;
 }
 
 const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
@@ -18,17 +17,21 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const { user } = useAuth();
 
-  const fetchAppointments = useCallback(async () => {
-    if(user?.role === 'patient' && user.id) {
-      const patientAppointments = await firestoreService.getPatientAppointments(user.id);
-      setAppointments(patientAppointments);
-    }
-  }, [user]);
-
+  // Effect to fetch appointments when user changes
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    // Define the async function inside the effect
+    const doFetch = async () => {
+      if (user?.role === 'patient' && user.id) {
+        const patientAppointments = await firestoreService.getPatientAppointments(user.id);
+        setAppointments(patientAppointments);
+      } else {
+        // If there's no user or the user is not a patient, clear the appointments
+        setAppointments([]);
+      }
+    };
 
+    doFetch();
+  }, [user]); // Depend directly on the user object
 
   const addAppointment = useCallback(async (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName'>) => {
     if (!user) return; 
@@ -40,13 +43,23 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     };
     
     await firestoreService.addAppointment(newAppointment);
-    fetchAppointments();
-  }, [user, fetchAppointments]);
+    
+    // Re-fetch appointments after adding a new one
+    if (user.id && user.role === 'patient') {
+        const patientAppointments = await firestoreService.getPatientAppointments(user.id);
+        setAppointments(patientAppointments);
+    }
+  }, [user]);
 
   const updateAppointmentConfirmation = useCallback(async (appointmentId: string, status: 'Confirmada' | 'Cancelada') => {
     await firestoreService.updateAppointment(appointmentId, { patientConfirmationStatus: status });
-    fetchAppointments();
-  }, [fetchAppointments]);
+
+    // Re-fetch appointments after updating one
+    if (user?.id && user.role === 'patient') {
+        const patientAppointments = await firestoreService.getPatientAppointments(user.id);
+        setAppointments(patientAppointments);
+    }
+  }, [user]);
 
   const value = { appointments, addAppointment, updateAppointmentConfirmation };
 
