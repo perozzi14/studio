@@ -47,6 +47,7 @@ import { useSettings } from '@/lib/settings';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 
 export default function AdminDashboardPage() {
