@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       // Register new patient
       const newPatient: Omit<Patient, 'id'> = { email, name, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
-      const docRef = await firestoreService.addDoc('patients', newPatient);
+      const docRef = await firestoreService.addPatient(newPatient);
       const newUser: User = { id: docRef.id, ...newPatient, role: 'patient' };
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
@@ -147,10 +147,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-// Helper function in auth context as it's a common need for new users
-const addDoc = async (collectionName: string, data: any) => {
-    const docRef = await addDoc(collection(db, collectionName), data);
-    return docRef;
 }

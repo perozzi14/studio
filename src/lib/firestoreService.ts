@@ -181,6 +181,7 @@ export const updateSeller = async (id: string, data: Partial<Seller>) => updateD
 export const deleteSeller = async (id: string) => deleteDoc(doc(db, 'sellers', id));
 
 // Patient
+export const addPatient = async (patientData: Omit<Patient, 'id'>) => addDoc(collection(db, 'patients'), patientData);
 export const updatePatient = async (id: string, data: Partial<Patient>) => updateDoc(doc(db, 'patients', id), data);
 export const deletePatient = async (id: string) => deleteDoc(doc(db, 'patients', id));
 
