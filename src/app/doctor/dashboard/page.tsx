@@ -61,6 +61,60 @@ import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { z } from 'zod';
+
+const ServiceFormSchema = z.object({
+  name: z.string().min(3, "El nombre del servicio es requerido."),
+  price: z.number().positive("El precio debe ser un número positivo."),
+});
+
+const BankDetailFormSchema = z.object({
+  bank: z.string().min(3, "El nombre del banco es requerido."),
+  accountHolder: z.string().min(3, "El nombre del titular es requerido."),
+  idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
+  accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+});
+
+const ExpenseFormSchema = z.object({
+  description: z.string().min(3, "La descripción es requerida."),
+  amount: z.number().positive("El monto debe ser un número positivo."),
+  date: z.string().min(1, "La fecha es requerida."),
+});
+
+const CouponFormSchema = z.object({
+  code: z.string().min(3, "El código debe tener al menos 3 caracteres.").toUpperCase(),
+  discountType: z.enum(['percentage', 'fixed']),
+  value: z.number().positive("El valor debe ser positivo."),
+});
+
+const SupportTicketSchema = z.object({
+  subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres."),
+  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
+});
+
+const ProfileFormSchema = z.object({
+    name: z.string().min(3, "El nombre es requerido."),
+    cedula: z.string().min(5, "La cédula es requerida."),
+    whatsapp: z.string().optional(),
+    description: z.string().min(20, "La descripción debe tener al menos 20 caracteres."),
+    specialty: z.string(),
+    slotDuration: z.number(),
+    city: z.string(),
+    sector: z.string().optional(),
+    address: z.string().min(10, "La dirección completa es requerida."),
+    profileImage: z.string().optional(),
+    bannerImage: z.string().optional(),
+});
+
+const SubscriptionPaymentSchema = z.object({
+  amount: z.number().positive("El monto debe ser positivo."),
+  date: z.string().min(1, "La fecha es requerida."),
+  transactionId: z.string().min(5, "La referencia es requerida."),
+  paymentProof: z.any().refine(file => file?.name, "El comprobante es requerido."),
+});
+
+const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.");
+const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
 
 
 const chartConfig = {
@@ -156,7 +210,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee, companyBankDetails, currency } = useSettings();
+  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee, currency } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -438,12 +492,25 @@ export default function DoctorDashboardPage() {
   };
   
   const handleSaveService = () => {
-    if (!doctorData || !serviceName || !servicePrice) return;
+    const dataToValidate = {
+        name: serviceName,
+        price: parseFloat(servicePrice) || 0,
+    };
+    const result = ServiceFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+    
+    if (!doctorData) return;
+
     const newService: Service = {
       id: editingService ? editingService.id : Date.now(),
-      name: serviceName,
-      price: parseFloat(servicePrice),
+      name: result.data.name,
+      price: result.data.price,
     };
+
     let updatedServices;
     if (editingService) {
       updatedServices = doctorData.services.map(s => s.id === editingService.id ? newService : s);
@@ -507,14 +574,26 @@ export default function DoctorDashboardPage() {
   };
   
   const handleSaveBankDetail = () => {
-    if (!doctorData || !bankName || !accountHolder || !idNumber || !accountNumber) return;
+    const dataToValidate = {
+        bank: bankName,
+        accountHolder: accountHolder,
+        idNumber: idNumber,
+        accountNumber: accountNumber,
+    };
+    const result = BankDetailFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+
+    if (!doctorData) return;
+    
     const newBankDetail: BankDetail = {
       id: editingBankDetail ? editingBankDetail.id : Date.now(),
-      bank: bankName,
-      accountHolder: accountHolder,
-      idNumber: idNumber,
-      accountNumber: accountNumber,
+      ...result.data,
     };
+
     let updatedBankDetails;
     if (editingBankDetail) {
       updatedBankDetails = doctorData.bankDetails.map(bd => bd.id === editingBankDetail.id ? newBankDetail : bd);
@@ -540,13 +619,24 @@ export default function DoctorDashboardPage() {
   };
 
   const handleSaveExpense = () => {
-    if (!doctorData || !expenseDescription || !expenseAmount || !expenseDate) return;
+     const dataToValidate = {
+        description: expenseDescription,
+        amount: parseFloat(expenseAmount) || 0,
+        date: expenseDate,
+    };
+    const result = ExpenseFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+
+    if (!doctorData) return;
+
     const newExpense: Expense = {
       id: editingExpense ? editingExpense.id : `exp-${Date.now()}`,
       doctorId: doctorData.id,
-      description: expenseDescription,
-      amount: parseFloat(expenseAmount),
-      date: expenseDate,
+      ...result.data,
     };
 
     let updatedExpenses;
@@ -595,14 +685,21 @@ export default function DoctorDashboardPage() {
     if (!doctorData) return;
     
     const formData = new FormData(e.currentTarget);
-    const code = formData.get('code') as string;
-    const discountType = formData.get('discountType') as 'percentage' | 'fixed';
-    const value = parseFloat(formData.get('value') as string);
-    
-    if (!code || !discountType || isNaN(value)) {
-        toast({ variant: 'destructive', title: 'Faltan datos', description: 'Por favor, completa todos los campos.' });
+    const dataToValidate = {
+      code: formData.get('code') as string,
+      discountType: formData.get('discountType') as 'percentage' | 'fixed',
+      value: parseFloat(formData.get('value') as string),
+    };
+
+    const result = CouponFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
         return;
     }
+
+    const { code, discountType, value } = result.data;
     
     if (editingCoupon) {
         const updatedCoupons = coupons.map(c => 
@@ -613,7 +710,7 @@ export default function DoctorDashboardPage() {
     } else {
         const newCoupon: Coupon = {
             id: Date.now(),
-            code: code.toUpperCase(),
+            code,
             discountType,
             value,
             scope: doctorData.id,
@@ -636,11 +733,21 @@ export default function DoctorDashboardPage() {
     if (!user) return;
     
     const formData = new FormData(e.currentTarget);
-    const subject = formData.get('subject') as string;
-    const description = formData.get('description') as string;
-    
-    if (!subject || !description) return;
+    const dataToValidate = {
+      subject: formData.get('subject') as string,
+      description: formData.get('description') as string,
+    };
 
+    const result = SupportTicketSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+      return;
+    }
+
+    const { subject, description } = result.data;
+    
     const newTicket: SupportTicket = {
       id: `ticket-${Date.now()}`,
       userId: user.email,
@@ -677,14 +784,26 @@ export default function DoctorDashboardPage() {
 
   const handleProfileSave = (e: React.FormEvent) => {
       e.preventDefault();
-      if (profileForm) {
-          // In a real app, you would send this to the server
-          setDoctorData(profileForm);
-          toast({
-              title: "¡Perfil Actualizado!",
-              description: "Tu información personal ha sido guardada correctamente.",
-          });
+      if (!profileForm) return;
+
+      const dataToValidate = {
+          ...profileForm,
+          slotDuration: Number(profileForm.slotDuration),
+      };
+
+      const result = ProfileFormSchema.safeParse(dataToValidate);
+
+      if (!result.success) {
+          const errorMessage = result.error.errors.map(err => err.message).join(' ');
+          toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+          return;
       }
+      
+      setDoctorData(result.data as Doctor);
+      toast({
+          title: "¡Perfil Actualizado!",
+          description: "Tu información personal ha sido guardada correctamente.",
+      });
   };
 
   const handleOpenChat = (patient: Patient) => {
@@ -694,9 +813,16 @@ export default function DoctorDashboardPage() {
 
   const handleSaveClinicalNotes = () => {
     if (!selectedAppointment) return;
+
+    const result = ClinicalNoteSchema.safeParse(editingClinicalNotes);
+    if (!result.success) {
+        toast({ variant: "destructive", title: "Nota Inválida", description: result.error.errors[0].message });
+        return;
+    }
+
     setAppointments(prev => prev.map(appt => 
         appt.id === selectedAppointment.id 
-        ? { ...appt, clinicalNotes: editingClinicalNotes }
+        ? { ...appt, clinicalNotes: result.data }
         : appt
     ));
     toast({ title: "Notas guardadas", description: "La historia clínica ha sido actualizada."});
@@ -704,6 +830,13 @@ export default function DoctorDashboardPage() {
 
   const handleGeneratePrescription = () => {
     if (!selectedAppointment || !selectedAppointment.patient || !doctorData) return;
+
+    const result = PrescriptionSchema.safeParse(selectedAppointment.prescription);
+    if (!result.success) {
+        toast({ variant: "destructive", title: "Récipé Inválido", description: "La prescripción no puede estar vacía o ser demasiado corta." });
+        return;
+    }
+
     const doc = new jsPDF();
 
     // Header
@@ -738,7 +871,7 @@ export default function DoctorDashboardPage() {
     doc.setFontSize(26);
     doc.text("Rp.", 20, 90);
     doc.setFontSize(12);
-    const prescriptionText = selectedAppointment.prescription || 'No se ha definido una prescripción para esta consulta.';
+    const prescriptionText = result.data;
     const splitText = doc.splitTextToSize(prescriptionText, 160);
     doc.text(splitText, 25, 100);
 
@@ -809,41 +942,55 @@ export default function DoctorDashboardPage() {
     doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
   
-    const handleReportPayment = (e: React.FormEvent) => {
+  const handleReportPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!doctorData || !paymentAmount || !paymentDate || !paymentRef || !paymentProof) {
-        toast({
-            variant: "destructive",
-            title: "Faltan datos",
-            description: "Por favor, completa todos los campos y sube el comprobante.",
-        });
-        return;
-    }
+    if (!doctorData) return;
 
-    const newPayment: DoctorPayment = {
-        id: `dp-${Date.now()}`,
-        doctorId: doctorData.id,
-        doctorName: doctorData.name,
-        date: paymentDate,
-        amount: parseFloat(paymentAmount),
-        status: 'Pending',
-        paymentProofUrl: URL.createObjectURL(paymentProof),
-        transactionId: paymentRef,
+    const dataToValidate = {
+      amount: parseFloat(paymentAmount),
+      date: paymentDate,
+      transactionId: paymentRef,
+      paymentProof,
     };
 
-    setDoctorPayments(prev => [newPayment, ...prev]);
-    setDoctorData(prev => prev ? { ...prev, subscriptionStatus: 'pending_payment' } : null);
-    
+    const result = SubscriptionPaymentSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const errorMessage = result.error.errors.map((err) => err.message).join(" ");
+      toast({
+        variant: "destructive",
+        title: "Error de Validación",
+        description: errorMessage,
+      });
+      return;
+    }
+
+    const { amount, date, transactionId, paymentProof: proofFile } = result.data;
+
+    const newPayment: DoctorPayment = {
+      id: `dp-${Date.now()}`,
+      doctorId: doctorData.id,
+      doctorName: doctorData.name,
+      date: date,
+      amount: amount,
+      status: "Pending",
+      paymentProofUrl: URL.createObjectURL(proofFile),
+      transactionId: transactionId,
+    };
+
+    setDoctorPayments((prev) => [newPayment, ...prev]);
+    setDoctorData((prev) => (prev ? { ...prev, subscriptionStatus: "pending_payment" } : null));
+
     toast({
-        title: "¡Reporte Enviado!",
-        description: "Tu pago ha sido reportado y está pendiente de aprobación por el administrador.",
+      title: "¡Reporte Enviado!",
+      description: "Tu pago ha sido reportado y está pendiente de aprobación por el administrador.",
     });
 
     setIsReportPaymentDialogOpen(false);
     // Reset form fields
-    setPaymentAmount('');
-    setPaymentDate('');
-    setPaymentRef('');
+    setPaymentAmount("");
+    setPaymentDate("");
+    setPaymentRef("");
     setPaymentProof(null);
   };
 
@@ -1391,7 +1538,7 @@ export default function DoctorDashboardPage() {
                                     <CardDescription>Usa una de nuestras cuentas para pagar y luego reporta tu pago aquí.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {companyBankDetails.map(bd => (
+                                    {(useSettings().companyBankDetails || []).map(bd => (
                                         <div key={bd.id} className="text-sm p-3 border rounded-lg bg-muted/40">
                                             <p className="font-bold">{bd.bank}</p>
                                             <p><span className="text-muted-foreground">Titular:</span> {bd.accountHolder}</p>
@@ -2135,3 +2282,5 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
+    
