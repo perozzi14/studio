@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -46,6 +46,8 @@ import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/lib/settings';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import jsPDF from 'jspdf';
+
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -478,6 +480,61 @@ export default function AdminDashboardPage() {
     return doctorPayments.filter(p => p.status === 'Pending');
   }, [doctorPayments]);
 
+  const handleGenerateAdminFinanceReport = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(22);
+    doc.text("Reporte Financiero de SUMA", 105, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(`Fecha de Generación: ${format(new Date(), 'dd/MM/yyyy')}`, 105, 28, { align: 'center' });
+
+    doc.setFontSize(16);
+    doc.text("Resumen General", 14, 45);
+    doc.line(14, 47, 196, 47);
+
+    doc.setFontSize(12);
+    const summaryY = 55;
+    const summaryData = [
+        ["Ingresos Totales (Suscripciones):", `$${stats.totalRevenue.toFixed(2)}`],
+        ["Comisiones Pagadas a Vendedoras:", `$${stats.commissionsPaid.toFixed(2)}`],
+        ["Gastos Operativos:", `$${stats.totalExpenses.toFixed(2)}`],
+    ];
+    summaryData.forEach((row, index) => {
+        doc.text(row[0], 16, summaryY + (index * 8));
+        doc.text(row[1], 194, summaryY + (index * 8), { align: 'right' });
+    });
+    
+    doc.setFont("helvetica", "bold");
+    doc.line(14, summaryY + (summaryData.length * 8) - 2, 196, summaryY + (summaryData.length * 8) - 2);
+    doc.text("Beneficio Neto:", 16, summaryY + (summaryData.length * 8) + 5);
+    doc.text(`$${stats.netProfit.toFixed(2)}`, 194, summaryY + (summaryData.length * 8) + 5, { align: 'right' });
+    doc.setFont("helvetica", "normal");
+    
+    let currentY = summaryY + (summaryData.length * 8) + 20;
+
+    doc.setFontSize(16);
+    doc.text("Detalle de Gastos Operativos", 14, currentY);
+    doc.line(14, currentY + 2, 196, currentY + 2);
+    currentY += 10;
+    
+    const head = [['Fecha', 'Descripción', 'Categoría', 'Monto']];
+    const body = companyExpenses.map(e => [
+        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yyyy'),
+        e.description,
+        e.category.charAt(0).toUpperCase() + e.category.slice(1),
+        `$${e.amount.toFixed(2)}`
+    ]);
+
+    (doc as any).autoTable({
+        startY: currentY,
+        head: head,
+        body: body,
+        theme: 'striped'
+    });
+    
+    doc.save(`Reporte_Financiero_SUMA_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
   if (isLoading || !user) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -902,6 +959,18 @@ export default function AdminDashboardPage() {
                               </CardContent>
                           </Card>
                       </div>
+
+                      <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                           <div>
+                              <CardTitle>Visión General Financiera</CardTitle>
+                              <CardDescription>Revisa el estado financiero de SUMA.</CardDescription>
+                           </div>
+                           <Button onClick={handleGenerateAdminFinanceReport}>
+                               <FileDown className="mr-2"/> Descargar Reporte PDF
+                           </Button>
+                        </CardHeader>
+                      </Card>
 
                       <Card>
                           <CardHeader>

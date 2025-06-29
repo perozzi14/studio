@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -112,6 +102,8 @@ export type Doctor = {
   lat: number;
   lng: number;
   joinDate: string;
+  subscriptionStatus: 'active' | 'inactive' | 'pending_payment';
+  nextPaymentDate: string;
 };
 
 export type Seller = {
@@ -231,6 +223,8 @@ export const doctors: Doctor[] = [
     lat: 10.4996,
     lng: -66.8528,
     joinDate: '2024-02-01',
+    subscriptionStatus: 'active',
+    nextPaymentDate: '2024-06-28',
   },
   { 
     id: 2, 
@@ -268,6 +262,8 @@ export const doctors: Doctor[] = [
     lat: 10.6667,
     lng: -71.6125,
     joinDate: '2024-02-15',
+    subscriptionStatus: 'active',
+    nextPaymentDate: '2024-06-25',
   },
   { 
     id: 3, 
@@ -304,6 +300,8 @@ export const doctors: Doctor[] = [
     lat: 10.2117,
     lng: -68.0019,
     joinDate: '2024-03-05',
+    subscriptionStatus: 'inactive',
+    nextPaymentDate: '2024-04-15',
   },
   { 
     id: 4, 
@@ -340,6 +338,8 @@ export const doctors: Doctor[] = [
     lat: 10.4789,
     lng: -66.8533,
     joinDate: '2024-03-20',
+    subscriptionStatus: 'active',
+    nextPaymentDate: '2024-06-29',
   },
   { 
     id: 6, 
@@ -376,6 +376,8 @@ export const doctors: Doctor[] = [
     lat: 10.5120,
     lng: -66.9037,
     joinDate: '2024-04-10',
+    subscriptionStatus: 'pending_payment',
+    nextPaymentDate: '2024-05-30',
   },
   { 
     id: 7, 
@@ -413,6 +415,8 @@ export const doctors: Doctor[] = [
     lat: 10.4515,
     lng: -66.8505,
     joinDate: '2024-05-01',
+    subscriptionStatus: 'active',
+    nextPaymentDate: '2024-06-22',
   }
 ];
 
@@ -451,6 +455,8 @@ export type Appointment = {
   paymentProof: string | null;
   attendance: 'Atendido' | 'No Asistió' | 'Pendiente';
   patientConfirmationStatus: 'Pendiente' | 'Confirmada' | 'Cancelada';
+  clinicalNotes?: string;
+  prescription?: string;
 };
 
 export const appointments: Appointment[] = [
@@ -470,6 +476,8 @@ export const appointments: Appointment[] = [
     paymentProof: 'https://placehold.co/400x200.png',
     attendance: 'Pendiente',
     patientConfirmationStatus: 'Pendiente',
+    clinicalNotes: '',
+    prescription: 'Tomar 1 pastilla de Losartán Potásico cada 12 horas. Repetir EKG en 3 meses.',
   },
   {
     id: "appt-3",
@@ -486,6 +494,8 @@ export const appointments: Appointment[] = [
     paymentProof: 'https://placehold.co/400x200.png',
     attendance: 'Pendiente',
     patientConfirmationStatus: 'Pendiente',
+    clinicalNotes: '',
+    prescription: '',
   },
   {
     id: "appt-7",
@@ -502,6 +512,8 @@ export const appointments: Appointment[] = [
     paymentProof: null,
     attendance: 'Pendiente',
     patientConfirmationStatus: 'Pendiente',
+    clinicalNotes: '',
+    prescription: '',
   },
   {
     id: "appt-8",
@@ -518,6 +530,8 @@ export const appointments: Appointment[] = [
     paymentProof: 'https://placehold.co/400x200.png',
     attendance: 'Pendiente',
     patientConfirmationStatus: 'Pendiente',
+    clinicalNotes: '',
+    prescription: '',
   },
   // Upcoming for Dr. Sanchez (id: 2)
   {
@@ -535,6 +549,8 @@ export const appointments: Appointment[] = [
     paymentProof: null,
     attendance: 'Pendiente',
     patientConfirmationStatus: 'Pendiente',
+    clinicalNotes: '',
+    prescription: '',
   },
   // Past Appointments for Dr. Rodriguez (id: 1)
    {
@@ -552,6 +568,8 @@ export const appointments: Appointment[] = [
     paymentProof: null,
     attendance: 'Atendido',
     patientConfirmationStatus: 'Confirmada',
+    clinicalNotes: 'Paciente presenta arritmia leve, se recomienda seguimiento y control de estrés.',
+    prescription: 'Concor 2.5mg, 1 al día. Dieta baja en sodio.',
   },
   {
     id: "appt-5",
@@ -568,6 +586,8 @@ export const appointments: Appointment[] = [
     paymentProof: 'https://placehold.co/400x200.png',
     attendance: 'No Asistió',
     patientConfirmationStatus: 'Confirmada',
+    clinicalNotes: 'El paciente no asistió a la cita. Contactar para reprogramar.',
+    prescription: '',
   },
   {
     id: "appt-6",
@@ -584,6 +604,8 @@ export const appointments: Appointment[] = [
     paymentProof: null,
     attendance: 'Atendido',
     patientConfirmationStatus: 'Confirmada',
+    clinicalNotes: 'Control regular. Paciente estable. Se mantiene tratamiento actual.',
+    prescription: 'Tratamiento actual se mantiene sin cambios.',
   }
 ];
 

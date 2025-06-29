@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { appointments as mockAppointments, doctors, mockExpenses, type Appointment, type Doctor, type Service, type BankDetail, type Expense, type Patient, mockPatients, type Coupon, mockSupportTickets, type SupportTicket } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -31,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -60,6 +58,8 @@ import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, 
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 
 const chartConfig = {
@@ -155,7 +155,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { coupons, setCoupons, cities, specialties } = useSettings();
+  const { coupons, setCoupons, cities, specialties, doctorSubscriptionFee } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -189,6 +189,8 @@ export default function DoctorDashboardPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<(Appointment & { patient?: Patient }) | null>(null);
   const [publicProfileUrl, setPublicProfileUrl] = useState('');
+
+  const [editingClinicalNotes, setEditingClinicalNotes] = useState('');
   
   const [weekDays, setWeekDays] = useState([
     { key: 'monday', label: 'Lunes' },
@@ -203,6 +205,23 @@ export default function DoctorDashboardPage() {
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
+
+  const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
+  const [selectedChatPatient, setSelectedChatPatient] = useState<Patient | null>(null);
+  const uniquePatients = useMemo(() => {
+    const patientIds = new Set<string>();
+    const unique: Patient[] = [];
+    appointments.forEach(appt => {
+      if (!patientIds.has(appt.patientId)) {
+        const patient = patients.find(p => p.id === appt.patientId);
+        if (patient) {
+          unique.push(patient);
+          patientIds.add(patient.id);
+        }
+      }
+    });
+    return unique;
+  }, [appointments, patients]);
 
   useEffect(() => {
     if (user === undefined) return;
@@ -535,6 +554,7 @@ export default function DoctorDashboardPage() {
   const handleViewDetails = (appointment: Appointment) => {
       const patient = patients.find(p => p.id === appointment.patientId);
       setSelectedAppointment({ ...appointment, patient });
+      setEditingClinicalNotes(appointment.clinicalNotes || '');
       setIsDetailDialogOpen(true);
   };
 
@@ -637,6 +657,149 @@ export default function DoctorDashboardPage() {
           });
       }
   };
+
+  const handleOpenChat = (patient: Patient) => {
+    setSelectedChatPatient(patient);
+    setIsChatDialogOpen(true);
+  };
+
+  const handleSaveClinicalNotes = () => {
+    if (!selectedAppointment) return;
+    setAppointments(prev => prev.map(appt => 
+        appt.id === selectedAppointment.id 
+        ? { ...appt, clinicalNotes: editingClinicalNotes }
+        : appt
+    ));
+    toast({ title: "Notas guardadas", description: "La historia clínica ha sido actualizada."});
+  };
+
+  const handleGeneratePrescription = () => {
+    if (!selectedAppointment || !selectedAppointment.patient || !doctorData) return;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text(doctorData.name, 20, 20);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(doctorData.specialty, 20, 27);
+    doc.text(doctorData.address, 20, 34);
+    doc.text(`${doctorData.city}, Venezuela`, 20, 41);
+    
+    // Patient Info
+    doc.line(20, 50, 190, 50); // separator
+    doc.setFont("helvetica", "bold");
+    doc.text("Paciente:", 20, 58);
+    doc.setFont("helvetica", "normal");
+    doc.text(selectedAppointment.patient.name, 40, 58);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Cédula:", 130, 58);
+    doc.setFont("helvetica", "normal");
+    doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Fecha:", 20, 66);
+    doc.setFont("helvetica", "normal");
+    doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
+    doc.line(20, 75, 190, 75); // separator
+
+    // Prescription Body
+    doc.setFontSize(26);
+    doc.text("Rp.", 20, 90);
+    doc.setFontSize(12);
+    const prescriptionText = selectedAppointment.prescription || 'No se ha definido una prescripción para esta consulta.';
+    const splitText = doc.splitTextToSize(prescriptionText, 160);
+    doc.text(splitText, 25, 100);
+
+    // Footer
+    doc.line(80, 270, 130, 270);
+    doc.text("Firma del Médico", 105, 275, { align: 'center' });
+    doc.text(doctorData.cedula, 105, 280, { align: 'center' });
+
+
+    doc.save(`Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`);
+  };
+  
+  const handleGenerateFinanceReport = () => {
+    if (!financialStats || !doctorData) return;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
+    doc.setFontSize(12);
+    doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
+
+    // Summary
+    const summaryData = [
+        ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
+        ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
+        ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
+        ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
+    ];
+    (doc as any).autoTable({
+        startY: 40,
+        head: [['Concepto', 'Monto']],
+        body: summaryData,
+        theme: 'grid',
+    });
+
+    let lastY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Income Details
+    doc.setFontSize(14);
+    doc.text("Detalle de Ingresos", 14, lastY);
+    (doc as any).autoTable({
+        startY: lastY + 5,
+        head: [['Fecha', 'Paciente', 'Servicios', 'Monto']],
+        body: financialStats.paidAppointments.map(a => [
+            format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
+            a.patientName,
+            a.services.map(s => s.name).join(', '),
+            `$${a.totalPrice.toFixed(2)}`
+        ]),
+        theme: 'striped'
+    });
+    lastY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Expense Details
+    doc.setFontSize(14);
+    doc.text("Detalle de Gastos", 14, lastY);
+    (doc as any).autoTable({
+        startY: lastY + 5,
+        head: [['Fecha', 'Descripción', 'Monto']],
+        body: expenses.map(e => [
+            format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
+            e.description,
+            `$${e.amount.toFixed(2)}`
+        ]),
+        theme: 'striped'
+    });
+    
+    doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+  
+  const handlePaySubscription = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Procesando Pago...",
+      description: "Esta es una simulación. En un entorno real, se conectaría con una pasarela de pago.",
+    });
+
+    setTimeout(() => {
+       if (!doctorData) return;
+        setDoctorData({
+            ...doctorData,
+            subscriptionStatus: 'active',
+            status: 'active'
+        });
+        toast({
+            title: "¡Pago Exitoso!",
+            description: "Tu suscripción ha sido renovada. Gracias por ser parte de SUMA.",
+        });
+    }, 2000);
+  }
 
 
   if (isLoading || !user || !doctorData || !financialStats || !profileForm) {
@@ -871,9 +1034,12 @@ export default function DoctorDashboardPage() {
                       </Card>
                   </div>
                   <Card>
-                      <CardHeader>
-                          <CardTitle>Resumen Financiero: {timeRangeLabels[timeRange]}</CardTitle>
-                          <CardDescription>Comparativa de ingresos y gastos para el período seleccionado.</CardDescription>
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                           <CardTitle>Resumen Financiero: {timeRangeLabels[timeRange]}</CardTitle>
+                           <CardDescription>Comparativa de ingresos y gastos.</CardDescription>
+                        </div>
+                        <Button onClick={handleGenerateFinanceReport}><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
                       </CardHeader>
                       <CardContent className="pl-2">
                           {timeRange !== 'today' && financialStats.chartData.length > 0 ? (
@@ -1046,6 +1212,74 @@ export default function DoctorDashboardPage() {
                   </Card>
                 </div>
               </div>
+              )}
+
+              {currentTab === 'subscription' && (
+                <div className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CreditCard/> Mi Suscripción</CardTitle>
+                            <CardDescription>Consulta el estado de tu membresía y realiza tus pagos.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg">Estado Actual</h3>
+                                <div className="p-4 border rounded-lg space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <span>Estado:</span>
+                                        <Badge className={cn({
+                                            'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
+                                            'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
+                                            'bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive',
+                                        })}>
+                                            {doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago Pendiente' : 'Inactiva'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>Próximo Pago:</span>
+                                        <span className="font-medium">{format(new Date(doctorData.nextPaymentDate), "d 'de' LLLL, yyyy", {locale: es})}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>Monto Mensual:</span>
+                                        <span className="font-semibold">${doctorSubscriptionFee.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Tu suscripción se renueva mensualmente para mantener tu perfil activo y visible para miles de pacientes.
+                                </p>
+                            </div>
+                             <div className="space-y-4">
+                                <h3 className="font-semibold text-lg">Realizar Pago</h3>
+                                {doctorData.subscriptionStatus === 'active' ? (
+                                    <div className="flex flex-col items-center justify-center h-full p-6 border-2 border-dashed rounded-lg text-center">
+                                        <CheckCircle className="h-12 w-12 text-green-500 mb-4"/>
+                                        <p className="font-semibold">¡Tu suscripción está al día!</p>
+                                        <p className="text-sm text-muted-foreground">Tu próximo cobro se realizará automáticamente.</p>
+                                    </div>
+                                ) : (
+                                    <form className="p-4 border rounded-lg space-y-4" onSubmit={handlePaySubscription}>
+                                        <p className="font-semibold">Pagar con Tarjeta de Crédito/Débito</p>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cardNumber">Número de Tarjeta</Label>
+                                            <Input id="cardNumber" placeholder="0000 0000 0000 0000" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="expiryDate">Fecha Exp.</Label>
+                                                <Input id="expiryDate" placeholder="MM/AA" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="cvc">CVC</Label>
+                                                <Input id="cvc" placeholder="123" />
+                                            </div>
+                                        </div>
+                                        <Button type="submit" className="w-full">Pagar ${doctorSubscriptionFee.toFixed(2)}</Button>
+                                    </form>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
               )}
 
               {currentTab === 'profile' && (
@@ -1394,6 +1628,37 @@ export default function DoctorDashboardPage() {
               </div>
               )}
 
+               {currentTab === 'chat' && (
+                <div className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><MessageSquare/> Chat con Pacientes</CardTitle>
+                            <CardDescription>Comunícate de forma segura con tus pacientes.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {uniquePatients.map(patient => (
+                                    <Card key={patient.id} className="hover:shadow-md cursor-pointer transition-shadow" onClick={() => handleOpenChat(patient)}>
+                                        <CardContent className="p-4 flex items-center gap-4">
+                                            <Avatar>
+                                                <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-semibold">{patient.name}</p>
+                                                <p className="text-sm text-muted-foreground">{patient.email}</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                                {uniquePatients.length === 0 && (
+                                    <p className="col-span-full text-center text-muted-foreground py-12">No tienes pacientes con citas agendadas aún.</p>
+                                )}
+                           </div>
+                        </CardContent>
+                    </Card>
+                </div>
+              )}
+
               {currentTab === 'support' && (
               <div className="mt-6">
                   <Card>
@@ -1541,37 +1806,57 @@ export default function DoctorDashboardPage() {
         </Dialog>
 
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Detalles de la Cita</DialogTitle>
                 </DialogHeader>
                 {selectedAppointment && (
-                    <div className="py-4 space-y-4">
-                        <div>
-                            <h3 className="font-semibold">Paciente</h3>
-                            <p>{selectedAppointment.patientName}</p>
-                            <p className="text-sm text-muted-foreground">{selectedAppointment.patient?.email}</p>
+                    <div className="py-4 space-y-4 max-h-[80vh] overflow-y-auto pr-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2">Información del Paciente</h3>
+                                <p><strong>Nombre:</strong> {selectedAppointment.patientName}</p>
+                                <p><strong>Email:</strong> {selectedAppointment.patient?.email}</p>
+                                <p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p>
+                                <p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p>
+                            </div>
+                             <div>
+                                <h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3>
+                                <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
+                                <p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p>
+                                <p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p>
+                                <p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p>
+                            </div>
                         </div>
+                        <Separator />
                         <div>
-                            <h3 className="font-semibold">Fecha y Hora</h3>
-                            <p>{new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
+                            <h3 className="font-semibold text-lg mb-2">Historia Clínica / Notas</h3>
+                            <Textarea 
+                              placeholder="Añade tus notas sobre la consulta aquí..." 
+                              rows={6}
+                              value={editingClinicalNotes}
+                              onChange={(e) => setEditingClinicalNotes(e.target.value)}
+                              disabled={selectedAppointment.attendance !== 'Atendido'}
+                            />
+                            <div className="flex justify-end mt-2">
+                                <Button onClick={handleSaveClinicalNotes} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Notas</Button>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-semibold">Servicios</h3>
-                            <ul className="list-disc list-inside text-muted-foreground">
-                                {selectedAppointment.services.map(s => <li key={s.id}>{s.name}</li>)}
-                            </ul>
-                        </div>
-                          <div>
-                            <h3 className="font-semibold">Información de Pago</h3>
-                            <p>Total: ${selectedAppointment.totalPrice.toFixed(2)}</p>
-                            <p>Método: <span className="capitalize">{selectedAppointment.paymentMethod}</span></p>
-                            {selectedAppointment.paymentProof && (
-                                  <div className="mt-2">
-                                    <p className="font-semibold">Comprobante:</p>
-                                    <Image src={selectedAppointment.paymentProof} alt="Comprobante de pago" width={400} height={200} className="rounded-md border"/>
-                                </div>
-                            )}
+                        <Separator />
+                         <div>
+                            <h3 className="font-semibold text-lg mb-2">Récipé / Indicaciones</h3>
+                            <Textarea 
+                                placeholder="Escribe la prescripción o indicaciones para el paciente." 
+                                rows={6}
+                                value={selectedAppointment.prescription || ''}
+                                onChange={(e) => setSelectedAppointment({...selectedAppointment, prescription: e.target.value})}
+                                disabled={selectedAppointment.attendance !== 'Atendido'}
+                            />
+                            <div className="flex justify-end mt-2">
+                                <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>
+                                    <FileText className="mr-2"/> Generar Récipé PDF
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1636,7 +1921,56 @@ export default function DoctorDashboardPage() {
                 </form>
             </DialogContent>
         </Dialog>
-
+        
+      {/* Chat Dialog */}
+      <Dialog open={isChatDialogOpen} onOpenChange={setIsChatDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+               <Avatar>
+                  <AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback>
+               </Avatar>
+               Chat con {selectedChatPatient?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Este es un canal de comunicación directo con tu paciente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
+            <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+              {/* Mock messages */}
+              <div className="flex items-end gap-2">
+                 <Avatar className="h-8 w-8">
+                  <AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs">
+                  <p className="text-sm">¡Hola, doctor! Quería hacerle una consulta sobre mi tratamiento.</p>
+                </div>
+              </div>
+              <div className="flex items-end gap-2 justify-end">
+                <div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs">
+                  <p className="text-sm">Hola {selectedChatPatient?.name}, claro. Dime, ¿cuál es tu duda?</p>
+                </div>
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={doctorData.profileImage ?? undefined} />
+                  <AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input placeholder="Escribe tu mensaje..." className="flex-1" />
+              <Button><Send className="h-4 w-4" /></Button>
+            </div>
+          </div>
+           <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cerrar
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

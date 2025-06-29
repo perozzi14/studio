@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -79,11 +79,13 @@ export function Header() {
   const doctorNavLinks = [
     { href: "/doctor/dashboard?view=appointments", label: "Citas" },
     { href: "/doctor/dashboard?view=finances", label: "Finanzas" },
+    { href: "/doctor/dashboard?view=subscription", label: "Suscripción" },
     { href: "/doctor/dashboard?view=profile", label: "Mi Perfil" },
     { href: "/doctor/dashboard?view=services", label: "Servicios" },
     { href: "/doctor/dashboard?view=schedule", label: "Horario" },
     { href: "/doctor/dashboard?view=bank-details", label: "Cuentas" },
     { href: "/doctor/dashboard?view=coupons", label: "Cupones" },
+    { href: "/doctor/dashboard?view=chat", label: "Chat" },
     { href: "/doctor/dashboard?view=support", label: "Soporte" },
   ];
 
@@ -106,7 +108,7 @@ export function Header() {
           <Stethoscope className="h-6 w-6 text-primary" />
           <span className="font-headline">SUMA</span>
         </div>
-        <nav className="hidden md:flex ml-auto items-center gap-2">
+        <nav className="hidden md:flex ml-auto items-center gap-1 flex-wrap">
           {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
             <Button key={link.href} variant="ghost" asChild>
               <Link href={link.href}>{link.label}</Link>
@@ -118,7 +120,7 @@ export function Header() {
             const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
             const isActive = currentViewParam === linkView;
             return (
-              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} asChild>
+              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} asChild size="sm">
                 <Link href={link.href}>{link.label}</Link>
               </Button>
             );
@@ -383,7 +385,7 @@ export function Header() {
                 <span className="sr-only">Abrir Menú</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="overflow-y-auto">
               <SheetHeader className="text-left">
                  <SheetTitle className="sr-only">Menú</SheetTitle>
               </SheetHeader>

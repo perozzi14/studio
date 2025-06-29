@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header, BottomNav } from '@/components/header';
@@ -9,22 +9,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
-import type { Appointment } from '@/lib/data';
+import { type Appointment, type Doctor, doctors } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 function AppointmentCard({ 
   appointment, 
   isPast = false,
-  onUpdateConfirmation
+  onUpdateConfirmation,
+  onContactDoctor,
 }: { 
   appointment: Appointment, 
   isPast?: boolean,
-  onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void
+  onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void,
+  onContactDoctor: (doctor: Doctor) => void,
 }) {
+  const doctor = doctors.find(d => d.id === appointment.doctorId);
+  
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
@@ -51,33 +68,34 @@ function AppointmentCard({
           )}
         </div>
       </CardContent>
-      {!isPast && onUpdateConfirmation && (
-        <CardFooter className="p-4 pt-0 border-t mt-4 flex-col sm:flex-row items-center gap-4">
-          {appointment.patientConfirmationStatus === 'Pendiente' && (
-            <>
-              <p className="text-sm text-muted-foreground text-center sm:text-left flex-1">¿Asistirás a esta cita?</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
-                  <CalendarX className="mr-2 h-4 w-4" /> Cancelar
-                </Button>
-                <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
-                  <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
-                </Button>
-              </div>
-            </>
-          )}
-          {appointment.patientConfirmationStatus === 'Confirmada' && (
-             <Badge variant="default" className="bg-green-600 text-white w-full sm:w-auto justify-center py-1.5 px-3">
-                <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
-             </Badge>
-          )}
-          {appointment.patientConfirmationStatus === 'Cancelada' && (
-             <Badge variant="destructive" className="w-full sm:w-auto justify-center py-1.5 px-3">
-                <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
-             </Badge>
-          )}
-        </CardFooter>
-      )}
+      <CardFooter className="p-4 pt-0 border-t mt-4 flex-col sm:flex-row items-center gap-4">
+        {onUpdateConfirmation && appointment.patientConfirmationStatus === 'Pendiente' && (
+          <>
+            <p className="text-sm text-muted-foreground text-center sm:text-left flex-1">¿Asistirás a esta cita?</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
+                <CalendarX className="mr-2 h-4 w-4" /> Cancelar
+              </Button>
+              <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
+                <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
+              </Button>
+            </div>
+          </>
+        )}
+        {appointment.patientConfirmationStatus === 'Confirmada' && (
+           <Badge variant="default" className="bg-green-600 text-white w-full sm:w-auto justify-center py-1.5 px-3">
+              <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
+           </Badge>
+        )}
+        {appointment.patientConfirmationStatus === 'Cancelada' && (
+           <Badge variant="destructive" className="w-full sm:w-auto justify-center py-1.5 px-3">
+              <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
+           </Badge>
+        )}
+        <div className="flex-1 flex justify-end">
+           {doctor && <Button size="sm" variant="ghost" onClick={() => onContactDoctor(doctor)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar al Médico</Button>}
+        </div>
+      </CardFooter>
     </Card>
   );
 }
@@ -88,6 +106,9 @@ export default function DashboardPage() {
   const { appointments, updateAppointmentConfirmation } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
+  
+  const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
+  const [selectedChatDoctor, setSelectedChatDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
     if (user === undefined) return; 
@@ -134,6 +155,10 @@ export default function DashboardPage() {
     }
   }, [upcomingAppointments, checkAndSetNotifications]);
 
+  const handleContactDoctor = (doctor: Doctor) => {
+    setSelectedChatDoctor(doctor);
+    setIsChatDialogOpen(true);
+  };
 
   if (!user || user.role !== 'patient') {
     return (
@@ -194,6 +219,7 @@ export default function DashboardPage() {
                           key={appt.id} 
                           appointment={appt} 
                           onUpdateConfirmation={updateAppointmentConfirmation}
+                          onContactDoctor={handleContactDoctor}
                         />
                       ))}
                     </div>
@@ -218,7 +244,7 @@ export default function DashboardPage() {
                    {pastAppointments.length > 0 ? (
                     <div className="space-y-4">
                       {pastAppointments.map(appt => (
-                        <AppointmentCard key={appt.id} appointment={appt} isPast />
+                        <AppointmentCard key={appt.id} appointment={appt} isPast onContactDoctor={handleContactDoctor}/>
                       ))}
                     </div>
                   ) : (
@@ -268,6 +294,58 @@ export default function DashboardPage() {
         </div>
       </main>
       <BottomNav />
+
+      {/* Chat Dialog */}
+      <Dialog open={isChatDialogOpen} onOpenChange={setIsChatDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+               <Avatar>
+                  <AvatarImage src={selectedChatDoctor?.profileImage} alt={selectedChatDoctor?.name} />
+                  <AvatarFallback>{selectedChatDoctor?.name?.charAt(0)}</AvatarFallback>
+               </Avatar>
+               Chat con {selectedChatDoctor?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Este es un canal de comunicación directo con tu médico.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
+            <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+              {/* Mock messages */}
+              <div className="flex items-end gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={selectedChatDoctor?.profileImage} />
+                  <AvatarFallback>{selectedChatDoctor?.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs">
+                  <p className="text-sm">Hola {user.name}, ¿cómo te has sentido después de la última consulta?</p>
+                </div>
+              </div>
+              <div className="flex items-end gap-2 justify-end">
+                <div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs">
+                  <p className="text-sm">¡Hola, doctor! Mucho mejor, gracias. Solo una pequeña duda sobre el medicamento.</p>
+                </div>
+                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profileImage ?? undefined} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input placeholder="Escribe tu mensaje..." className="flex-1" />
+              <Button><Send className="h-4 w-4" /></Button>
+            </div>
+          </div>
+           <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cerrar
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
