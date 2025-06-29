@@ -96,6 +96,7 @@ export default function AdminDashboardPage() {
       timezone, setTimezone,
       logoUrl, setLogoUrl,
       currency, setCurrency,
+      companyBankDetails, setCompanyBankDetails,
   } = useSettings();
   
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
@@ -106,6 +107,9 @@ export default function AdminDashboardPage() {
   const [editingSpecialty, setEditingSpecialty] = useState<string | null>(null);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [isCompanyBankDetailDialogOpen, setIsCompanyBankDetailDialogOpen] = useState(false);
+  const [editingCompanyBankDetail, setEditingCompanyBankDetail] = useState<BankDetail | null>(null);
+
 
   useEffect(() => {
     setTempSubscriptionFee(doctorSubscriptionFee.toString());
@@ -909,6 +913,7 @@ export default function AdminDashboardPage() {
                 )}
                 {currentTab === 'settings' && (
                     <div className="mt-6 space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6 items-start">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
@@ -973,6 +978,30 @@ export default function AdminDashboardPage() {
                                 <Button onClick={handleSaveSettings}>Guardar Cambios Generales</Button>
                             </CardContent>
                         </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center gap-2"><Landmark /> Cuentas Bancarias de SUMA</CardTitle>
+                                <Button size="sm" onClick={() => { setEditingCompanyBankDetail(null); setIsCompanyBankDetailDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                {companyBankDetails.map(bd => (
+                                    <div key={bd.id} className="flex justify-between items-center p-2 rounded-md border">
+                                        <div>
+                                            <p className="font-medium">{bd.bank}</p>
+                                            <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button size="icon" variant="outline" onClick={() => { setEditingCompanyBankDetail(bd); setIsCompanyBankDetailDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                            <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {companyBankDetails.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">No hay cuentas bancarias registradas.</p>}
+                                </div>
+                            </CardContent>
+                        </Card>
+                      </div>
 
                         <div className="grid md:grid-cols-2 gap-6 items-start">
                              <Card>
@@ -1480,6 +1509,37 @@ export default function AdminDashboardPage() {
               <DialogFooter>
                   <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
                   <Button>Guardar Especialidad</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isCompanyBankDetailDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCompanyBankDetail(null); setIsCompanyBankDetailDialogOpen(isOpen); }}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>{editingCompanyBankDetail ? 'Editar Cuenta de SUMA' : 'Agregar Nueva Cuenta de SUMA'}</DialogTitle>
+                  <DialogDescription>Gestiona las cuentas donde los médicos pagarán sus suscripciones.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="bankName" className="text-right">Banco</Label>
+                      <Input id="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} className="col-span-3" />
+                  </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="accountHolder" className="text-right">Titular</Label>
+                      <Input id="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} className="col-span-3" />
+                  </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
+                      <Input id="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} className="col-span-3" />
+                  </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
+                      <Input id="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} className="col-span-3" />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                  <Button>Guardar Cuenta</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>

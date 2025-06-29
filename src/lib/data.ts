@@ -3,6 +3,7 @@
 
 
 
+
 export const specialties = [
   "Cardiología",
   "Dermatología",
@@ -28,6 +29,24 @@ export type BankDetail = {
   accountHolder: string;
   idNumber: string;
 };
+
+export const mockCompanyBankDetails: BankDetail[] = [
+  {
+    id: 9901,
+    bank: 'Banesco',
+    accountHolder: 'SUMA C.A.',
+    accountNumber: '0134-0000-0000-0000-0000',
+    idNumber: 'J-12345678-9',
+  },
+  {
+    id: 9902,
+    bank: 'Mercantil',
+    accountHolder: 'SUMA C.A.',
+    accountNumber: '0105-0000-0000-0000-0000',
+    idNumber: 'J-12345678-9',
+  },
+];
+
 
 export type Service = {
   id: number;

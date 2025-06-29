@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { specialties as initialSpecialties, cities as initialCities, mockCoupons, type Coupon } from './data';
+import { specialties as initialSpecialties, cities as initialCities, mockCoupons, type Coupon, mockCompanyBankDetails, type BankDetail } from './data';
 
 interface SettingsContextType {
   doctorSubscriptionFee: number;
@@ -19,6 +19,8 @@ interface SettingsContextType {
   setLogoUrl: (url: string) => void;
   currency: string;
   setCurrency: (currency: string) => void;
+  companyBankDetails: BankDetail[];
+  setCompanyBankDetails: (details: BankDetail[]) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -31,6 +33,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [timezone, setTimezone] = useState<string>('America/Caracas');
   const [logoUrl, setLogoUrl] = useState<string>('/logo.svg'); // Placeholder
   const [currency, setCurrency] = useState<string>('USD');
+  const [companyBankDetails, setCompanyBankDetails] = useState<BankDetail[]>(mockCompanyBankDetails);
 
 
   const value = { 
@@ -41,6 +44,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     timezone, setTimezone,
     logoUrl, setLogoUrl,
     currency, setCurrency,
+    companyBankDetails, setCompanyBankDetails,
    };
 
   return (
