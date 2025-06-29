@@ -55,7 +55,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -273,6 +273,20 @@ export default function DoctorDashboardPage() {
     return { upcomingAppointments: upcoming, pastAppointments: past };
   }, [appointments]);
   
+  const { todayAppointments, tomorrowAppointments } = useMemo(() => {
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    
+    const todayAppts = appointments.filter(a => isSameDay(new Date(a.date + 'T00:00:00'), today));
+    const tomorrowAppts = appointments.filter(a => isSameDay(new Date(a.date + 'T00:00:00'), tomorrow));
+    
+    const sortByTime = (a: Appointment, b: Appointment) => a.time.localeCompare(b.time);
+    todayAppts.sort(sortByTime);
+    tomorrowAppts.sort(sortByTime);
+
+    return { todayAppointments: todayAppts, tomorrowAppointments: tomorrowAppts };
+  }, [appointments]);
+
   const financialStats = useMemo(() => {
     if (!appointments || !expenses) return null;
 
@@ -833,11 +847,74 @@ export default function DoctorDashboardPage() {
               {currentTab === 'appointments' && (
               <div className="mt-6">
                 <div className="space-y-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">Agenda de Hoy</CardTitle>
+                                <CardDescription>{format(new Date(), "eeee, d 'de' LLLL", { locale: es })}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {todayAppointments.length > 0 ? (
+                                    <ul className="space-y-3">
+                                        {todayAppointments.map(appt => (
+                                            <li key={appt.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                        <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-semibold">{appt.patientName}</p>
+                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                                    </div>
+                                                </div>
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">No tienes citas programadas para hoy.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">Agenda de Mañana</CardTitle>
+                                <CardDescription>{format(addDays(new Date(), 1), "eeee, d 'de' LLLL", { locale: es })}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {tomorrowAppointments.length > 0 ? (
+                                    <ul className="space-y-3">
+                                        {tomorrowAppointments.map(appt => (
+                                            <li key={appt.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                        <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-semibold">{appt.patientName}</p>
+                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                                    </div>
+                                                </div>
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">No tienes citas programadas para mañana.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><CalendarCheck /> Citas Próximas</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><CalendarCheck /> Todas las Citas Próximas</CardTitle>
                             <CardDescription>
-                                Tienes {upcomingAppointments.length} citas programadas.
+                                Tienes {upcomingAppointments.length} citas programadas en total.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
