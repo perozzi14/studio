@@ -1,5 +1,11 @@
 
 
+export type ChatMessage = {
+    id: string;
+    sender: 'user' | 'admin';
+    text: string;
+    timestamp: string; // ISO string
+};
 
 export type BankDetail = {
   id: string;
@@ -169,6 +175,7 @@ export type AdminSupportTicket = {
     description: string;
     status: 'abierto' | 'cerrado';
     date: string;
+    messages: ChatMessage[];
     readByAdmin?: boolean;
 };
 

@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment } from '@/lib/types';
+import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2 } from 'lucide-react';
 import {
@@ -56,7 +56,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import jsPDF from 'jspdf';
@@ -261,6 +261,10 @@ export default function DoctorDashboardPage() {
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+
+  const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
+  const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket | null>(null);
+  const [replyMessage, setReplyMessage] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'doctor' || !user.id) return;
@@ -690,7 +694,7 @@ export default function DoctorDashboardPage() {
       return;
     }
 
-    const newTicket: Omit<AdminSupportTicket, 'id'> = {
+    const newTicket: Omit<AdminSupportTicket, 'id' | 'messages'> = {
         userId: user.email,
         userName: user.name,
         userRole: 'doctor',
@@ -862,6 +866,34 @@ export default function DoctorDashboardPage() {
     toast({ title: "¡Reporte Enviado!", description: "Tu pago ha sido reportado y está pendiente de aprobación." });
     setIsReportPaymentDialogOpen(false);
     setPaymentAmount(""); setPaymentDate(""); setPaymentRef(""); setPaymentProof(null);
+  };
+  
+  const handleViewTicket = (ticket: AdminSupportTicket) => {
+    setSelectedSupportTicket(ticket);
+    setIsSupportDetailDialogOpen(true);
+  };
+
+  const handleSendDoctorReply = async () => {
+    if (!selectedSupportTicket || !replyMessage.trim() || !user) return;
+
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        sender: 'user',
+        text: replyMessage.trim(),
+    };
+
+    await firestoreService.addMessageToSupportTicket(selectedSupportTicket.id, newMessage);
+
+    const updatedTicket = {
+        ...selectedSupportTicket,
+        messages: [
+            ...selectedSupportTicket.messages,
+            { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
+        ]
+    };
+    setSelectedSupportTicket(updatedTicket);
+
+    setReplyMessage("");
+    fetchData();
   };
 
 
@@ -1637,7 +1669,7 @@ export default function DoctorDashboardPage() {
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
                                       <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
-                                      <TableCell className="text-right"><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
+                                      <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
                                {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
@@ -1724,6 +1756,47 @@ export default function DoctorDashboardPage() {
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Enviar Ticket</Button></DialogFooter></form>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Ticket de Soporte: {selectedSupportTicket?.subject}</DialogTitle>
+                </DialogHeader>
+                {selectedSupportTicket && (
+                    <>
+                        <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
+                            {selectedSupportTicket.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'user' && 'justify-end')}>
+                                    {msg.sender === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>A</AvatarFallback></Avatar>}
+                                    <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                                        <p className="text-sm">{msg.text}</p>
+                                        <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                                    </div>
+                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarImage src={doctorData?.profileImage} /><AvatarFallback>{selectedSupportTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
+                                </div>
+                            ))}
+                        </div>
+
+                        {selectedSupportTicket.status === 'abierto' && (
+                            <div className="flex items-center gap-2 border-t pt-4">
+                                <Textarea 
+                                    placeholder="Escribe tu respuesta..." 
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    rows={2}
+                                />
+                                <Button onClick={handleSendDoctorReply} disabled={!replyMessage.trim()} size="icon">
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <DialogFooter className="pt-4">
+                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button>
+                        </DialogFooter>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
         

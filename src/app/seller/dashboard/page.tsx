@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail } from '@/lib/types';
+import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -16,9 +16,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -41,12 +41,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
   accountHolder: z.string().min(3, "El nombre del titular es requerido."),
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+});
+
+const SupportTicketSchema = z.object({
+  subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres."),
+  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
 });
 
 function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
@@ -117,6 +124,11 @@ export default function SellerDashboardPage() {
   const [doctorsToShow, setDoctorsToShow] = useState(10);
   
   const currentTab = searchParams.get('view') || 'referrals';
+  
+  const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
+  const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
+  const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket | null>(null);
+  const [replyMessage, setReplyMessage] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'seller' || !user.id) return;
@@ -191,8 +203,37 @@ export default function SellerDashboardPage() {
   }, [referredDoctors, searchTerm, cityFilter, doctorsToShow]);
 
 
-   const handleCreateTicket = (e: React.FormEvent<HTMLFormElement>) => {
+   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user || user.role !== 'seller') return;
+
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+      subject: formData.get('subject') as string,
+      description: formData.get('description') as string,
+    };
+
+    const result = SupportTicketSchema.safeParse(dataToValidate);
+    if (!result.success) {
+      toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(e => e.message).join(' ') });
+      return;
+    }
+
+    const newTicket: Omit<AdminSupportTicket, 'id' | 'messages'> = {
+        userId: user.email,
+        userName: user.name,
+        userRole: 'seller',
+        status: 'abierto',
+        date: new Date().toISOString().split('T')[0],
+        subject: result.data.subject,
+        description: result.data.description,
+    };
+    
+    await firestoreService.addSupportTicket(newTicket);
+    
+    fetchData();
+    setIsSupportDialogOpen(false);
+    (e.target as HTMLFormElement).reset();
     toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
   };
 
@@ -249,6 +290,35 @@ export default function SellerDashboardPage() {
     setSelectedPayment(payment);
     setIsPaymentDetailDialogOpen(true);
   };
+  
+  const handleViewTicket = (ticket: AdminSupportTicket) => {
+    setSelectedSupportTicket(ticket);
+    setIsSupportDetailDialogOpen(true);
+  };
+
+  const handleSendSellerReply = async () => {
+    if (!selectedSupportTicket || !replyMessage.trim() || !user) return;
+
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        sender: 'user',
+        text: replyMessage.trim(),
+    };
+
+    await firestoreService.addMessageToSupportTicket(selectedSupportTicket.id, newMessage);
+
+    const updatedTicket = {
+        ...selectedSupportTicket,
+        messages: [
+            ...selectedSupportTicket.messages,
+            { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
+        ]
+    };
+    setSelectedSupportTicket(updatedTicket);
+
+    setReplyMessage("");
+    fetchData();
+  };
+
 
   if (isLoading || !user || user.role !== 'seller' || !sellerData) {
     return (
@@ -493,18 +563,7 @@ export default function SellerDashboardPage() {
                       <Card>
                         <CardHeader><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div><CardTitle>Soporte Técnico</CardTitle><CardDescription>Gestiona tus tickets de soporte con el equipo de SUMA.</CardDescription></div>
-                            <Dialog><DialogTrigger asChild><Button className="w-full sm:w-auto"><MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket</Button></DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader><DialogTitle>Abrir un Ticket de Soporte</DialogTitle><DialogDescription>Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.</DialogDescription></DialogHeader>
-                                    <form onSubmit={handleCreateTicket}>
-                                        <div className="grid gap-4 py-4">
-                                            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" placeholder="ej., Problema con un referido" className="col-span-3" required /></div>
-                                            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
-                                        </div>
-                                        <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><DialogClose asChild><Button type="submit">Enviar Ticket</Button></DialogClose></DialogFooter>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
+                            <Button onClick={() => setIsSupportDialogOpen(true)}><MessageSquarePlus className="mr-2 h-4 w-4"/> Crear Nuevo Ticket</Button>
                         </div></CardHeader>
                         <CardContent>
                            <Table>
@@ -515,7 +574,7 @@ export default function SellerDashboardPage() {
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
                                       <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
-                                      <TableCell className="text-right"><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
+                                      <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
                                {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
@@ -559,6 +618,56 @@ export default function SellerDashboardPage() {
             </DialogContent>
         </Dialog>
 
+         <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Abrir un Ticket de Soporte</DialogTitle><DialogDescription>Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.</DialogDescription></DialogHeader>
+                <form onSubmit={handleCreateTicket}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un referido" className="col-span-3" required /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
+                </div><DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Enviar Ticket</Button></DialogFooter></form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Ticket de Soporte: {selectedSupportTicket?.subject}</DialogTitle>
+                </DialogHeader>
+                {selectedSupportTicket && (
+                    <>
+                        <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
+                            {selectedSupportTicket.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'user' && 'justify-end')}>
+                                    {msg.sender === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>A</AvatarFallback></Avatar>}
+                                    <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                                        <p className="text-sm">{msg.text}</p>
+                                        <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                                    </div>
+                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarImage src={sellerData?.profileImage} /><AvatarFallback>{selectedSupportTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
+                                </div>
+                            ))}
+                        </div>
+
+                        {selectedSupportTicket.status === 'abierto' && (
+                            <div className="flex items-center gap-2 border-t pt-4">
+                                <Textarea 
+                                    placeholder="Escribe tu respuesta..." 
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    rows={2}
+                                />
+                                <Button onClick={handleSendSellerReply} disabled={!replyMessage.trim()} size="icon">
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <DialogFooter className="pt-4">
+                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button>
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

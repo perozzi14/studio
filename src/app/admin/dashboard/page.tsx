@@ -7,14 +7,14 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -40,7 +40,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -164,6 +164,7 @@ export default function AdminDashboardPage() {
   // States for Support
   const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
+  const [replyMessage, setReplyMessage] = useState("");
 
 
   // States for Settings & Company Finances
@@ -227,7 +228,7 @@ export default function AdminDashboardPage() {
     setDoctorPayments(docPays);
     setSellerPayments(sellPays);
     setMarketingMaterials(materials);
-    setSupportTickets(tickets);
+    setSupportTickets(tickets.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsLoading(false);
   }, []);
 
@@ -598,11 +599,37 @@ export default function AdminDashboardPage() {
     await firestoreService.updateSupportTicket(ticketId, { status });
     toast({ title: "Ticket Actualizado", description: `El ticket ha sido marcado como "${status}".` });
     fetchData();
+    if (status === 'cerrado') {
+      setIsSupportDetailDialogOpen(false);
+    }
   };
   
   const handleViewTicket = (ticket: AdminSupportTicket) => {
     setSelectedTicket(ticket);
     setIsSupportDetailDialogOpen(true);
+  };
+  
+  const handleSendReply = async () => {
+    if (!selectedTicket || !replyMessage.trim()) return;
+
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        sender: 'admin',
+        text: replyMessage.trim(),
+    };
+
+    await firestoreService.addMessageToSupportTicket(selectedTicket.id, newMessage);
+    
+    const updatedTicket = {
+        ...selectedTicket,
+        messages: [
+            ...selectedTicket.messages,
+            { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
+        ]
+    };
+    setSelectedTicket(updatedTicket);
+
+    setReplyMessage("");
+    fetchData();
   };
 
   const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1878,39 +1905,49 @@ export default function AdminDashboardPage() {
         <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>Detalle del Ticket de Soporte</DialogTitle>
-                    <DialogDescription>Ticket ID: {selectedTicket?.id}</DialogDescription>
+                    <DialogTitle>Ticket de Soporte: {selectedTicket?.subject}</DialogTitle>
+                    <DialogDescription>
+                        Conversación con {selectedTicket?.userName} ({selectedTicket?.userRole}).
+                    </DialogDescription>
                 </DialogHeader>
                 {selectedTicket && (
-                    <div className="space-y-4 py-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold">Estado:</span>
-                            <Badge className={cn(selectedTicket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{selectedTicket.status}</Badge>
+                    <>
+                        <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
+                            {selectedTicket.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'admin' && 'justify-end')}>
+                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarFallback>{selectedTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
+                                    <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'admin' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                                        <p className="text-sm">{msg.text}</p>
+                                        <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                                    </div>
+                                    {msg.sender === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>A</AvatarFallback></Avatar>}
+                                </div>
+                            ))}
                         </div>
-                        <Separator/>
-                        <div>
-                            <p className="text-sm font-semibold">Usuario:</p>
-                            <p className="text-sm">{selectedTicket.userName} ({selectedTicket.userRole})</p>
-                            <p className="text-xs text-muted-foreground">{selectedTicket.userId}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold">Asunto:</p>
-                            <p>{selectedTicket.subject}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold">Descripción del Problema:</p>
-                            <p className="text-sm p-3 bg-muted rounded-md">{selectedTicket.description}</p>
-                        </div>
-                    </div>
+
+                        {selectedTicket.status === 'abierto' && (
+                            <div className="flex items-center gap-2 border-t pt-4">
+                                <Textarea 
+                                    placeholder="Escribe tu respuesta..." 
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    rows={2}
+                                />
+                                <Button onClick={handleSendReply} disabled={!replyMessage.trim()} size="icon">
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button variant="outline">Cerrar Ventana</Button></DialogClose>
+                            {selectedTicket.status === 'abierto' && (
+                                <Button onClick={() => handleUpdateTicketStatus(selectedTicket!.id, 'cerrado')}>
+                                    <CheckCircle className="mr-2 h-4 w-4"/> Marcar como Resuelto
+                                </Button>
+                            )}
+                        </DialogFooter>
+                    </>
                 )}
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
-                    {selectedTicket?.status === 'abierto' && (
-                        <Button onClick={() => handleUpdateTicketStatus(selectedTicket!.id, 'cerrado')}>
-                            <CheckCircle className="mr-2 h-4 w-4"/> Marcar como Resuelto
-                        </Button>
-                    )}
-                </DialogFooter>
             </DialogContent>
         </Dialog>
 

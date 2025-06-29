@@ -16,9 +16,10 @@ import {
   writeBatch,
   CollectionReference,
   Timestamp,
+  arrayUnion,
 } from 'firebase/firestore';
 import * as mockData from './data';
-import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial } from './types';
+import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial, ChatMessage } from './types';
 
 
 // Helper to convert Firestore Timestamps to strings
@@ -184,10 +185,43 @@ export const updateMarketingMaterial = async (id: string, data: Partial<Marketin
 export const deleteMarketingMaterial = async (id: string) => deleteDoc(doc(db, 'marketingMaterials', id));
 
 // Support Ticket
-export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id'>) => {
-    const dataWithDefaults = { ...ticketData, readByAdmin: false };
-    return addDoc(collection(db, 'supportTickets'), dataWithDefaults);
+export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id' | 'messages'>) => {
+    const initialMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        sender: 'user',
+        text: ticketData.description,
+        timestamp: new Date().toISOString(),
+    };
+
+    const newTicketData = {
+        ...ticketData,
+        messages: [initialMessage],
+        readByAdmin: false
+    };
+
+    return addDoc(collection(db, 'supportTickets'), newTicketData);
 }
+
+export const addMessageToSupportTicket = async (ticketId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    const ticketRef = doc(db, "supportTickets", ticketId);
+    const newMessage: ChatMessage = {
+        ...message,
+        id: `msg-${Date.now()}`,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Set readByAdmin to false if the user is sending the message
+    const updateData: any = {
+        messages: arrayUnion(newMessage)
+    };
+
+    if (message.sender === 'user') {
+        updateData.readByAdmin = false;
+    }
+    
+    await updateDoc(ticketRef, updateData);
+};
+
 export const updateSupportTicket = async (id: string, data: Partial<AdminSupportTicket>) => updateDoc(doc(db, 'supportTickets', id), data);
 
 
