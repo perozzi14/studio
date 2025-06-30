@@ -1441,6 +1441,104 @@ export default function DoctorDashboardPage() {
               </div>
               )}
 
+              {currentTab === 'subscription' && (
+                <div className="mt-6 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CreditCard/> Estado de tu Suscripción</CardTitle>
+                            <CardDescription>Gestiona tus pagos y mantén tu cuenta activa para aparecer en los resultados de búsqueda.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">Estado Actual</p>
+                                <Badge variant={
+                                    doctorData.subscriptionStatus === 'active' ? 'default' :
+                                    doctorData.subscriptionStatus === 'pending_payment' ? 'secondary' : 'destructive'
+                                } className={cn(
+                                    'capitalize text-base px-3 py-1',
+                                    {
+                                        'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
+                                        'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
+                                    }
+                                )}>
+                                    {doctorData.subscriptionStatus === 'active' ? 'Activo' : 
+                                     doctorData.subscriptionStatus === 'pending_payment' ? 'Pago en Revisión' : 
+                                     'Inactivo'}
+                                </Badge>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">Próxima Fecha de Pago</p>
+                                <p className="text-lg font-semibold">{format(new Date(doctorData.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                            </div>
+                             <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">Monto Mensual</p>
+                                <p className="text-lg font-semibold">${doctorSubscriptionFee.toFixed(2)}</p>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between border-t pt-6">
+                            {doctorData.subscriptionStatus === 'pending_payment' ? (
+                                 <p className="text-sm text-amber-600 font-semibold">Tu pago está siendo revisado por el equipo de SUMA. Esto puede tardar hasta 24 horas.</p>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">¿Ya realizaste tu pago? Repórtalo para activar tu cuenta.</p>
+                            )}
+                           
+                            <Button onClick={() => setIsReportPaymentDialogOpen(true)} disabled={doctorData.subscriptionStatus === 'pending_payment'}>
+                                <FileUp className="mr-2"/> Reportar Pago
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Landmark/> Cuentas de SUMA para Pagos</CardTitle>
+                            <CardDescription>Realiza tu pago en cualquiera de nuestras cuentas y repórtalo usando el botón de arriba.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid sm:grid-cols-2 gap-4">
+                            {companyBankDetails.map(bd => (
+                                <div key={bd.id} className="p-4 border rounded-lg bg-muted/50 space-y-2">
+                                    <p className="font-bold text-lg">{bd.bank}</p>
+                                    <div className="text-sm text-muted-foreground space-y-1">
+                                        <p><span className="font-semibold text-foreground">Titular:</span> {bd.accountHolder}</p>
+                                        <p><span className="font-semibold text-foreground">C.I./R.I.F.:</span> {bd.idNumber}</p>
+                                        <p><span className="font-semibold text-foreground">Nro. Cuenta:</span> {bd.accountNumber}</p>
+                                         {bd.description && <p><span className="font-semibold text-foreground">Descripción:</span> {bd.description}</p>}
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle>Historial de Pagos</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Fecha Reporte</TableHead><TableHead>Monto</TableHead><TableHead>Referencia</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {doctorPayments.length > 0 ? doctorPayments.map(p => (
+                                        <TableRow key={p.id}>
+                                            <TableCell>{format(new Date(p.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                            <TableCell>${p.amount.toFixed(2)}</TableCell>
+                                            <TableCell className="font-mono text-xs">{p.transactionId}</TableCell>
+                                            <TableCell>
+                                                <Badge className={cn({
+                                                    'bg-green-600 text-white': p.status === 'Paid',
+                                                    'bg-amber-500 text-white': p.status === 'Pending',
+                                                    'bg-red-600 text-white': p.status === 'Rejected',
+                                                })}>
+                                                    {p.status === 'Paid' ? 'Aprobado' : p.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">No has realizado ningún pago aún.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+              )}
+
               {currentTab === 'profile' && (
               <div className="mt-6">
                 <div className="space-y-6">
@@ -1783,7 +1881,7 @@ export default function DoctorDashboardPage() {
                                         {selectedAppointment.patientConfirmationStatus}
                                     </Badge>
                                 </div>
-                                <p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p>
+                                <div><strong>Asistencia:</strong> {selectedAppointment.attendance}</div>
                             </div>
                         </div>
                         <Separator />
