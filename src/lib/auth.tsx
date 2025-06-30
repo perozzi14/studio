@@ -40,7 +40,7 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
       phone: patientData.phone || null,
       cedula: patientData.cedula || null,
       favoriteDoctorIds: patientData.favoriteDoctorIds || [],
-      profileImage: patientData.profileImage || undefined,
+      profileImage: patientData.profileImage || null,
     };
   }
 
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: undefined, cedula: null, phone: null, favoriteDoctorIds: [] };
+    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
     const newPatientId = await firestoreService.addPatient(newPatientData);
     
     const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };

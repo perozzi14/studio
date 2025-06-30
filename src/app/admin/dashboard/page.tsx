@@ -81,6 +81,7 @@ const PatientFormSchema = z.object({
   email: z.string().email("Correo electrónico inválido."),
   cedula: z.string().optional(),
   phone: z.string().optional(),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
 });
 
 const ExpenseFormSchema = z.object({
@@ -590,6 +591,7 @@ export default function AdminDashboardPage() {
       email: formData.get('email') as string,
       cedula: formData.get('cedula') as string,
       phone: formData.get('phone') as string,
+      password: formData.get('password') as string,
     };
 
     const result = PatientFormSchema.safeParse(dataToValidate);
@@ -606,6 +608,10 @@ export default function AdminDashboardPage() {
       cedula: result.data.cedula || null,
       phone: result.data.phone || null,
     };
+    
+    if (result.data.password) {
+        updatedPatientData.password = result.data.password;
+    }
     
     await firestoreService.updatePatient(editingPatient.id, updatedPatientData);
     toast({ title: "Paciente Actualizado", description: `La información de ${updatedPatientData.name} ha sido guardada.` });
@@ -2424,6 +2430,7 @@ export default function AdminDashboardPage() {
                             <p><strong>Email:</strong> {selectedPatientForDetail.email}</p>
                             <p><strong>Cédula:</strong> {selectedPatientForDetail.cedula || 'N/A'}</p>
                             <p><strong>Teléfono:</strong> {selectedPatientForDetail.phone || 'N/A'}</p>
+                            <p className="col-span-2"><strong>Contraseña:</strong> {selectedPatientForDetail.password}</p>
                         </CardContent>
                     </Card>
 
@@ -2509,6 +2516,10 @@ export default function AdminDashboardPage() {
               <div>
                 <Label htmlFor="patient-phone">Teléfono</Label>
                 <Input id="patient-phone" name="phone" defaultValue={editingPatient?.phone || ''} />
+              </div>
+              <div>
+                <Label htmlFor="patient-password">Nueva Contraseña</Label>
+                <Input id="patient-password" name="password" type="password" placeholder="Dejar en blanco para no cambiar" />
               </div>
             </div>
             <DialogFooter>

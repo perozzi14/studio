@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -122,7 +115,7 @@ export type Patient = {
     phone: string | null;
     cedula: string | null;
     favoriteDoctorIds?: string[];
-    profileImage?: string;
+    profileImage: string | null;
 };
 
 export type Appointment = {
