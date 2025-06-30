@@ -56,6 +56,7 @@ export const sellers: Seller[] = [
     id: '1',
     name: "Vendedora Principal",
     email: "vendedora@venta.com",
+    password: "1234",
     phone: "0412-9876543",
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "VENDE123",
@@ -74,6 +75,7 @@ export const sellers: Seller[] = [
     id: '2',
     name: "Maria Garcia",
     email: "maria.g@venta.com",
+    password: "1234",
     phone: "0414-1112233",
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "MARIA456",
@@ -84,6 +86,7 @@ export const sellers: Seller[] = [
     id: '3',
     name: "Sofia Martinez",
     email: "sofia.m@venta.com",
+    password: "1234",
     phone: "0424-4445566",
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "SOFIA789",
@@ -138,6 +141,7 @@ export const doctors: Doctor[] = [
     status: 'active',
     lastPaymentDate: '2024-05-28',
     email: 'doctor@admin.com',
+    password: '1234',
     whatsapp: '0414-1234567',
     lat: 10.4996,
     lng: -66.8528,
@@ -172,6 +176,7 @@ export const doctors: Doctor[] = [
     status: 'active',
     lastPaymentDate: '2024-05-25',
     email: 'carlos.sanchez.dr@email.com',
+    password: '1234',
     whatsapp: '0412-2345678',
     lat: 10.6667,
     lng: -71.6125,
@@ -203,6 +208,7 @@ export const doctors: Doctor[] = [
     status: 'inactive',
     lastPaymentDate: '2024-03-15',
     email: 'sofia.gomez.dr@email.com',
+    password: '1234',
     whatsapp: '0424-3456789',
     lat: 10.2117,
     lng: -68.0019,
@@ -214,12 +220,12 @@ export const doctors: Doctor[] = [
 
 
 export const mockPatients: Patient[] = [
-    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456', favoriteDoctorIds: ['1'] },
-    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678', favoriteDoctorIds: [] },
-    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", age: 29, gender: 'femenino', phone: '0416-3334455', cedula: 'V-20.987.654', favoriteDoctorIds: [] },
-    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", age: 52, gender: 'masculino', phone: '0424-4445566', cedula: 'V-9.876.543', favoriteDoctorIds: [] },
-    { id: "pat-5", name: "Paciente de Prueba", email: "paciente@example.com", age: 40, gender: 'masculino', phone: '0426-5556677', cedula: 'V-15.555.555', favoriteDoctorIds: ['1', '2'] },
-    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210', favoriteDoctorIds: [] },
+    { id: "pat-1", name: "Elena Ríos", email: "elena.r@example.com", password: "1234", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456', favoriteDoctorIds: ['1'] },
+    { id: "pat-2", name: "Jorge Paez", email: "jorge.p@example.com", password: "1234", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678', favoriteDoctorIds: [] },
+    { id: "pat-3", name: "Maria Castillo", email: "maria.c@example.com", password: "1234", age: 29, gender: 'femenino', phone: '0416-3334455', cedula: 'V-20.987.654', favoriteDoctorIds: [] },
+    { id: "pat-4", name: "Carlos Briceño", email: "carlos.b@example.com", password: "1234", age: 52, gender: 'masculino', phone: '0424-4445566', cedula: 'V-9.876.543', favoriteDoctorIds: [] },
+    { id: "pat-5", name: "Paciente de Prueba", email: "paciente@example.com", password: "1234", age: 40, gender: 'masculino', phone: '0426-5556677', cedula: 'V-15.555.555', favoriteDoctorIds: ['1', '2'] },
+    { id: "pat-6", name: "Luis Ramirez", email: "luis.r@example.com", password: "1234", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210', favoriteDoctorIds: [] },
 ];
 
 
@@ -292,9 +298,9 @@ export const mockDoctorPayments: DoctorPayment[] = [
 
 
 export const mockAdminSupportTickets: AdminSupportTicket[] = [
-    { id: 'ticket-admin-1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', description: 'No estoy segura de cómo se calcula la comisión para uno de mis médicos.', status: 'abierto', date: '2024-05-20', readByAdmin: false },
-    { id: 'ticket-admin-2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', description: '¿Cómo puedo bloquear un día completo en mi calendario?', status: 'abierto', date: '2024-05-28', readByAdmin: false },
-    { id: 'ticket-admin-3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true },
+    { id: 'ticket-admin-1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', description: 'No estoy segura de cómo se calcula la comisión para uno de mis médicos.', status: 'abierto', date: '2024-05-20', readByAdmin: false, messages: [] },
+    { id: 'ticket-admin-2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', description: '¿Cómo puedo bloquear un día completo en mi calendario?', status: 'abierto', date: '2024-05-28', readByAdmin: false, messages: [] },
+    { id: 'ticket-admin-3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true, messages: [] },
 ];
 
 export const mockAdminNotifications: AdminNotification[] = [

@@ -1,5 +1,6 @@
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -178,7 +179,7 @@ export type AdminSupportTicket = {
     description: string;
     status: 'abierto' | 'cerrado';
     date: string;
-    messages: ChatMessage[];
+    messages?: ChatMessage[];
     readByAdmin?: boolean;
 };
 

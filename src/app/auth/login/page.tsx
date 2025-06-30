@@ -65,7 +65,12 @@ export default function LoginPage() {
           <CardDescription>
             Ingresa tus credenciales para iniciar sesión.
             <br />
-            <span className="text-xs">(Admin: admin@admin.com / 1234)</span>
+            <span className="text-xs text-muted-foreground grid">
+                <span>Admin: admin@admin.com / 1234</span>
+                <span>Doctor: doctor@admin.com / 1234</span>
+                <span>Vendedora: vendedora@venta.com / 1234</span>
+                <span>Paciente: paciente@example.com / 1234</span>
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
