@@ -265,6 +265,7 @@ export default function DoctorDashboardPage() {
   const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
   const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'doctor' || !user.id) return;
@@ -678,8 +679,9 @@ export default function DoctorDashboardPage() {
   
   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || user.role !== 'doctor') return;
-    
+    if (!user || user.role !== 'doctor' || isSubmittingTicket) return;
+    setIsSubmittingTicket(true);
+
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
       subject: formData.get('subject') as string,
@@ -691,6 +693,7 @@ export default function DoctorDashboardPage() {
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');
       toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+      setIsSubmittingTicket(false);
       return;
     }
 
@@ -703,13 +706,18 @@ export default function DoctorDashboardPage() {
         description: result.data.description,
         subject: result.data.subject,
     };
-
-    await firestoreService.addSupportTicket(newTicket);
     
-    fetchData();
-    setIsSupportDialogOpen(false);
-    (e.target as HTMLFormElement).reset();
-    toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
+    try {
+      await firestoreService.addSupportTicket(newTicket);
+      fetchData();
+      setIsSupportDialogOpen(false);
+      (e.target as HTMLFormElement).reset();
+      toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo crear el ticket." });
+    } finally {
+      setIsSubmittingTicket(false);
+    }
   };
 
   const handleProfileInputChange = (field: keyof Doctor, value: any) => {
@@ -1755,7 +1763,13 @@ export default function DoctorDashboardPage() {
                 <form onSubmit={handleCreateTicket}><div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
-                </div><DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Enviar Ticket</Button></DialogFooter></form>
+                </div><DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                    <Button type="submit" disabled={isSubmittingTicket}>
+                      {isSubmittingTicket && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Enviar Ticket
+                    </Button>
+                </DialogFooter></form>
             </DialogContent>
         </Dialog>
         
