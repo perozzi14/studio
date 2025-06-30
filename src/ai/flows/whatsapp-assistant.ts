@@ -104,11 +104,11 @@ const whatsappAssistantFlow = ai.defineFlow(
         content: [{ text: message.text }]
     }));
 
-    genkitHistory.push({ role: 'user', content: [{ text: query }] });
-
+    // The user's query is passed explicitly to `prompt`. The rest is history.
     const response = await ai.generate({
       system: systemPrompt,
       history: genkitHistory,
+      prompt: query,
       tools: [findDoctorsTool],
     });
 
