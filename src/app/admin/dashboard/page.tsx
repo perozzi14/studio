@@ -70,7 +70,7 @@ const SellerPaymentFormSchema = z.object({
     amount: z.number().positive("El monto debe ser un número positivo."),
     period: z.string().min(3, "El período es requerido."),
     transactionId: z.string().min(1, "El ID de transacción es requerido."),
-    paymentProofUrl: z.string().url("La URL del comprobante no es válida."),
+    paymentProof: z.any().refine((file) => file?.name, "El comprobante es requerido."),
 });
 
 const PatientFormSchema = z.object({
@@ -135,7 +135,7 @@ export default function AdminDashboardPage() {
   const [isSellerFinanceDialogOpen, setIsSellerFinanceDialogOpen] = useState(false);
   const [managingSeller, setManagingSeller] = useState<Seller | null>(null);
   const [isRegisterPaymentDialogOpen, setIsRegisterPaymentDialogOpen] = useState(false);
-  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
 
   // States for Doctor management
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
@@ -486,7 +486,7 @@ export default function AdminDashboardPage() {
         amount: parseFloat(formData.get('amount') as string),
         period: formData.get('period') as string,
         transactionId: formData.get('transactionId') as string,
-        paymentProofUrl: formData.get('paymentProofUrl') as string,
+        paymentProof: paymentProofFile,
     };
 
     const result = SellerPaymentFormSchema.safeParse(dataToValidate);
@@ -497,15 +497,16 @@ export default function AdminDashboardPage() {
         return;
     }
 
-    const { amount, period, transactionId, paymentProofUrl } = result.data;
+    const { amount, period, transactionId } = result.data;
 
+    // TODO: In a real app, upload proofFile and get URL
     const newPayment: Omit<SellerPayment, 'id'> = {
       sellerId: managingSeller.id,
       paymentDate: new Date().toISOString().split('T')[0],
       amount,
       period,
       includedDoctors: doctors.filter(d => d.sellerId === managingSeller.id && d.status === 'active'),
-      paymentProofUrl,
+      paymentProofUrl: 'https://placehold.co/400x200.png',
       transactionId,
     };
 
@@ -513,7 +514,13 @@ export default function AdminDashboardPage() {
     toast({ title: "Pago Registrado", description: `Se ha registrado el pago para ${managingSeller.name}.` });
     fetchData();
     setIsRegisterPaymentDialogOpen(false);
-    setPaymentProofUrl(null);
+  };
+  
+  const handleRegisterPaymentDialogChange = (isOpen: boolean) => {
+    if (!isOpen) {
+        setPaymentProofFile(null);
+    }
+    setIsRegisterPaymentDialogOpen(isOpen);
   };
 
   const handleViewPatientDetails = (patient: Patient) => {
@@ -2072,7 +2079,7 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={isRegisterPaymentDialogOpen} onOpenChange={setIsRegisterPaymentDialogOpen}>
+      <Dialog open={isRegisterPaymentDialogOpen} onOpenChange={handleRegisterPaymentDialogChange}>
           <DialogContent>
               <DialogHeader>
                   <DialogTitle>Registrar Pago para {managingSeller?.name}</DialogTitle>
@@ -2080,12 +2087,13 @@ export default function AdminDashboardPage() {
               </DialogHeader>
               <form onSubmit={handleRegisterPayment}>
                 <div className="space-y-4 py-4">
-                    <div><Label>Monto a Pagar ($)</Label><Input name="amount" type="number" step="0.01" required /></div>
-                    <div><Label>Período de Comisión</Label><Input name="period" placeholder="Ej: Junio 2024" required /></div>
-                    <div><Label>ID de Transacción</Label><Input name="transactionId" placeholder="ID de la transferencia" required /></div>
+                    <div><Label htmlFor="payment-amount">Monto a Pagar ($)</Label><Input id="payment-amount" name="amount" type="number" step="0.01" required /></div>
+                    <div><Label htmlFor="payment-period">Período de Comisión</Label><Input id="payment-period" name="period" placeholder="Ej: Junio 2024" required /></div>
+                    <div><Label htmlFor="payment-txid">ID de Transacción</Label><Input id="payment-txid" name="transactionId" placeholder="ID de la transferencia" required /></div>
                     <div>
-                        <Label>Comprobante de Pago (URL)</Label>
-                        <Input name="paymentProofUrl" placeholder="https://..." required onChange={(e) => setPaymentProofUrl(e.target.value)} />
+                        <Label htmlFor="paymentProofFile">Comprobante de Pago</Label>
+                        <Input id="paymentProofFile" type="file" required onChange={(e) => setPaymentProofFile(e.target.files ? e.target.files[0] : null)} />
+                        {paymentProofFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {paymentProofFile.name}</p>}
                     </div>
                 </div>
                 <DialogFooter>
