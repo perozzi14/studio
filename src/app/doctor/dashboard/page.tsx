@@ -307,7 +307,7 @@ export default function DoctorDashboardPage() {
         if (docData) {
             setDoctorData(docData);
             setProfileForm(docData);
-            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`;
+            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
             setAppointments(docAppointments);
             setPatients(allPatients);
             setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
@@ -1376,7 +1376,8 @@ export default function DoctorDashboardPage() {
                                                             <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
                                                                 <UserX className="mr-2 h-4 w-4 text-red-600" />
                                                                 No Asistió
-                                                            </DropdownMenuContent>
+                                                            </DropdownMenuItem>
+                                                    </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 ) : (
                                                     <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
@@ -1884,7 +1885,8 @@ export default function DoctorDashboardPage() {
                                   </TableRow>
                               ))}
                           </TableBody>
-                      </CardContent>
+                      </Table>
+                  </CardContent>
                 </Card>
               </div>
               )}
@@ -2039,7 +2041,7 @@ export default function DoctorDashboardPage() {
                                   <TableRow key={ticket.id}>
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</TableCell>
+                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
                                       <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
@@ -2263,5 +2265,3 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
-
-    
