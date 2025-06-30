@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
@@ -224,8 +224,13 @@ export default function AdminDashboardPage() {
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<CompanyExpense | null>(null);
   
-  // State for DB Seeding
+  // State for DB Seeding & Maintenance
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
   
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -900,6 +905,69 @@ export default function AdminDashboardPage() {
     
     await updateSetting('beautySpecialties', newList);
     toast({ title: "Especialidades de Belleza Actualizadas" });
+  };
+  
+    const handleExportDatabase = async () => {
+    setIsExporting(true);
+    try {
+      const backupData = await firestoreService.exportDatabase();
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `suma-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Exportación Exitosa", description: "El respaldo de la base de datos se ha descargado." });
+    } catch (error) {
+      console.error("Error exporting database:", error);
+      toast({ variant: "destructive", title: "Error de Exportación" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+      setIsImportConfirmOpen(true);
+    }
+  };
+
+  const handleImportDatabase = async () => {
+    if (!importFile) return;
+    setIsImportConfirmOpen(false);
+    setIsImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const text = e.target?.result;
+          if (typeof text !== 'string') throw new Error("File could not be read");
+          const data = JSON.parse(text);
+          await firestoreService.importDatabase(data);
+          toast({ title: "Importación Exitosa", description: "Los datos han sido restaurados. La página se recargará." });
+          fetchData();
+        } catch (err) {
+          console.error("Error processing import file:", err);
+          toast({ variant: "destructive", title: "Error de Importación", description: "El archivo JSON es inválido o está corrupto." });
+        } finally {
+          setIsImporting(false);
+          setImportFile(null);
+          if(importFileInputRef.current) importFileInputRef.current.value = "";
+        }
+      };
+      reader.readAsText(importFile);
+    } catch (error) {
+      console.error("Error importing database:", error);
+      toast({ variant: "destructive", title: "Error de Importación", description: "No se pudo leer el archivo seleccionado." });
+      setIsImporting(false);
+      setImportFile(null);
+    }
   };
 
 
@@ -1972,31 +2040,59 @@ export default function AdminDashboardPage() {
                             <Database /> Mantenimiento de la Base de Datos
                           </CardTitle>
                           <CardDescription>
-                            Usa esta herramienta para cargar los datos iniciales a tu base de datos Firestore.
+                            Realiza tareas de mantenimiento como poblar, respaldar y restaurar los datos de la aplicación.
                           </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
-                            <p className="text-sm">
-                              Este proceso borrará los datos existentes y los reemplazará con los datos de prueba del sistema.
-                              <br />
-                              <strong className="text-destructive">Advertencia:</strong> Esta acción es irreversible.
-                            </p>
-                            <Button
-                              variant="secondary"
-                              onClick={handleSeedDatabase}
-                              disabled={isSeeding}
-                            >
-                              {isSeeding ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Poblando Base de Datos...
-                                </>
-                              ) : (
-                                "Poblar Base de Datos con Datos de Prueba"
-                              )}
-                            </Button>
-                          </div>
+                        <CardContent className="space-y-6">
+                            <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
+                                <h4 className="font-semibold">Poblar con Datos de Prueba</h4>
+                                <p className="text-sm text-muted-foreground">
+                                Este proceso borrará los datos existentes y los reemplazará con los datos de prueba del sistema.
+                                <br />
+                                <strong className="text-destructive">Advertencia:</strong> Esta acción es irreversible.
+                                </p>
+                                <Button
+                                variant="secondary"
+                                onClick={handleSeedDatabase}
+                                disabled={isSeeding}
+                                >
+                                {isSeeding ? (
+                                    <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Poblando Base de Datos...
+                                    </>
+                                ) : (
+                                    "Poblar Base de Datos"
+                                )}
+                                </Button>
+                            </div>
+
+                             <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
+                                <h4 className="font-semibold">Respaldo y Restauración</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Exporta todos los datos de la aplicación a un archivo JSON, o importa un archivo para restaurar un estado anterior.
+                                    <br />
+                                    <strong className="text-destructive">Advertencia:</strong> La importación borrará todos los datos actuales.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button onClick={handleExportDatabase} disabled={isExporting}>
+                                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4"/>}
+                                        Exportar Datos
+                                    </Button>
+                                    <Button variant="outline" onClick={() => importFileInputRef.current?.click()} disabled={isImporting}>
+                                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4"/>}
+                                        Importar Datos
+                                    </Button>
+                                    <input
+                                        ref={importFileInputRef}
+                                        type="file"
+                                        id="import-file-input"
+                                        accept=".json"
+                                        className="hidden"
+                                        onChange={handleFileSelect}
+                                    />
+                                </div>
+                            </div>
                         </CardContent>
                       </Card>
 
@@ -2873,7 +2969,26 @@ export default function AdminDashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* DB Import Confirmation Dialog */}
+      <AlertDialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de importar estos datos?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Esta acción <span className="font-bold text-destructive">BORRARÁ TODOS LOS DATOS ACTUALES</span> de la base de datos y los reemplazará con el contenido del archivo seleccionado. Esta acción es irreversible.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setImportFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportDatabase} className={buttonVariants({variant: 'destructive'})}>
+                Sí, borrar todo e importar
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
 

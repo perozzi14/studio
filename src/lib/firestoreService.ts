@@ -121,6 +121,71 @@ export const seedDatabase = async () => {
     console.log("Database seeded successfully!");
 };
 
+// --- Database Maintenance Functions ---
+export const exportDatabase = async (): Promise<any> => {
+    const backup: Record<string, any> = {};
+    const collectionsToExport = [
+        'doctors', 'sellers', 'patients', 'appointments', 
+        'companyExpenses', 'coupons', 'doctorPayments', 
+        'sellerPayments', 'marketingMaterials', 'supportTickets'
+    ];
+
+    for (const colName of collectionsToExport) {
+        backup[colName] = await getCollectionData<any>(colName);
+    }
+    
+    // Settings is a single doc, not a collection
+    backup['settings'] = await getDocumentData<any>('settings', 'main');
+
+    return backup;
+}
+
+export const importDatabase = async (backupData: any): Promise<void> => {
+    const collectionsToClear = [
+        "doctors", "sellers", "patients", "appointments", 
+        "companyExpenses", "coupons", "doctorPayments", 
+        "sellerPayments", "marketingMaterials", "supportTickets", "settings"
+    ];
+
+    // Clear existing collections in a separate batch
+    const deleteBatch = writeBatch(db);
+    for (const col of collectionsToClear) {
+        const snapshot = await getDocs(collection(db, col));
+        snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
+    }
+    await deleteBatch.commit();
+
+    // Start a new batch for writes
+    const writeBatch = writeBatch(db);
+
+    const prepareData = <T extends { id?: any }>(dataWithId?: T): Omit<T, 'id'> => {
+        if (!dataWithId) return {} as Omit<T, 'id'>;
+        const { id, ...data } = dataWithId;
+        return data;
+    };
+
+    // Import each collection from backup
+    for (const colName in backupData) {
+        if (Object.prototype.hasOwnProperty.call(backupData, colName)) {
+            const items = backupData[colName];
+            if (Array.isArray(items)) {
+                items.forEach((item: any) => {
+                    if (item && item.id) {
+                        const docRef = doc(db, colName, String(item.id));
+                        writeBatch.set(docRef, prepareData(item));
+                    }
+                });
+            } else if (colName === 'settings' && items) {
+                // Handle settings object which is not an array and has a fixed doc ID
+                const settingsRef = doc(db, "settings", "main");
+                writeBatch.set(settingsRef, prepareData(items)); // 'items' is the settings object
+            }
+        }
+    }
+
+    await writeBatch.commit();
+}
+
 
 // --- Data Fetching Functions ---
 export const getDoctors = () => getCollectionData<Doctor>('doctors');
