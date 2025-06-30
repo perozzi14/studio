@@ -199,6 +199,11 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails 
                                 </AlertDialogContent>
                             </AlertDialog>
                         )}
+                        {appointment.paymentMethod === 'efectivo' && appointment.paymentStatus === 'Pendiente' && (
+                            <Button size="sm" variant="outline" className="h-9" onClick={() => onConfirmPayment(appointment.id)}>
+                                Confirmar Pago
+                            </Button>
+                        )}
                     </div>
                 </div>
             </CardContent>
@@ -1099,9 +1104,14 @@ export default function DoctorDashboardPage() {
                                                             {appt.paymentMethod}
                                                         </Badge>
                                                     </div>
-                                                    {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
-                                                        <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
+                                                            <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
+                                                        )}
+                                                        {appt.paymentMethod === 'efectivo' && appt.paymentStatus === 'Pendiente' && (
+                                                            <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleConfirmPayment(appt.id)}>Confirmar Pago</Button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </li>
                                         ))}
@@ -1143,9 +1153,14 @@ export default function DoctorDashboardPage() {
                                                             {appt.paymentMethod}
                                                         </Badge>
                                                     </div>
-                                                    {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
-                                                        <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
+                                                            <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
+                                                        )}
+                                                         {appt.paymentMethod === 'efectivo' && appt.paymentStatus === 'Pendiente' && (
+                                                            <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleConfirmPayment(appt.id)}>Confirmar Pago</Button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </li>
                                         ))}
