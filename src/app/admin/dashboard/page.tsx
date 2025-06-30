@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -200,6 +200,7 @@ export default function AdminDashboardPage() {
   
   const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
   const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<{ originalName: string, newName: string } | null>(null);
   const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false);
@@ -276,13 +277,21 @@ export default function AdminDashboardPage() {
   
   const handleSaveSettings = async () => {
     const newFee = parseFloat(tempSubscriptionFee);
-    if (!isNaN(newFee) && newFee > 0) {
-        await updateSetting('doctorSubscriptionFee', newFee);
-        await updateSetting('logoUrl', tempLogoUrl);
-        toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
-    } else {
+    if (isNaN(newFee) || newFee <= 0) {
         toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido para la suscripción." });
+        return;
     }
+
+    let finalLogoUrl = tempLogoUrl;
+    if (logoFile) {
+        finalLogoUrl = 'https://placehold.co/150x50.png';
+    }
+
+    await updateSetting('doctorSubscriptionFee', newFee);
+    await updateSetting('logoUrl', finalLogoUrl);
+
+    toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
+    setLogoFile(null); // Clear the file input after saving
   };
   
   useEffect(() => {
@@ -1693,14 +1702,14 @@ export default function AdminDashboardPage() {
                                 <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
                                 <CardDescription>Ajusta los parámetros principales de la plataforma.</CardDescription>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
                                 <div className="space-y-4">
                                     <Label className="text-base">Plan de Suscripción</Label>
                                     <div className="flex items-center gap-2">
                                         <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                        <Input 
-                                            id="subscription-fee" 
-                                            type="number" 
+                                        <Input
+                                            id="subscription-fee"
+                                            type="number"
                                             value={tempSubscriptionFee}
                                             onChange={(e) => setTempSubscriptionFee(e.target.value)}
                                             step="0.01"
@@ -1708,20 +1717,8 @@ export default function AdminDashboardPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <Label className="text-base">Logo de SUMA (URL)</Label>
-                                     <div className="flex items-center gap-2">
-                                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                                        <Input 
-                                            id="logo-url" 
-                                            type="text" 
-                                            value={tempLogoUrl}
-                                            onChange={(e) => setTempLogoUrl(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                 <div className="space-y-4">
                                     <Label className="text-base">Moneda Principal</Label>
-                                     <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2">
                                         <Wallet className="h-5 w-5 text-muted-foreground" />
                                         <Select value={currency} onValueChange={(val) => updateSetting('currency', val)}>
                                             <SelectTrigger><SelectValue/></SelectTrigger>
@@ -1735,7 +1732,7 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <div className="space-y-4">
                                     <Label className="text-base">Zona Horaria</Label>
-                                     <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2">
                                         <Globe className="h-5 w-5 text-muted-foreground" />
                                         <Select value={timezone} onValueChange={(val) => updateSetting('timezone', val)}>
                                             <SelectTrigger><SelectValue/></SelectTrigger>
@@ -1746,6 +1743,37 @@ export default function AdminDashboardPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                </div>
+                                <div className="space-y-4 row-span-2">
+                                    <Label className="text-base">Logo de SUMA</Label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
+                                        <div className="flex items-center gap-2">
+                                            <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                            <Input
+                                                id="logo-url"
+                                                type="text"
+                                                value={tempLogoUrl}
+                                                onChange={(e) => setTempLogoUrl(e.target.value)}
+                                                placeholder="https://ejemplo.com/logo.png"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-center text-muted-foreground">O</p>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="logoFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Upload className="h-5 w-5 text-muted-foreground"/>
+                                            <Input id="logoFile" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                                        </div>
+                                        {logoFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {logoFile.name}</p>}
+                                    </div>
+                                    {logoUrl && !logoFile && (
+                                        <div className="mt-2">
+                                            <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
+                                            <Image src={logoUrl} alt="Logo de SUMA" width={128} height={40} className="rounded-md border p-2 bg-background object-contain mt-1" />
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                             <CardContent>
