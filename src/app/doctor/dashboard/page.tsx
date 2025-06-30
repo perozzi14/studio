@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -324,9 +324,9 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (!selectedAppointment) return;
-    
+
     const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
-    
+
     if (updatedApptFromList) {
         const { patient, ...currentApptDataInState } = selectedAppointment;
         if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
@@ -1022,9 +1022,15 @@ export default function DoctorDashboardPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
-                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
-                                                        <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
+                                                            <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
+                                                        </Badge>
+                                                        <Badge variant="outline" className="capitalize flex items-center gap-1">
+                                                            {appt.paymentMethod === 'efectivo' ? <Banknote className="h-3 w-3"/> : <Landmark className="h-3 w-3" />}
+                                                            {appt.paymentMethod}
+                                                        </Badge>
+                                                    </div>
                                                     {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
                                                         <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
                                                     )}
@@ -1060,9 +1066,15 @@ export default function DoctorDashboardPage() {
                                                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleViewDetails(appt)}><Eye className="h-4 w-4" /></Button>
                                                 </div>
                                                 <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
-                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
-                                                        <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
+                                                            <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
+                                                        </Badge>
+                                                        <Badge variant="outline" className="capitalize flex items-center gap-1">
+                                                            {appt.paymentMethod === 'efectivo' ? <Banknote className="h-3 w-3"/> : <Landmark className="h-3 w-3" />}
+                                                            {appt.paymentMethod}
+                                                        </Badge>
+                                                    </div>
                                                     {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
                                                         <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
                                                     )}
@@ -1110,76 +1122,78 @@ export default function DoctorDashboardPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Table className="hidden md:table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Paciente</TableHead>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Servicios</TableHead>
-                                        <TableHead>Pago</TableHead>
-                                        <TableHead className="text-center">Conf. Paciente</TableHead>
-                                        <TableHead className="text-center">Asistencia</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
-                                        <TableRow key={appt.id}>
-                                            <TableCell className="font-medium">{appt.patientName}</TableCell>
-                                            <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                                            <TableCell className="text-sm">{appt.services.map(s => s.name).join(', ')}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
-                                                    {appt.paymentStatus}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge variant={
-                                                    appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
-                                                    appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
-                                                } className={cn(
-                                                    {'bg-green-600 text-white': appt.patientConfirmationStatus === 'Confirmada'},
-                                                    {'bg-amber-500 text-white': appt.patientConfirmationStatus === 'Pendiente'},
-                                                )}>
-                                                    {appt.patientConfirmationStatus}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {appt.attendance === 'Pendiente' ? (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="outline" size="sm">Marcar Asistencia <MoreVertical className="ml-2 h-4 w-4" /></Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'Atendido')}>
-                                                                <UserCheck className="mr-2 h-4 w-4 text-green-600" />
-                                                                Atendido
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
-                                                                <UserX className="mr-2 h-4 w-4 text-red-600" />
-                                                                No Asistió
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                ) : (
-                                                    <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
-                                                        {appt.attendance}
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
+                            <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                            <TableHead>Paciente</TableHead>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Servicios</TableHead>
+                                            <TableHead>Pago</TableHead>
+                                            <TableHead className="text-center">Conf. Paciente</TableHead>
+                                            <TableHead className="text-center">Asistencia</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
+                                            <TableRow key={appt.id}>
+                                                <TableCell className="font-medium">{appt.patientName}</TableCell>
+                                                <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                                <TableCell className="text-sm">{appt.services.map(s => s.name).join(', ')}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
+                                                        {appt.paymentStatus}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant={
+                                                        appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
+                                                        appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
+                                                    } className={cn(
+                                                        {'bg-green-600 text-white': appt.patientConfirmationStatus === 'Confirmada'},
+                                                        {'bg-amber-500 text-white': appt.patientConfirmationStatus === 'Pendiente'},
+                                                    )}>
+                                                        {appt.patientConfirmationStatus}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {appt.attendance === 'Pendiente' ? (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" size="sm">Marcar Asistencia <MoreVertical className="ml-2 h-4 w-4" /></Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent>
+                                                                <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'Atendido')}>
+                                                                    <UserCheck className="mr-2 h-4 w-4 text-green-600" />
+                                                                    Atendido
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
+                                                                    <UserX className="mr-2 h-4 w-4 text-red-600" />
+                                                                    No Asistió
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    ) : (
+                                                        <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
+                                                            {appt.attendance}
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
 
                             <div className="space-y-4 md:hidden">
                                 {pastAppointments.length > 0 ? pastAppointments.map((appt) => (
@@ -1308,7 +1322,32 @@ export default function DoctorDashboardPage() {
                            <CardTitle>Resumen Financiero: {timeRangeLabels[timeRange]}</CardTitle>
                            <CardDescription>Comparativa de ingresos y gastos.</CardDescription>
                         </div>
-                        <Button onClick={handleGenerateFinanceReport}><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
+                        <Button onClick={() => generatePdfReport({
+                            title: `Reporte Financiero para Dr. ${doctorData.name}`,
+                            subtitle: `Período: ${timeRangeLabels[timeRange]} - Generado el ${format(new Date(), 'dd/MM/yyyy')}`,
+                            sections: [
+                                {
+                                    title: "Ingresos por Citas",
+                                    columns: ["Fecha", "Paciente", "Servicios", "Monto"],
+                                    data: financialStats.paidAppointments.map(a => [
+                                        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
+                                        a.patientName,
+                                        a.services.map(s => s.name).join(', '),
+                                        `$${a.totalPrice.toFixed(2)}`
+                                    ])
+                                },
+                                {
+                                    title: "Gastos del Consultorio",
+                                    columns: ["Fecha", "Descripción", "Monto"],
+                                    data: (doctorData.expenses || []).map(e => [
+                                        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
+                                        e.description,
+                                        `$${e.amount.toFixed(2)}`
+                                    ])
+                                }
+                            ],
+                            fileName: `Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+                        })}><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
                       </CardHeader>
                       <CardContent className="pl-2">
                           {timeRange !== 'today' && financialStats.chartData.length > 0 ? (
@@ -1338,36 +1377,38 @@ export default function DoctorDashboardPage() {
                         <CardDescription>Lista de todas las citas pagadas en el período seleccionado.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table className="hidden md:table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Paciente</TableHead>
-                                    <TableHead>Servicios</TableHead>
-                                    <TableHead className="text-right">Monto</TableHead>
-                                    <TableHead className="w-[120px] text-center">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
-                                    <TableRow key={appt.id}>
-                                        <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                                        <TableCell className="font-medium">{appt.patientName}</TableCell>
-                                        <TableCell className="text-sm truncate max-w-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
-                                        <TableCell className="text-right font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : (
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24">No hay ingresos registrados en este período.</TableCell>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Paciente</TableHead>
+                                        <TableHead>Servicios</TableHead>
+                                        <TableHead className="text-right">Monto</TableHead>
+                                        <TableHead className="w-[120px] text-center">Acciones</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
+                                        <TableRow key={appt.id}>
+                                            <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                            <TableCell className="font-medium">{appt.patientName}</TableCell>
+                                            <TableCell className="text-sm truncate max-w-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
+                                            <TableCell className="text-right font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center h-24">No hay ingresos registrados en este período.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                         <div className="space-y-4 md:hidden">
                             {financialStats.paidAppointments.length > 0 ? financialStats.paidAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((appt) => (
                                 <div key={appt.id} className="p-4 border rounded-lg space-y-3">
@@ -1398,33 +1439,35 @@ export default function DoctorDashboardPage() {
                             </div>
                         </CardHeader>
                       <CardContent>
-                          <Table className="hidden md:table">
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Fecha</TableHead>
-                                      <TableHead>Descripción</TableHead>
-                                      <TableHead className="text-right">Monto</TableHead>
-                                      <TableHead className="w-[120px] text-center">Acciones</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
-                                      <TableRow key={expense.id}>
-                                          <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                                          <TableCell className="font-medium">{expense.description}</TableCell>
-                                          <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
-                                          <TableCell className="text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                          </TableCell>
+                          <div className="hidden md:block">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Fecha</TableHead>
+                                          <TableHead>Descripción</TableHead>
+                                          <TableHead className="text-right">Monto</TableHead>
+                                          <TableHead className="w-[120px] text-center">Acciones</TableHead>
                                       </TableRow>
-                                  )) : (
-                                      <TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>
-                                  )}
-                              </TableBody>
-                          </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                          <TableRow key={expense.id}>
+                                              <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                              <TableCell className="font-medium">{expense.description}</TableCell>
+                                              <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                              <TableCell className="text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                                </div>
+                                              </TableCell>
+                                          </TableRow>
+                                      )) : (
+                                          <TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>
+                                      )}
+                                  </TableBody>
+                              </Table>
+                          </div>
 
                           <div className="space-y-4 md:hidden">
                             {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
