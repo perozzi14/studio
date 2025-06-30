@@ -1909,8 +1909,8 @@ export default function AdminDashboardPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                        {cities.map(city => (
-                                            <TableRow key={city.name}>
+                                        {cities.map((city, index) => (
+                                            <TableRow key={`${city.name}-${index}`}>
                                                 <TableCell className="font-medium">{city.name}</TableCell>
                                                 <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
                                                 <TableCell className="flex justify-end gap-2">
