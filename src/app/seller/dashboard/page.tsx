@@ -191,7 +191,7 @@ export default function SellerDashboardPage() {
   }, [doctorSubscriptionFee, sellerData]);
 
   const financeStats = useMemo(() => {
-    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [], filteredExpenses: [] };
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
     
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
@@ -238,7 +238,8 @@ export default function SellerDashboardPage() {
         netProfit,
         nextPaymentDate,
         filteredPayments,
-        filteredExpenses
+        filteredExpenses,
+        activeReferred,
     };
   }, [referredDoctors, sellerPayments, sellerData, commissionPerDoctor, timeRange]);
   
@@ -592,6 +593,51 @@ export default function SellerDashboardPage() {
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
                         </div>
+                        
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Desglose de Comisiones Pendientes</CardTitle>
+                                <CardDescription>
+                                    Comisiones estimadas a pagar en el próximo ciclo, basadas en tus médicos activos.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Médico Activo</TableHead>
+                                            <TableHead>Especialidad</TableHead>
+                                            <TableHead className="text-right">Comisión Estimada</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {financeStats.activeReferred.length > 0 ? (
+                                            financeStats.activeReferred.map(doctor => (
+                                                <TableRow key={doctor.id}>
+                                                    <TableCell className="font-medium">{doctor.name}</TableCell>
+                                                    <TableCell>{doctor.specialty}</TableCell>
+                                                    <TableCell className="text-right font-mono">${commissionPerDoctor.toFixed(2)}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="h-24 text-center">
+                                                    No tienes médicos activos para generar comisiones.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                            <CardFooter className="justify-end font-bold bg-muted/50 py-3">
+                                <div className="flex items-center gap-4 text-lg">
+                                    <span>Total Pendiente:</span>
+                                    <span className="text-amber-600">${financeStats.pendingCommission.toFixed(2)}</span>
+                                </div>
+                            </CardFooter>
+                        </Card>
+
+
                          <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
                             <CardContent>
@@ -717,7 +763,7 @@ export default function SellerDashboardPage() {
                            <Table>
                               <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
-                              {supportTickets.map(ticket => (
+                              {(supportTickets || []).map(ticket => (
                                   <TableRow key={ticket.id}>
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
@@ -725,7 +771,7 @@ export default function SellerDashboardPage() {
                                       <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
-                               {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
+                               {(supportTickets || []).length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                         </CardContent>
@@ -811,7 +857,7 @@ export default function SellerDashboardPage() {
                                         <p className="text-sm">{msg.text}</p>
                                         <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
                                     </div>
-                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarImage src={sellerData?.profileImage} /><AvatarFallback>{selectedSupportTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
+                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarImage src={sellerData?.profileImage} /><AvatarFallback>{(selectedSupportTicket.userName || 'U').charAt(0)}</AvatarFallback></Avatar>}
                                 </div>
                             ))}
                         </div>
