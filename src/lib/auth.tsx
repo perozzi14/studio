@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (password === '1234') { // Using a simple, non-secure password for this mock.
         const adminUser: User = { 
           id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
-          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: []
+          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234'
         };
         setUser(adminUser);
         localStorage.setItem('user', JSON.stringify(adminUser));
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (userToAuth.password !== password) {
+    if (!userToAuth.password || userToAuth.password !== password) {
       toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
       return;
     }
