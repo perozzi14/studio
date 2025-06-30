@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage } from '@/lib/types';
+import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage, type Expense } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -16,9 +16,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send, TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, getMonth, getYear, formatDistanceToNow } from 'date-fns';
+import { format, getMonth, getYear, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -55,6 +55,13 @@ const SupportTicketSchema = z.object({
   subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres."),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
 });
+
+const ExpenseFormSchema = z.object({
+  description: z.string().min(3, "La descripción es requerida."),
+  amount: z.number().positive("El monto debe ser un número positivo."),
+  date: z.string().min(1, "La fecha es requerida."),
+});
+
 
 function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
     const { toast } = useToast();
@@ -131,6 +138,11 @@ export default function SellerDashboardPage() {
   const [replyMessage, setReplyMessage] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'seller' || !user.id) return;
     setIsLoading(true);
@@ -171,18 +183,49 @@ export default function SellerDashboardPage() {
   }, [doctorSubscriptionFee, sellerData]);
 
   const financeStats = useMemo(() => {
-    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, nextPaymentDate: '' };
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [] };
+    
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
-    const totalEarned = sellerPayments.reduce((sum, payment) => sum + payment.amount, 0);
     
     const now = new Date();
+    let startDate, endDate;
+    switch (timeRange) {
+        case 'today': startDate = startOfDay(now); endDate = endOfDay(now); break;
+        case 'week': startDate = startOfWeek(now, { locale: es }); endDate = endOfDay(now); break;
+        case 'year': startDate = startOfYear(now); endDate = endOfYear(now); break;
+        case 'month': default: startDate = startOfMonth(now); endDate = endOfMonth(now); break;
+    }
+
+    const filteredPayments = sellerPayments.filter(p => {
+        const paymentDate = new Date(p.paymentDate + 'T00:00:00');
+        return paymentDate >= startDate && paymentDate <= endDate;
+    });
+
+    const filteredExpenses = (sellerData.expenses || []).filter(e => {
+        const expenseDate = new Date(e.date + 'T00:00:00');
+        return expenseDate >= startDate && expenseDate <= endDate;
+    });
+
+    const totalEarned = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const netProfit = totalEarned - totalExpenses;
+    
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
     const nextPaymentYear = getMonth(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
 
-    return { totalReferred: referredDoctors.length, activeReferredCount: activeReferred.length, pendingCommission, totalEarned, nextPaymentDate };
-  }, [referredDoctors, commissionPerDoctor, sellerData, sellerPayments]);
+    return { 
+        totalReferred: referredDoctors.length, 
+        activeReferredCount: activeReferred.length, 
+        pendingCommission, 
+        totalEarned, 
+        totalExpenses,
+        netProfit,
+        nextPaymentDate,
+        filteredPayments,
+    };
+  }, [referredDoctors, sellerPayments, sellerData, commissionPerDoctor, timeRange]);
   
   const filteredAndSortedDoctors = useMemo(() => {
     let doctors = [...referredDoctors]
@@ -317,7 +360,7 @@ export default function SellerDashboardPage() {
     const updatedTicket = {
         ...selectedSupportTicket,
         messages: [
-            ...(selectedSupportTicket.messages || []),
+            ...((selectedSupportTicket.messages || [])),
             { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
         ]
     };
@@ -325,6 +368,53 @@ export default function SellerDashboardPage() {
 
     setReplyMessage("");
     fetchData();
+  };
+
+  const handleOpenExpenseDialog = (expense: Expense | null) => {
+    setEditingExpense(expense);
+    setIsExpenseDialogOpen(true);
+  };
+
+  const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!sellerData) return;
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+        description: formData.get('expenseDescription') as string,
+        amount: parseFloat(formData.get('expenseAmount') as string) || 0,
+        date: formData.get('expenseDate') as string,
+    };
+    const result = ExpenseFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        return;
+    }
+    
+    const newExpense: Expense = {
+      id: editingExpense ? editingExpense.id : `expense-${Date.now()}`,
+      ...result.data,
+    };
+
+    let updatedExpenses;
+    if (editingExpense) {
+        updatedExpenses = (sellerData.expenses || []).map(exp => exp.id === editingExpense.id ? newExpense : exp);
+    } else {
+        updatedExpenses = [...(sellerData.expenses || []), newExpense];
+    }
+
+    await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
+    fetchData();
+    setIsExpenseDialogOpen(false);
+    toast({ title: "Gasto Guardado" });
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!sellerData) return;
+    const updatedExpenses = (sellerData.expenses || []).filter(exp => exp.id !== expenseId);
+    await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
+    fetchData();
+    toast({ title: "Gasto Eliminado" });
   };
 
 
@@ -471,10 +561,20 @@ export default function SellerDashboardPage() {
                 {currentTab === 'finances' && (
                   <div className="mt-6">
                       <div className="space-y-8">
-                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente (Este Mes)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}/c.u.</p></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total General Generado</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Suma de todos los pagos recibidos.</p></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Próxima Fecha de Pago</CardTitle><CalendarClock className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{financeStats.nextPaymentDate}</div><p className="text-xs text-muted-foreground">Cierre de ciclo el 15 de cada mes.</p></CardContent></Card>
+                         <div className="w-full">
+                            <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+                                <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
+                                <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
+                                <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
+                                <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                            </div>
+                        </div>
+
+                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Recibidos</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Pagos de SUMA en este período</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos en este período</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos</p></CardContent></Card>
                         </div>
                          <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
@@ -482,18 +582,18 @@ export default function SellerDashboardPage() {
                                 <Table className="hidden md:table">
                                     <TableHeader><TableRow><TableHead>Fecha de Pago</TableHead><TableHead>Período de Comisión</TableHead><TableHead>Médicos Pagados</TableHead><TableHead className="text-right">Monto Recibido</TableHead><TableHead className="text-center">Acciones</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
+                                        {financeStats.filteredPayments.length > 0 ? financeStats.filteredPayments.map((payment) => (
                                             <TableRow key={payment.id}>
                                                 <TableCell className="font-medium">{format(new Date(payment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                                 <TableCell>{payment.period}</TableCell><TableCell>{payment.includedDoctors.length}</TableCell>
                                                 <TableCell className="text-right font-mono text-green-600 font-semibold">${payment.amount.toFixed(2)}</TableCell>
                                                 <TableCell className="text-center"><Button variant="outline" size="sm" onClick={() => handleViewPaymentDetails(payment)}><Eye className="mr-2 h-4 w-4"/>Ver Detalles</Button></TableCell>
                                             </TableRow>
-                                        )) : (<TableRow><TableCell colSpan={5} className="h-24 text-center">No has recibido pagos aún.</TableCell></TableRow>)}
+                                        )) : (<TableRow><TableCell colSpan={5} className="h-24 text-center">No has recibido pagos en este período.</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
                                 <div className="space-y-4 md:hidden">
-                                     {sellerPayments.length > 0 ? sellerPayments.map((payment) => (
+                                     {financeStats.filteredPayments.length > 0 ? financeStats.filteredPayments.map((payment) => (
                                         <div key={payment.id} className="p-4 border rounded-lg space-y-3">
                                             <div className="flex justify-between items-start">
                                                 <div><p className="font-semibold">{payment.period}</p><p className="text-sm text-muted-foreground">Pagado el {format(new Date(payment.paymentDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p></div>
@@ -501,8 +601,32 @@ export default function SellerDashboardPage() {
                                             </div><Separator/>
                                             <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewPaymentDetails(payment)}><Eye className="mr-2 h-4 w-4"/>Ver Detalles del Pago</Button>
                                         </div>
-                                     )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">No has recibido pagos aún.</div>)}
+                                     )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">No has recibido pagos en este período.</div>)}
                                 </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div><CardTitle>Registro de Gastos</CardTitle><CardDescription>Administra tus gastos operativos.</CardDescription></div>
+                                <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {(sellerData.expenses || []).length > 0 ? (sellerData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                            <TableRow key={expense.id}>
+                                                <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
+                                                <TableCell className="font-medium">{expense.description}</TableCell>
+                                                <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                                <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
+                                                        <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                                </div></TableCell>
+                                            </TableRow>
+                                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>)}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </div>
@@ -519,7 +643,7 @@ export default function SellerDashboardPage() {
                           <Table className="hidden md:table">
                               <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
-                                  {sellerData.bankDetails.map(bd => (
+                                  {(sellerData.bankDetails || []).map(bd => (
                                       <TableRow key={bd.id}>
                                           <TableCell className="font-medium">{bd.bank}</TableCell><TableCell>{bd.accountHolder}</TableCell><TableCell>{bd.accountNumber}</TableCell><TableCell>{bd.idNumber}</TableCell>
                                           <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
@@ -528,11 +652,11 @@ export default function SellerDashboardPage() {
                                           </div></TableCell>
                                       </TableRow>
                                   ))}
-                                  {sellerData.bankDetails.length === 0 && (<TableRow><TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
+                                  {(sellerData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                           <div className="space-y-4 md:hidden">
-                              {sellerData.bankDetails.length > 0 ? sellerData.bankDetails.map(bd => (
+                              {(sellerData.bankDetails || []).length > 0 ? (sellerData.bankDetails || []).map(bd => (
                                   <div key={bd.id} className="p-4 border rounded-lg space-y-4">
                                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                           <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
@@ -600,10 +724,10 @@ export default function SellerDashboardPage() {
             <DialogContent>
                 <DialogHeader><DialogTitle>{editingBankDetail ? "Editar Cuenta Bancaria" : "Agregar Nueva Cuenta"}</DialogTitle><DialogDescription>{editingBankDetail ? "Modifica los detalles de esta cuenta." : "Añade una nueva cuenta para recibir tus comisiones."}</DialogDescription></DialogHeader>
                 <form onSubmit={handleSaveBankDetail}><div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="bankName" className="text-right">Banco</Label><Input name="bankName" defaultValue={editingBankDetail?.bank} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="bankName" className="text-right">Banco</Label><Input id="bankName" name="bankName" defaultValue={editingBankDetail?.bank} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input id="idNumber" name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
@@ -623,6 +747,18 @@ export default function SellerDashboardPage() {
                     </div>
                 )}
                 <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle><DialogDescription>Registra un nuevo gasto para llevar un control financiero.</DialogDescription></DialogHeader>
+                <form onSubmit={handleSaveExpense}><div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input id="expenseDate" name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input id="expenseDescription" name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input id="expenseAmount" name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
+                </div>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
 

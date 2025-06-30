@@ -69,6 +69,10 @@ export const sellers: Seller[] = [
         accountHolder: "Vendedora Principal",
         idNumber: "V-99.888.777"
       }
+    ],
+    expenses: [
+      { id: 'sexp-1', date: '2024-05-10', description: 'Transporte a reuniones', amount: 20 },
+      { id: 'sexp-2', date: '2024-05-22', description: 'Impresión de material', amount: 15 },
     ]
   },
   {
@@ -80,7 +84,8 @@ export const sellers: Seller[] = [
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "MARIA456",
     commissionRate: 0.18,
-    bankDetails: []
+    bankDetails: [],
+    expenses: []
   },
    {
     id: '3',
@@ -91,7 +96,8 @@ export const sellers: Seller[] = [
     profileImage: "https://placehold.co/400x400.png",
     referralCode: "SOFIA789",
     commissionRate: 0.20,
-    bankDetails: []
+    bankDetails: [],
+    expenses: []
   }
 ];
 

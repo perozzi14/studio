@@ -2,6 +2,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -104,6 +105,7 @@ export type Seller = {
   referralCode: string;
   bankDetails: BankDetail[];
   commissionRate: number;
+  expenses?: Expense[];
 };
 
 export type Patient = {
