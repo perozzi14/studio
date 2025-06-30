@@ -1912,7 +1912,7 @@ export default function AdminDashboardPage() {
                                         {cities.map(city => (
                                             <TableRow key={city.name}>
                                                 <TableCell className="font-medium">{city.name}</TableCell>
-                                                <TableCell className="font-mono">${city.subscriptionFee.toFixed(2)}</TableCell>
+                                                <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
                                                 <TableCell className="flex justify-end gap-2">
                                                     <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
                                                     <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>

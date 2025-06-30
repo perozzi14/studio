@@ -71,6 +71,7 @@ const DoctorFormSchema = z.object({
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
+  consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
 });
 
 
@@ -123,7 +124,7 @@ export default function SellerDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { doctorSubscriptionFee, cities, specialties } = useSettings();
+  const { cities, specialties } = useSettings();
   
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
@@ -192,16 +193,17 @@ export default function SellerDashboardPage() {
     }
   }, [user, fetchData]);
 
-  const commissionPerDoctor = useMemo(() => {
-    if (!sellerData) return 0;
-    return doctorSubscriptionFee * sellerData.commissionRate;
-  }, [doctorSubscriptionFee, sellerData]);
+  const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
   const financeStats = useMemo(() => {
     if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
     
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
-    const pendingCommission = activeReferred.length * commissionPerDoctor;
+    
+    const pendingCommission = activeReferred.reduce((sum, doc) => {
+        const fee = cityFeesMap.get(doc.city) || 0;
+        return sum + (fee * sellerData.commissionRate);
+    }, 0);
     
     const now = new Date();
     let startDate, endDate;
@@ -250,7 +252,7 @@ export default function SellerDashboardPage() {
         filteredExpenses,
         activeReferred,
     };
-  }, [referredDoctors, sellerPayments, sellerData, commissionPerDoctor, timeRange]);
+  }, [referredDoctors, sellerPayments, sellerData, cityFeesMap, timeRange]);
   
   const filteredAndSortedDoctors = useMemo(() => {
     let doctors = [...referredDoctors]
@@ -461,6 +463,7 @@ export default function SellerDashboardPage() {
       city: formData.get('doc-city') as string,
       address: formData.get('doc-address') as string,
       slotDuration: parseInt(formData.get('doc-slot-duration') as string, 10),
+      consultationFee: parseInt(formData.get('doc-consultation-fee') as string, 10),
     };
 
     const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -477,7 +480,7 @@ export default function SellerDashboardPage() {
         return;
     }
 
-    const { name, email, specialty, city, address, password, slotDuration } = result.data;
+    const { name, email, specialty, city, address, password, slotDuration, consultationFee } = result.data;
     
     const now = new Date();
     const nextMonth = new Date(now);
@@ -498,6 +501,7 @@ export default function SellerDashboardPage() {
         services: [],
         bankDetails: [],
         slotDuration: slotDuration,
+        consultationFee,
         schedule: {
             monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
             tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -600,7 +604,7 @@ export default function SellerDashboardPage() {
                                         <SelectContent>
                                             <SelectItem value="all">Todas las ciudades</SelectItem>
                                             {cities.map((city) => (
-                                                <SelectItem key={city} value={city}>{city}</SelectItem>
+                                                <SelectItem key={city.name} value={city.name}>{city.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -688,7 +692,7 @@ export default function SellerDashboardPage() {
                         </div>
 
                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos</p></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Recibidos</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Pagos de SUMA ({timeRangeLabels[timeRange]})</p></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
@@ -717,7 +721,7 @@ export default function SellerDashboardPage() {
                                                 <TableRow key={doctor.id}>
                                                     <TableCell className="font-medium">{doctor.name}</TableCell>
                                                     <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
-                                                    <TableCell className="text-right font-mono">${commissionPerDoctor.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">${(cityFeesMap.get(doctor.city) || 0 * (sellerData?.commissionRate || 0)).toFixed(2)}</TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
@@ -787,7 +791,7 @@ export default function SellerDashboardPage() {
                                                         <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div></TableCell>
                                             </TableRow>
-                                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
+                                        )) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No hay gastos registrados en este período.</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
                             </CardContent>
@@ -1068,12 +1072,16 @@ export default function SellerDashboardPage() {
                             <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
                             <Select name="doc-city">
                                 <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label>
                             <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue="30" className="col-span-3" required min="5"/>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label>
+                            <Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={20} className="col-span-3" required min="0"/>
                         </div>
                     </div>
                     <DialogFooter>
