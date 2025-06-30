@@ -91,33 +91,6 @@ const systemPrompt = `Eres un asistente de IA altamente profesional y empático 
     *   No repitas preguntas si la información ya fue proporcionada en la conversación. Usa el historial.
 `;
 
-const whatsappAssistantPrompt = ai.definePrompt({
-    name: 'whatsappAssistantPrompt',
-    system: systemPrompt,
-    tools: [findDoctorsTool],
-    input: { schema: z.string() }, // The user's query is the input
-    config: {
-      safetySettings: [
-        {
-          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          threshold: 'BLOCK_NONE',
-        },
-        {
-          category: 'HARM_CATEGORY_HARASSMENT',
-          threshold: 'BLOCK_NONE',
-        },
-        {
-          category: 'HARM_CATEGORY_HATE_SPEECH',
-          threshold: 'BLOCK_NONE',
-        },
-        {
-          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-          threshold: 'BLOCK_NONE',
-        },
-      ],
-    },
-});
-
 const whatsappAssistantFlow = ai.defineFlow(
   {
     name: 'whatsappAssistantFlow',
@@ -131,9 +104,19 @@ const whatsappAssistantFlow = ai.defineFlow(
         content: [{ text: message.text }]
     }));
 
-    const response = await whatsappAssistantPrompt.generate({
+    const response = await ai.generate({
+      prompt: query,
       history: genkitHistory,
-      input: query,
+      system: systemPrompt,
+      tools: [findDoctorsTool],
+      config: {
+        safetySettings: [
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        ],
+      },
     });
 
     const text = response.text;
