@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote, Phone } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,7 +55,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay, formatDistanceToNow } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay, formatDistanceToNow, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import { generatePdfReport } from '@/lib/pdf-utils';
@@ -324,12 +324,27 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (!selectedAppointment) return;
-
+  
     const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
     
-    // Only update state if there's an actual change to prevent an infinite loop
-    if (updatedApptFromList && JSON.stringify(updatedApptFromList) !== JSON.stringify(selectedAppointment)) {
-        setSelectedAppointment(prev => prev ? { ...updatedApptFromList, patient: prev.patient } : null);
+    if (updatedApptFromList) {
+        // For comparison, create a version of the currently displayed appointment
+        // data that *does not* include the 'patient' object, as that object
+        // is fetched and added separately and is not part of the core appointment data.
+        const { patient, ...currentAppointmentCoreData } = selectedAppointment;
+
+        // Compare the raw data from the list with the core data being displayed.
+        // If they are not identical, it means the appointment was updated elsewhere
+        // (e.g., by the polling mechanism).
+        if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentAppointmentCoreData)) {
+            // Update the state to reflect the latest appointment data, but make sure
+            // to preserve the 'patient' object we already fetched.
+            setSelectedAppointment(prev => {
+                if (!prev) return null;
+                // Combine the latest appointment data with the existing patient details.
+                return { ...updatedApptFromList, patient: prev.patient };
+            });
+        }
     }
   }, [appointments, selectedAppointment]);
 
@@ -1917,7 +1932,13 @@ export default function DoctorDashboardPage() {
                 {selectedAppointment && (
                     <div className="py-4 space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><h3 className="font-semibold text-lg mb-2">Información del Paciente</h3><p><strong>Nombre:</strong> {selectedAppointment.patientName}</p><p><strong>Email:</strong> {selectedAppointment.patient?.email}</p><p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p><p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p></div>
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2">Información del Paciente</h3>
+                                <p><strong>Nombre:</strong> {selectedAppointment.patientName}</p>
+                                <p><strong>Email:</strong> {selectedAppointment.patient?.email}</p>
+                                <p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p>
+                                <p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p>
+                            </div>
                             <div>
                                 <h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3>
                                 <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
