@@ -23,12 +23,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const DoctorRegistrationSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres."),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula.")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número."),
+  confirmPassword: z.string(),
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
   consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden.",
+  path: ["confirmPassword"],
 });
 
 export default function RegisterDoctorPage() {
@@ -41,6 +49,7 @@ export default function RegisterDoctorPage() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     specialty: '',
     city: '',
     address: '',
@@ -112,10 +121,17 @@ export default function RegisterDoctorPage() {
                 </div>
              </div>
              
-             <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} disabled={isLoading}/>
-            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="password">Contraseña</Label>
+                    <Input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} disabled={isLoading}/>
+                    <p className="text-xs text-muted-foreground">8+ caracteres, con mayúsculas, minúsculas y números.</p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                    <Input id="confirmPassword" name="confirmPassword" type="password" required value={formData.confirmPassword} onChange={handleChange} disabled={isLoading}/>
+                </div>
+             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

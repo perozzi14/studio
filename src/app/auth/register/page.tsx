@@ -23,8 +23,17 @@ import { Separator } from '@/components/ui/separator';
 const RegisterSchema = z.object({
   fullName: z.string().min(3, "El nombre completo es requerido."),
   email: z.string().email("Correo electrónico inválido."),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres."),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula.")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número."),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden.",
+  path: ["confirmPassword"],
 });
+
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,13 +41,14 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const result = RegisterSchema.safeParse({ fullName, email, password });
+    const result = RegisterSchema.safeParse({ fullName, email, password, confirmPassword });
     
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');
@@ -104,6 +114,18 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+                 <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
                 />
               </div>

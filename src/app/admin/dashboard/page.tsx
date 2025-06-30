@@ -53,24 +53,62 @@ import 'jspdf-autotable';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 
+const passwordSchema = z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula.")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número.");
+
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   sellerId: z.string().nullable(),
   slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
   consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
+}).superRefine(({ password, confirmPassword }, ctx) => {
+    if (password) {
+        const passResult = passwordSchema.safeParse(password);
+        if (!passResult.success) {
+            passResult.error.errors.forEach(err => ctx.addIssue({ ...err, path: ['password'] }));
+        }
+        if (password !== confirmPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden.",
+                path: ["confirmPassword"],
+            });
+        }
+    }
 });
+
 
 const SellerFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
   commission: z.number().min(0, "La comisión no puede ser negativa.").max(100, "La comisión no puede ser mayor a 100."),
+}).superRefine(({ password, confirmPassword }, ctx) => {
+    if (password) {
+        const passResult = passwordSchema.safeParse(password);
+        if (!passResult.success) {
+            passResult.error.errors.forEach(err => ctx.addIssue({ ...err, path: ['password'] }));
+        }
+        if (password !== confirmPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden.",
+                path: ["confirmPassword"],
+            });
+        }
+    }
 });
+
 
 const SellerPaymentFormSchema = z.object({
     amount: z.number().positive("El monto debe ser un número positivo."),
@@ -84,7 +122,22 @@ const PatientFormSchema = z.object({
   email: z.string().email("Correo electrónico inválido."),
   cedula: z.string().optional(),
   phone: z.string().optional(),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
+}).superRefine(({ password, confirmPassword }, ctx) => {
+    if (password) {
+        const passResult = passwordSchema.safeParse(password);
+        if (!passResult.success) {
+            passResult.error.errors.forEach(err => ctx.addIssue({ ...err, path: ['password'] }));
+        }
+        if (password !== confirmPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden.",
+                path: ["confirmPassword"],
+            });
+        }
+    }
 });
 
 const ExpenseFormSchema = z.object({
@@ -348,6 +401,7 @@ export default function AdminDashboardPage() {
             name: formData.get('doc-name') as string,
             email: formData.get('doc-email') as string,
             password: password,
+            confirmPassword: formData.get('doc-confirm-password') as string,
             specialty: formData.get('doc-specialty') as string,
             city: formData.get('doc-city') as string,
             address: formData.get('doc-address') as string,
@@ -451,6 +505,7 @@ export default function AdminDashboardPage() {
             name: formData.get('name') as string,
             email: formData.get('email') as string,
             password: password,
+            confirmPassword: formData.get('confirmPassword') as string,
             commission: parseFloat(formData.get('commission') as string),
         };
 
@@ -619,6 +674,7 @@ export default function AdminDashboardPage() {
       cedula: formData.get('cedula') as string,
       phone: formData.get('phone') as string,
       password: formData.get('password') as string,
+      confirmPassword: formData.get('confirmPassword') as string,
     };
 
     const result = PatientFormSchema.safeParse(dataToValidate);
@@ -2423,6 +2479,11 @@ export default function AdminDashboardPage() {
                         <Input id="password" name="password" type="password" placeholder={editingSeller ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="confirmPassword" className="text-right">Confirmar</Label>
+                        <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Repite la contraseña" className="col-span-3" />
+                    </div>
+                    <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                    <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
                         <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} className="col-span-3" required />
                     </div>
@@ -2576,6 +2637,11 @@ export default function AdminDashboardPage() {
                         <Label htmlFor="doc-password" className="text-right">Contraseña</Label>
                         <Input id="doc-password" name="doc-password" type="password" placeholder={editingDoctor ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
                     </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-confirm-password" className="text-right">Confirmar</Label>
+                        <Input id="doc-confirm-password" name="doc-confirm-password" type="password" placeholder="Repite la contraseña" className="col-span-3" />
+                    </div>
+                    <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
                         <Select name="doc-specialty" defaultValue={editingDoctor?.specialty}>
@@ -2839,6 +2905,11 @@ export default function AdminDashboardPage() {
                 <Label htmlFor="patient-password">Nueva Contraseña</Label>
                 <Input id="patient-password" name="password" type="password" placeholder="Dejar en blanco para no cambiar" />
               </div>
+              <div>
+                <Label htmlFor="patient-confirm-password">Confirmar Contraseña</Label>
+                <Input id="patient-confirm-password" name="confirmPassword" type="password" placeholder="Repite la contraseña" />
+              </div>
+               <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
@@ -3057,6 +3128,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-
-
