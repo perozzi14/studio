@@ -39,6 +39,7 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
       gender: patientData.gender || null,
       phone: patientData.phone || null,
       cedula: patientData.cedula || null,
+      city: patientData.city || null,
       favoriteDoctorIds: patientData.favoriteDoctorIds || [],
       profileImage: patientData.profileImage || null,
     };
@@ -56,6 +57,7 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
       profileImage: doctorData.profileImage,
       age: null,
       gender: null,
+      city: null,
       favoriteDoctorIds: [],
       role: 'doctor',
     };
@@ -73,6 +75,7 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
       age: null,
       gender: null,
       cedula: null,
+      city: null,
       favoriteDoctorIds: [],
       role: 'seller',
       referralCode: sellerData.referralCode,
@@ -120,7 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (password === '1234') { // Using a simple, non-secure password for this mock.
         const adminUser: User = { 
           id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
-          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234'
+          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234',
+          city: null
         };
         setUser(adminUser);
         localStorage.setItem('user', JSON.stringify(adminUser));
@@ -164,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, city: null, favoriteDoctorIds: [] };
     const newPatientId = await firestoreService.addPatient(newPatientData);
     
     const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };

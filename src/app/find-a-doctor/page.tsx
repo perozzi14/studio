@@ -48,6 +48,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useSettings } from "@/lib/settings";
+import { useAuth } from "@/lib/auth";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -63,6 +64,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
 
 export default function FindDoctorPage() {
   const { cities, specialties, beautySpecialties } = useSettings();
+  const { user } = useAuth();
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,6 +73,8 @@ export default function FindDoctorPage() {
   const [location, setLocation] = useState("all");
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+  const [initialLocationSet, setInitialLocationSet] = useState(false);
+
 
   useEffect(() => {
       const fetchDocs = async () => {
@@ -83,6 +87,13 @@ export default function FindDoctorPage() {
       }
       fetchDocs();
   }, []);
+  
+  useEffect(() => {
+    if (user && !initialLocationSet && user.city) {
+        setLocation(user.city);
+        setInitialLocationSet(true);
+    }
+  }, [user, initialLocationSet]);
 
   const handleSearch = useCallback(() => {
     let results = allDoctors;

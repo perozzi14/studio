@@ -114,6 +114,7 @@ export type Patient = {
     gender: 'masculino' | 'femenino' | 'otro' | null;
     phone: string | null;
     cedula: string | null;
+    city: string | null;
     favoriteDoctorIds?: string[];
     profileImage: string | null;
 };

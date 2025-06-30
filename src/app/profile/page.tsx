@@ -25,6 +25,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { User, Save } from 'lucide-react';
 import { z } from 'zod';
+import { useSettings } from '@/lib/settings';
 
 const PatientProfileSchema = z.object({
   fullName: z.string().min(3, "El nombre completo es requerido."),
@@ -32,10 +33,12 @@ const PatientProfileSchema = z.object({
   gender: z.enum(['masculino', 'femenino', 'otro', '']).optional().nullable(),
   cedula: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
 });
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
+  const { cities } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -44,6 +47,7 @@ export default function ProfilePage() {
   const [gender, setGender] = useState<'masculino' | 'femenino' | 'otro' | ''>('');
   const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('');
 
   useEffect(() => {
     if (user === undefined) return;
@@ -55,6 +59,7 @@ export default function ProfilePage() {
       setGender(user.gender || '');
       setCedula(user.cedula || '');
       setPhone(user.phone || '');
+      setCity(user.city || '');
     }
   }, [user, router]);
 
@@ -69,6 +74,7 @@ export default function ProfilePage() {
         gender,
         cedula,
         phone,
+        city,
     });
 
     if (!result.success) {
@@ -83,6 +89,7 @@ export default function ProfilePage() {
       gender: result.data.gender,
       cedula: result.data.cedula,
       phone: result.data.phone,
+      city: result.data.city,
     });
     
     toast({
@@ -181,6 +188,21 @@ export default function ProfilePage() {
                     </Select>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">Ciudad Predeterminada</Label>
+                  <Select value={city} onValueChange={(value) => setCity(value as any)}>
+                    <SelectTrigger id="city">
+                      <SelectValue placeholder="Selecciona tu ciudad para búsquedas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
 
                 <Button type="submit" className="w-full">
                   <Save className="mr-2 h-4 w-4" />
