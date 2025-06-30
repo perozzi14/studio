@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send, TrendingDown, TrendingUp } from 'lucide-react';
+import { Link as LinkIcon, Users, DollarSign, Copy, CheckCircle, XCircle, Mail, Phone, Wallet, CalendarClock, Landmark, Eye, MessageSquarePlus, Ticket, Download, Image as ImageIcon, Video, FileText, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send, TrendingDown, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -181,6 +181,9 @@ export default function SellerDashboardPage() {
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
   const [isDoctorPaymentsDialogOpen, setIsDoctorPaymentsDialogOpen] = useState(false);
   const [selectedDoctorForPayments, setSelectedDoctorForPayments] = useState<Doctor | null>(null);
+  
+  const [expensePage, setExpensePage] = useState(1);
+  const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'seller' || !user.id) return;
@@ -220,6 +223,56 @@ export default function SellerDashboardPage() {
   }, [user, fetchData]);
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
+
+  const filteredSellerExpenses = useMemo(() => {
+    if (!sellerData?.expenses) return [];
+    
+    if (timeRange === 'all') {
+      return [...sellerData.expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+
+    const now = new Date();
+    let startDate: Date, endDate: Date;
+
+    switch (timeRange) {
+      case 'today':
+        startDate = startOfDay(now);
+        endDate = endOfDay(now);
+        break;
+      case 'week':
+        startDate = startOfWeek(now, { locale: es });
+        endDate = endOfDay(now);
+        break;
+      case 'year':
+        startDate = startOfYear(now);
+        endDate = endOfYear(now);
+        break;
+      case 'month':
+      default:
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+    }
+
+    return sellerData.expenses
+      .filter(e => {
+        const expenseDate = new Date(e.date + 'T00:00:00');
+        return expenseDate >= startDate && expenseDate <= endDate;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [sellerData, timeRange]);
+
+  const paginatedSellerExpenses = useMemo(() => {
+    if (expenseItemsPerPage === -1) return filteredSellerExpenses;
+    const startIndex = (expensePage - 1) * expenseItemsPerPage;
+    return filteredSellerExpenses.slice(startIndex, startIndex + expenseItemsPerPage);
+  }, [filteredSellerExpenses, expensePage, expenseItemsPerPage]);
+  
+  const totalExpensePages = useMemo(() => {
+    if (expenseItemsPerPage === -1) return 1;
+    return Math.ceil(filteredSellerExpenses.length / expenseItemsPerPage);
+  }, [filteredSellerExpenses, expenseItemsPerPage]);
+
 
   const financeStats = useMemo(() => {
     if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
@@ -261,7 +314,7 @@ export default function SellerDashboardPage() {
     const netProfit = totalEarned - totalExpenses;
     
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
-    const nextPaymentYear = getMonth(now) === 11 ? getYear(now) + 1 : getYear(now);
+    const nextPaymentYear = getYear(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
     const currentPeriod = format(new Date(), "LLLL 'de' yyyy", { locale: es });
 
@@ -306,7 +359,7 @@ export default function SellerDashboardPage() {
 
    const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || user.role !== 'seller' || isSubmittingTicket) return;
+    if (!user || user.role !== 'seller') return;
     setIsSubmittingTicket(true);
 
     const formData = new FormData(e.currentTarget);
@@ -830,7 +883,7 @@ export default function SellerDashboardPage() {
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {financeStats.filteredExpenses.length > 0 ? financeStats.filteredExpenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                        {paginatedSellerExpenses.length > 0 ? paginatedSellerExpenses.map(expense => (
                                             <TableRow key={expense.id}>
                                                 <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
                                                 <TableCell className="font-medium">{expense.description}</TableCell>
@@ -840,10 +893,50 @@ export default function SellerDashboardPage() {
                                                         <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div></TableCell>
                                             </TableRow>
-                                        )) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No hay gastos registrados en este período.</TableCell></TableRow>)}
+                                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
                             </CardContent>
+                            <CardFooter className="flex items-center justify-between">
+                                <div className="text-sm text-muted-foreground">
+                                    Página {expensePage} de {totalExpensePages}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Select
+                                        value={String(expenseItemsPerPage)}
+                                        onValueChange={(value) => {
+                                            setExpenseItemsPerPage(Number(value));
+                                            setExpensePage(1);
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-28">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="10">10 / página</SelectItem>
+                                            <SelectItem value="20">20 / página</SelectItem>
+                                            <SelectItem value="50">50 / página</SelectItem>
+                                            <SelectItem value="-1">Todos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => setExpensePage(p => Math.max(1, p - 1))}
+                                        disabled={expensePage === 1}
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => setExpensePage(p => Math.min(totalExpensePages, p + 1))}
+                                        disabled={expensePage === totalExpensePages}
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardFooter>
                         </Card>
                     </div>
                   </div>
@@ -968,7 +1061,7 @@ export default function SellerDashboardPage() {
                         <div><h4 className="font-semibold mb-2">Médicos Incluidos ({selectedPayment.includedDoctors.length})</h4><ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">{selectedPayment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}</ul></div>
                     </div>
                 )}
-                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose></DialogFooter>
             </DialogContent>
         </Dialog>
 
@@ -977,8 +1070,8 @@ export default function SellerDashboardPage() {
                 <DialogHeader><DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle><DialogDescription>Registra un nuevo gasto para llevar un control financiero.</DialogDescription></DialogHeader>
                 <form onSubmit={handleSaveExpense}><div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input id="expenseDate" name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input id="expenseDescription" name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input id="expenseAmount" name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
@@ -996,8 +1089,7 @@ export default function SellerDashboardPage() {
                     {isSubmittingTicket && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Enviar Ticket
                   </Button>
-                </DialogFooter>
-                </form>
+                </DialogFooter></form>
             </DialogContent>
         </Dialog>
 
@@ -1035,8 +1127,7 @@ export default function SellerDashboardPage() {
                             </div>
                         )}
                         <DialogFooter className="pt-4">
-                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button>
-                        </DialogFooter>
+                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button></DialogFooter>
                     </>
                 )}
             </DialogContent>
@@ -1171,7 +1262,7 @@ export default function SellerDashboardPage() {
                                     .map(payment => (
                                         <TableRow key={payment.id}>
                                             <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                            <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                            <TableCell>${payment.amount.toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <Badge className={cn({
                                                     'bg-green-600 text-white': payment.status === 'Paid',
@@ -1201,3 +1292,5 @@ export default function SellerDashboardPage() {
     </div>
   );
 }
+
+    

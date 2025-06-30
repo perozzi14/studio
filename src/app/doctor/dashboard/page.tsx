@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote, Phone } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogClose,
@@ -288,6 +287,9 @@ export default function DoctorDashboardPage() {
   const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  
+  const [expensePage, setExpensePage] = useState(1);
+  const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'doctor' || !user.id) return;
@@ -305,7 +307,7 @@ export default function DoctorDashboardPage() {
         if (docData) {
             setDoctorData(docData);
             setProfileForm(docData);
-            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
+            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`;
             setAppointments(docAppointments);
             setPatients(allPatients);
             setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
@@ -397,6 +399,56 @@ export default function DoctorDashboardPage() {
 
     return { todayAppointments: todayAppts, tomorrowAppointments: tomorrowAppts };
   }, [appointments]);
+
+  const filteredDoctorExpenses = useMemo(() => {
+    if (!doctorData?.expenses) return [];
+    
+    if (timeRange === 'all') {
+      return [...doctorData.expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+
+    const now = new Date();
+    let startDate: Date, endDate: Date;
+
+    switch (timeRange) {
+      case 'today':
+        startDate = startOfDay(now);
+        endDate = endOfDay(now);
+        break;
+      case 'week':
+        startDate = startOfWeek(now, { locale: es });
+        endDate = endOfDay(now);
+        break;
+      case 'year':
+        startDate = startOfYear(now);
+        endDate = endOfYear(now);
+        break;
+      case 'month':
+      default:
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+    }
+
+    return doctorData.expenses
+      .filter(e => {
+        const expenseDate = new Date(e.date + 'T00:00:00');
+        return expenseDate >= startDate && expenseDate <= endDate;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [doctorData, timeRange]);
+
+  const paginatedDoctorExpenses = useMemo(() => {
+    if (expenseItemsPerPage === -1) return filteredDoctorExpenses;
+    const startIndex = (expensePage - 1) * expenseItemsPerPage;
+    return filteredDoctorExpenses.slice(startIndex, startIndex + expenseItemsPerPage);
+  }, [filteredDoctorExpenses, expensePage, expenseItemsPerPage]);
+  
+  const totalExpensePages = useMemo(() => {
+    if (expenseItemsPerPage === -1) return 1;
+    return Math.ceil(filteredDoctorExpenses.length / expenseItemsPerPage);
+  }, [filteredDoctorExpenses, expenseItemsPerPage]);
+
 
   const financialStats = useMemo(() => {
     if (!doctorData || !appointments) {
@@ -1096,7 +1148,7 @@ export default function DoctorDashboardPage() {
                                                 </div>
                                                 <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
                                                             <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
                                                         </Badge>
                                                         <Badge variant="outline" className="capitalize flex items-center gap-1">
@@ -1324,8 +1376,7 @@ export default function DoctorDashboardPage() {
                                                             <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}>
                                                                 <UserX className="mr-2 h-4 w-4 text-red-600" />
                                                                 No Asistió
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
+                                                            </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 ) : (
                                                     <Badge variant={appt.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn(appt.attendance === 'Atendido' && 'bg-primary')}>
@@ -1533,27 +1584,25 @@ export default function DoctorDashboardPage() {
                                       </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                      {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                      {paginatedDoctorExpenses.length > 0 ? paginatedDoctorExpenses.map(expense => (
                                           <TableRow key={expense.id}>
                                               <TableCell>{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
                                               <TableCell className="font-medium">{expense.description}</TableCell>
                                               <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
-                                              <TableCell className="text-center">
-                                                <div className="flex items-center justify-center gap-2">
+                                              <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
                                                     <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
                                                     <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
-                                                </div>
-                                              </TableCell>
+                                              </div></TableCell>
                                           </TableRow>
                                       )) : (
-                                          <TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>
+                                          <TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>
                                       )}
                                   </TableBody>
                               </Table>
                           </div>
 
                           <div className="space-y-4 md:hidden">
-                            {(doctorData.expenses || []).length > 0 ? (doctorData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                            {paginatedDoctorExpenses.length > 0 ? paginatedDoctorExpenses.map(expense => (
                                 <div key={expense.id} className="p-4 border rounded-lg space-y-4">
                                     <div className="flex justify-between items-start gap-4">
                                         <div><p className="font-medium">{expense.description}</p><p className="text-sm text-muted-foreground">{new Date(expense.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p></div>
@@ -1564,11 +1613,49 @@ export default function DoctorDashboardPage() {
                                         <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
                                     </div>
                                 </div>
-                            )) : (
-                                <p className="text-center text-muted-foreground py-8">No hay gastos registrados.</p>
-                            )}
+                            )) : (<p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>)}
                           </div>
                       </CardContent>
+                      <CardFooter className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            Página {expensePage} de {totalExpensePages}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Select
+                                value={String(expenseItemsPerPage)}
+                                onValueChange={(value) => {
+                                    setExpenseItemsPerPage(Number(value));
+                                    setExpensePage(1);
+                                }}
+                            >
+                                <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10 / página</SelectItem>
+                                    <SelectItem value="20">20 / página</SelectItem>
+                                    <SelectItem value="50">50 / página</SelectItem>
+                                    <SelectItem value="-1">Todos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setExpensePage(p => Math.max(1, p - 1))}
+                                disabled={expensePage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setExpensePage(p => Math.min(totalExpensePages, p + 1))}
+                                disabled={expensePage === totalExpensePages}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                      </CardFooter>
                   </Card>
                 </div>
               </div>
@@ -1797,8 +1884,7 @@ export default function DoctorDashboardPage() {
                                   </TableRow>
                               ))}
                           </TableBody>
-                      </Table>
-                  </CardContent>
+                      </CardContent>
                 </Card>
               </div>
               )}
@@ -1839,51 +1925,51 @@ export default function DoctorDashboardPage() {
 
               {currentTab === 'bank-details' && (
               <div className="mt-6">
-                <Card>
-                  <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div><CardTitle className="flex items-center gap-2"><Coins /> Datos Bancarios</CardTitle><CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription></div>
-                      <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
-                  </CardHeader>
-                  <CardContent>
-                      <Table className="hidden md:table">
-                          <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Descripción</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
-                          <TableBody>
-                              {(doctorData.bankDetails || []).map(bd => (
-                                  <TableRow key={bd.id}>
-                                      <TableCell className="font-medium">{bd.bank}</TableCell>
-                                      <TableCell className="text-muted-foreground">{bd.description || '-'}</TableCell>
-                                      <TableCell>{bd.accountHolder}</TableCell>
-                                      <TableCell>{bd.accountNumber}</TableCell>
-                                      <TableCell>{bd.idNumber}</TableCell>
-                                      <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
-                                          <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
-                                          <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
-                                      </div></TableCell>
-                                  </TableRow>
-                              ))}
-                              {(doctorData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={6} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
-                          </TableBody>
-                      </Table>
-                      <div className="space-y-4 md:hidden">
-                          {(doctorData.bankDetails || []).length > 0 ? (doctorData.bankDetails || []).map(bd => (
-                              <div key={bd.id} className="p-4 border rounded-lg space-y-4">
-                                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                      <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
-                                      <div><p className="text-xs text-muted-foreground">Descripción</p><p className="font-medium">{bd.description || '-'}</p></div>
-                                      <div><p className="text-xs text-muted-foreground">Titular</p><p className="font-medium">{bd.accountHolder}</p></div>
-                                      <div><p className="text-xs text-muted-foreground">Nro. Cuenta</p><p className="font-mono text-sm">{bd.accountNumber}</p></div>
-                                      <div className="col-span-2"><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
-                                  </div>
-                                  <Separator />
-                                  <div className="flex justify-end gap-2">
-                                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                      <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
-                                  </div>
-                              </div>
-                          )) : (<p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>)}
-                      </div>
-                  </CardContent>
-                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div><CardTitle className="flex items-center gap-2"><Coins /> Mis Datos Bancarios</CardTitle><CardDescription>Gestiona tus cuentas bancarias para recibir pagos.</CardDescription></div>
+                        <Button onClick={() => handleOpenBankDetailDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2"/> Agregar Cuenta</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table className="hidden md:table">
+                            <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Descripción</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {(doctorData.bankDetails || []).map(bd => (
+                                    <TableRow key={bd.id}>
+                                        <TableCell className="font-medium">{bd.bank}</TableCell>
+                                        <TableCell className="text-muted-foreground">{bd.description || '-'}</TableCell>
+                                        <TableCell>{bd.accountHolder}</TableCell>
+                                        <TableCell>{bd.accountNumber}</TableCell>
+                                        <TableCell>{bd.idNumber}</TableCell>
+                                        <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div></TableCell>
+                                    </TableRow>
+                                ))}
+                                {(doctorData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={6} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
+                            </TableBody>
+                        </Table>
+                        <div className="space-y-4 md:hidden">
+                            {(doctorData.bankDetails || []).length > 0 ? (doctorData.bankDetails || []).map(bd => (
+                                <div key={bd.id} className="p-4 border rounded-lg space-y-4">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
+                                        <div><p className="text-xs text-muted-foreground">Descripción</p><p className="font-medium">{bd.description || '-'}</p></div>
+                                        <div><p className="text-xs text-muted-foreground">Titular</p><p className="font-medium">{bd.accountHolder}</p></div>
+                                        <div><p className="text-xs text-muted-foreground">Nro. Cuenta</p><p className="font-mono text-sm">{bd.accountNumber}</p></div>
+                                        <div className="col-span-2"><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
+                                    </div>
+                                    <Separator />
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                        <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="mr-2 h-4 w-4" /> Borrar</Button>
+                                    </div>
+                                </div>
+                            )) : (<p className="text-center text-muted-foreground py-8">No tienes cuentas bancarias registradas.</p>)}
+                        </div>
+                    </CardContent>
+                  </Card>
               </div>
               )}
 
@@ -1953,11 +2039,11 @@ export default function DoctorDashboardPage() {
                                   <TableRow key={ticket.id}>
                                       <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                       <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell>
+                                      <TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</TableCell>
                                       <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
-                               {supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
+                               {(supportTickets.length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                       </CardContent>
@@ -2098,16 +2184,16 @@ export default function DoctorDashboardPage() {
                             />
                             <div className="flex justify-end mt-2 gap-2">
                               <Button onClick={handleSavePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Récipé</Button>
-                              <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}><FileText className="mr-2"/> Generar Récipé PDF</Button>
+                              <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>Generar Récipé PDF</Button>
                             </div>
                         </div>
                     </div>
                 )}
-                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
+                <DialogFooter><DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose></DialogFooter>
             </DialogContent>
         </Dialog>
-        
-        <Dialog open={isCouponDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCoupon(null); setIsCouponDialogOpen(isOpen); }}>
+
+        <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
           <DialogContent>
               <DialogHeader><DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle><DialogDescription>Completa la información para el cupón de descuento.</DialogDescription></DialogHeader>
               <form onSubmit={handleSaveCoupon}><div className="space-y-4 py-4">
@@ -2122,18 +2208,19 @@ export default function DoctorDashboardPage() {
             <DialogContent>
                 <DialogHeader><DialogTitle>Abrir un Ticket de Soporte</DialogTitle><DialogDescription>Describe tu problema y el equipo de SUMA se pondrá en contacto contigo.</DialogDescription></DialogHeader>
                 <form onSubmit={handleCreateTicket}><div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un pago" className="col-span-3" required /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="subject" className="text-right">Asunto</Label><Input id="subject" name="subject" placeholder="ej., Problema con un referido" className="col-span-3" required /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Textarea id="description" name="description" placeholder="Detalla tu inconveniente aquí..." className="col-span-3" rows={5} required /></div>
-                </div><DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                    <Button type="submit" disabled={isSubmittingTicket}>
-                      {isSubmittingTicket && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Enviar Ticket
-                    </Button>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                  <Button type="submit" disabled={isSubmittingTicket}>
+                    {isSubmittingTicket && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Enviar Ticket
+                  </Button>
                 </DialogFooter></form>
             </DialogContent>
         </Dialog>
-        
+
         <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
@@ -2168,40 +2255,13 @@ export default function DoctorDashboardPage() {
                             </div>
                         )}
                         <DialogFooter className="pt-4">
-                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button>
-                        </DialogFooter>
+                            <Button variant="outline" onClick={() => setIsSupportDetailDialogOpen(false)}>Cerrar Ventana</Button></DialogFooter>
                     </>
                 )}
             </DialogContent>
         </Dialog>
-        
-      <Dialog open={isChatDialogOpen} onOpenChange={setIsChatDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3"><Avatar><AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback></Avatar>Chat con {selectedChatPatient?.name}</DialogTitle>
-            <DialogDescription>Este es un canal de comunicación directo con tu paciente.</DialogDescription>
-          </DialogHeader>
-          <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
-            <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-              <div className="flex items-end gap-2"><Avatar className="h-8 w-8"><AvatarFallback>{selectedChatPatient?.name?.charAt(0)}</AvatarFallback></Avatar><div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs"><p className="text-sm">¡Hola, doctor! Quería hacerle una consulta sobre mi tratamiento.</p></div></div>
-              <div className="flex items-end gap-2 justify-end"><div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs"><p className="text-sm">Hola {selectedChatPatient?.name}, claro. Dime, ¿cuál es tu duda?</p></div><Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage ?? undefined} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar></div>
-            </div>
-            <div className="flex items-center gap-2"><Input placeholder="Escribe tu mensaje..." className="flex-1" /><Button><Send className="h-4 w-4" /></Button></div>
-          </div>
-           <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
-        </DialogContent>
-      </Dialog>
-       <Dialog open={isReportPaymentDialogOpen} onOpenChange={setIsReportPaymentDialogOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Reportar Pago de Suscripción</DialogTitle><DialogDescription>Completa los datos de la transferencia que realizaste.</DialogDescription></DialogHeader>
-            <form onSubmit={handleReportPayment}><div className="space-y-4 py-4">
-                  <div><Label htmlFor="payment-amount">Monto Pagado ({currency})</Label><Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorCityFee.toFixed(2)} required /></div>
-                  <div><Label htmlFor="payment-date">Fecha del Pago</Label><Input id="payment-date" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required /></div>
-                  <div><Label htmlFor="payment-ref">Número de Referencia</Label><Input id="payment-ref" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="00123456" required /></div>
-                  <div><Label htmlFor="payment-proof">Comprobante de Pago</Label><Input id="payment-proof" type="file" accept="image/*" onChange={(e) => setPaymentProof(e.target.files ? e.target.files[0] : null)} required /></div>
-            </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Enviar Reporte</Button></DialogFooter></form>
-          </DialogContent>
-        </Dialog>
     </div>
   );
 }
+
+    

@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -32,7 +32,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -290,6 +289,11 @@ export default function AdminDashboardPage() {
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
 
+  // Pagination State for Expenses
+  const [expenseCurrentPage, setExpenseCurrentPage] = useState(1);
+  const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
+
+
   const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
     week: 'Esta Semana',
@@ -329,7 +333,7 @@ export default function AdminDashboardPage() {
 
   // Check subscriptions on load
   useEffect(() => {
-    if (user?.role === 'admin' && doctors.length > 0) {
+    if (user?.role === 'admin' && doctors.length > 0 && billingCycleEndDay) {
       const today = new Date();
       if (today.getDate() > billingCycleEndDay) {
         const doctorsToDeactivate = doctors.filter(doc =>
@@ -772,8 +776,17 @@ export default function AdminDashboardPage() {
     }
     
     const currentCycleDate = new Date(doctorToUpdate.nextPaymentDate + 'T00:00:00Z');
-    const newNextPaymentDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, 1);
+    let newNextPaymentDate;
 
+    if (new Date() > currentCycleDate) {
+        // Paying late, start next cycle from today's month
+        const today = new Date();
+        newNextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    } else {
+        // Paying on time, advance from the current due date
+        newNextPaymentDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, 1);
+    }
+    
     await firestoreService.updateDoctorPaymentStatus(paymentId, 'Paid');
     await firestoreService.updateDoctor(payment.doctorId, { 
       lastPaymentDate: payment.date,
@@ -1103,6 +1116,9 @@ export default function AdminDashboardPage() {
   };
 
   const { filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses } = useMemo(() => {
+    const now = new Date();
+    let startDate: Date, endDate: Date;
+    
     if (timeRange === 'all') {
       return {
         filteredDoctorPayments: doctorPayments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -1110,9 +1126,6 @@ export default function AdminDashboardPage() {
         filteredCompanyExpenses: companyExpenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       };
     }
-
-    const now = new Date();
-    let startDate: Date, endDate: Date;
     
     switch (timeRange) {
         case 'today':
@@ -1170,6 +1183,18 @@ export default function AdminDashboardPage() {
         netProfit: totalRevenue - commissionsPaid - totalExpenses,
     }
   }, [doctors, sellers, patients, filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
+
+  const paginatedCompanyExpenses = useMemo(() => {
+    if (expenseItemsPerPage === -1) return filteredCompanyExpenses;
+    const startIndex = (expenseCurrentPage - 1) * expenseItemsPerPage;
+    const endIndex = startIndex + expenseItemsPerPage;
+    return filteredCompanyExpenses.slice(startIndex, endIndex);
+  }, [filteredCompanyExpenses, expenseCurrentPage, expenseItemsPerPage]);
+
+  const totalExpensePages = useMemo(() => {
+    if (expenseItemsPerPage === -1) return 1;
+    return Math.ceil(filteredCompanyExpenses.length / expenseItemsPerPage);
+  }, [filteredCompanyExpenses, expenseItemsPerPage]);
 
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
@@ -1825,7 +1850,7 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredCompanyExpenses.map((expense) => (
+                                    {paginatedCompanyExpenses.map((expense) => (
                                         <TableRow key={expense.id}>
                                             <TableCell>{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                             <TableCell className="font-medium">{expense.description}</TableCell>
@@ -1837,12 +1862,12 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {filteredCompanyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>}
+                                    {paginatedCompanyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>}
                                 </TableBody>
                                 </Table>
                             </div>
                             <div className="space-y-4 md:hidden">
-                                {filteredCompanyExpenses.map((expense) => (
+                                {paginatedCompanyExpenses.map((expense) => (
                                     <div key={expense.id} className="p-4 border rounded-lg space-y-3">
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -1859,9 +1884,49 @@ export default function AdminDashboardPage() {
                                         </div>
                                     </div>
                                 ))}
-                                {filteredCompanyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>}
+                                {paginatedCompanyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>}
                             </div>
                         </CardContent>
+                          <CardFooter className="flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
+                                Página {expenseCurrentPage} de {totalExpensePages}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Select
+                                value={String(expenseItemsPerPage)}
+                                onValueChange={(value) => {
+                                    setExpenseItemsPerPage(Number(value));
+                                    setExpenseCurrentPage(1);
+                                }}
+                                >
+                                <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10 por página</SelectItem>
+                                    <SelectItem value="20">20 por página</SelectItem>
+                                    <SelectItem value="50">50 por página</SelectItem>
+                                    <SelectItem value="-1">Mostrar todos</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setExpenseCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={expenseCurrentPage === 1}
+                                >
+                                <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setExpenseCurrentPage(p => Math.min(totalExpensePages, p + 1))}
+                                disabled={expenseCurrentPage === totalExpensePages}
+                                >
+                                <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                          </CardFooter>
                       </Card>
 
                       <Card>
@@ -2943,7 +3008,7 @@ export default function AdminDashboardPage() {
                                                 .map(appt => (
                                                 <TableRow key={appt.id}>
                                                     <TableCell className="font-medium">{appt.doctorName}</TableCell>
-                                                    <TableCell>{format(new Date(appt.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                    <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
                                                     <TableCell className="text-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
                                                     <TableCell className="font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
                                                     <TableCell>
@@ -3123,12 +3188,7 @@ export default function AdminDashboardPage() {
             <form onSubmit={handleSaveCoupon}>
               <div className="space-y-4 py-4">
                   <div><Label>Código</Label><Input name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
-                  <div><Label>Tipo de Descuento</Label>
-                      <RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2">
-                          <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label>
-                          <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label>
-                      </RadioGroup>
-                  </div>
+                  <div><Label>Tipo de Descuento</Label><RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2"><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label></RadioGroup></div>
                   <div><Label>Valor</Label><Input name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
                   <div><Label>Alcance</Label>
                       <Select name="scope" defaultValue={editingCoupon?.scope.toString() || 'general'}>
@@ -3225,3 +3285,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
