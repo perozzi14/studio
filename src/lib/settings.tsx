@@ -108,7 +108,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (listName === 'cities') {
       const cityItem = item as City;
       const list = settings.cities || [];
-      if (list.some(c => c.name.toLowerCase() === cityItem.name.toLowerCase())) {
+      if (list.some(c => c && c.name && c.name.toLowerCase() === cityItem.name.toLowerCase())) {
         toast({ variant: 'destructive', title: 'Elemento duplicado', description: `La ciudad "${cityItem.name}" ya existe.` });
         return;
       }
@@ -132,7 +132,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (listName === 'cities') {
       const newCityItem = newItem as City;
       const list = settings.cities || [];
-      const newList = list.map(item => item.name === oldItemName ? newCityItem : item);
+      const newList = list.map(item => (item && item.name === oldItemName) ? newCityItem : item);
       await updateSetting('cities', newList);
     } else { // It's a specialty (string)
       const newSpecialtyItem = newItem as string;
@@ -146,7 +146,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (!settings) return;
     if (listName === 'cities') {
       const list = settings.cities || [];
-      const newList = list.filter(item => item.name !== itemToDeleteName);
+      const newList = list.filter(item => item && item.name !== itemToDeleteName);
       await updateSetting('cities', newList);
     } else { // It's a specialty (string)
       const list = settings.specialties || [];
