@@ -88,7 +88,23 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
   throw new Error(`Invalid user role: ${role}`);
 };
 
-
+/**
+ * Provides authentication services for the application.
+ *
+ * ARCHITECTURAL NOTE ON USER ROLES:
+ * The current system architecture enforces a one-to-one relationship between an email address
+ * and a user role (patient, doctor, seller, or admin). A single email cannot hold multiple roles.
+ *
+ * For scenarios where a user might need multiple roles (e.g., a doctor who is also a patient),
+ * the recommended approach is to use a separate email address for each role.
+ * For example:
+ * - dr.smith@email.com (for the Doctor account)
+ * - dr.smith.patient@email.com (for the Patient account)
+ *
+ * An ideal future enhancement would be a role-switching system, allowing a single user account
+ * to toggle between different views and permissions, but this would require a significant
+ * refactoring of the current authentication and data models.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const router = useRouter();
@@ -202,7 +218,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           age: null,
           gender: null,
           profileImage: googleUser.photoURL || null,
-          cedula: null,
           phone: googleUser.phoneNumber || null,
           city: null,
           favoriteDoctorIds: []
