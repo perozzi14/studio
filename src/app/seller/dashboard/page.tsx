@@ -62,6 +62,14 @@ const ExpenseFormSchema = z.object({
   date: z.string().min(1, "La fecha es requerida."),
 });
 
+const timeRangeLabels: Record<string, string> = {
+    today: 'Hoy',
+    week: 'Esta Semana',
+    month: 'Este Mes',
+    year: 'Este Año',
+    all: 'Todos'
+};
+
 
 function MarketingMaterialCard({ material }: { material: MarketingMaterial }) {
     const { toast } = useToast();
@@ -138,7 +146,7 @@ export default function SellerDashboardPage() {
   const [replyMessage, setReplyMessage] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
-  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -183,29 +191,35 @@ export default function SellerDashboardPage() {
   }, [doctorSubscriptionFee, sellerData]);
 
   const financeStats = useMemo(() => {
-    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [] };
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [], filteredExpenses: [] };
     
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
     
     const now = new Date();
     let startDate, endDate;
-    switch (timeRange) {
-        case 'today': startDate = startOfDay(now); endDate = endOfDay(now); break;
-        case 'week': startDate = startOfWeek(now, { locale: es }); endDate = endOfDay(now); break;
-        case 'year': startDate = startOfYear(now); endDate = endOfYear(now); break;
-        case 'month': default: startDate = startOfMonth(now); endDate = endOfMonth(now); break;
+
+    let filteredPayments = sellerPayments;
+    let filteredExpenses = sellerData.expenses || [];
+    
+    if (timeRange !== 'all') {
+        switch (timeRange) {
+            case 'today': startDate = startOfDay(now); endDate = endOfDay(now); break;
+            case 'week': startDate = startOfWeek(now, { locale: es }); endDate = endOfDay(now); break;
+            case 'year': startDate = startOfYear(now); endDate = endOfYear(now); break;
+            case 'month': default: startDate = startOfMonth(now); endDate = endOfMonth(now); break;
+        }
+
+        filteredPayments = sellerPayments.filter(p => {
+            const paymentDate = new Date(p.paymentDate + 'T00:00:00');
+            return paymentDate >= startDate && paymentDate <= endDate;
+        });
+
+        filteredExpenses = (sellerData.expenses || []).filter(e => {
+            const expenseDate = new Date(e.date + 'T00:00:00');
+            return expenseDate >= startDate && expenseDate <= endDate;
+        });
     }
-
-    const filteredPayments = sellerPayments.filter(p => {
-        const paymentDate = new Date(p.paymentDate + 'T00:00:00');
-        return paymentDate >= startDate && paymentDate <= endDate;
-    });
-
-    const filteredExpenses = (sellerData.expenses || []).filter(e => {
-        const expenseDate = new Date(e.date + 'T00:00:00');
-        return expenseDate >= startDate && expenseDate <= endDate;
-    });
 
     const totalEarned = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -224,6 +238,7 @@ export default function SellerDashboardPage() {
         netProfit,
         nextPaymentDate,
         filteredPayments,
+        filteredExpenses
     };
   }, [referredDoctors, sellerPayments, sellerData, commissionPerDoctor, timeRange]);
   
@@ -562,19 +577,20 @@ export default function SellerDashboardPage() {
                   <div className="mt-6">
                       <div className="space-y-8">
                          <div className="w-full">
-                            <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+                            <div className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2">
                                 <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
                                 <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
                                 <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
                                 <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                                <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Todos</Button>
                             </div>
                         </div>
 
                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos x ${commissionPerDoctor.toFixed(2)}</p></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Recibidos</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Pagos de SUMA en este período</p></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos en este período</p></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Recibidos</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Pagos de SUMA ({timeRangeLabels[timeRange]})</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
                         </div>
                          <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
@@ -614,7 +630,7 @@ export default function SellerDashboardPage() {
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {(sellerData.expenses || []).length > 0 ? (sellerData.expenses || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                                        {financeStats.filteredExpenses.length > 0 ? financeStats.filteredExpenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
                                             <TableRow key={expense.id}>
                                                 <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
                                                 <TableCell className="font-medium">{expense.description}</TableCell>
@@ -624,7 +640,7 @@ export default function SellerDashboardPage() {
                                                         <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div></TableCell>
                                             </TableRow>
-                                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>)}
+                                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
                             </CardContent>
