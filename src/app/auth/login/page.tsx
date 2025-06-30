@@ -18,6 +18,7 @@ import { Stethoscope } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const LoginSchema = z.object({
   email: z.string().email("Correo electrónico inválido."),
@@ -112,6 +113,12 @@ export default function LoginPage() {
             <Link href="/auth/register" className="underline">
               Regístrate
             </Link>
+          </div>
+          <Separator className="my-4" />
+          <div className="text-center">
+             <Link href="/" className="text-sm underline text-muted-foreground hover:text-primary">
+                Ir a la página principal
+              </Link>
           </div>
         </CardContent>
       </Card>

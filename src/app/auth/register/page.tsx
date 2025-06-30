@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Stethoscope, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 
 const RegisterSchema = z.object({
@@ -118,6 +119,12 @@ export default function RegisterPage() {
             <Link href="/auth/login" className="underline">
               Inicia sesión
             </Link>
+          </div>
+          <Separator className="my-4" />
+          <div className="text-center">
+             <Link href="/" className="text-sm underline text-muted-foreground hover:text-primary">
+                Ir a la página principal
+              </Link>
           </div>
         </CardContent>
       </Card>
