@@ -33,6 +33,7 @@ interface AuthContextType {
   registerDoctor: (doctorData: DoctorRegistrationData) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<Patient>) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   toggleFavoriteDoctor: (doctorId: string) => void;
 }
 
@@ -152,10 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Handle admin login
     if (lowerEmail === 'admin@admin.com') {
-      if (password === '1234') { // Using a simple, non-secure password for this mock.
+      if (password === 'AdminSuma2024*') { // Using a simple, non-secure password for this mock.
         const adminUser: User = { 
           id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
-          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234',
+          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: 'AdminSuma2024*',
           city: null
         };
         setUser(adminUser);
@@ -281,6 +282,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser as User);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
+  
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    if (!user || user.role !== 'patient') {
+      return { success: false, message: 'Usuario no autorizado.' };
+    }
+    
+    if (user.password !== currentPassword) {
+      return { success: false, message: 'La contraseña actual es incorrecta.' };
+    }
+
+    try {
+      await firestoreService.updatePatient(user.id, { password: newPassword });
+      
+      const updatedUser = { ...user, password: newPassword };
+      setUser(updatedUser as User);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      return { success: true, message: 'Contraseña actualizada exitosamente.' };
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return { success: false, message: 'Ocurrió un error al cambiar la contraseña.' };
+    }
+  };
+
 
   const toggleFavoriteDoctor = async (doctorId: string) => {
     if (!user || user.role !== 'patient') return;
@@ -295,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, registerDoctor, logout, updateUser, toggleFavoriteDoctor }}>
+    <AuthContext.Provider value={{ user, login, register, registerDoctor, logout, updateUser, changePassword, toggleFavoriteDoctor }}>
       {children}
     </AuthContext.Provider>
   );

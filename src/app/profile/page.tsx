@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Save } from 'lucide-react';
+import { User, Save, Lock } from 'lucide-react';
 import { z } from 'zod';
 import { useSettings } from '@/lib/settings';
 
@@ -36,18 +36,38 @@ const PatientProfileSchema = z.object({
   city: z.string().optional().nullable(),
 });
 
+const PasswordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "La contraseña actual es requerida."),
+  newPassword: z.string()
+    .min(8, "La nueva contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula.")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número."),
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Las nuevas contraseñas no coinciden.",
+  path: ["confirmPassword"],
+});
+
+
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, changePassword } = useAuth();
   const { cities } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
 
+  // State for profile info
   const [fullName, setFullName] = useState('');
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'masculino' | 'femenino' | 'otro' | ''>('');
   const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
+  
+  // State for password change
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (user === undefined) return;
@@ -63,7 +83,7 @@ export default function ProfilePage() {
     }
   }, [user, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
@@ -98,6 +118,37 @@ export default function ProfilePage() {
     });
   };
 
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const result = PasswordChangeSchema.safeParse({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+    });
+
+    if (!result.success) {
+        const errorMessage = result.error.errors.map(err => err.message).join(' ');
+        toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+        return;
+    }
+
+    const { success, message } = await changePassword(
+        result.data.currentPassword,
+        result.data.newPassword
+    );
+
+    if (success) {
+        toast({ title: 'Éxito', description: message });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: message });
+    }
+  };
+
+
   if (!user) {
     // You can return a loading skeleton here
     return (
@@ -114,7 +165,7 @@ export default function ProfilePage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1 flex items-center justify-center py-12 bg-muted/40 pb-20 md:pb-12">
-        <div className="container max-w-2xl">
+        <div className="container max-w-2xl space-y-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl font-headline">
@@ -125,7 +176,7 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo Electrónico</Label>
                   <Input id="email" type="email" value={user.email} disabled />
@@ -203,7 +254,6 @@ export default function ProfilePage() {
                   </Select>
                 </div>
 
-
                 <Button type="submit" className="w-full">
                   <Save className="mr-2 h-4 w-4" />
                   Guardar Cambios
@@ -211,6 +261,39 @@ export default function ProfilePage() {
               </form>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl font-headline">
+                <Lock /> Seguridad
+              </CardTitle>
+              <CardDescription>
+                Cambia tu contraseña.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                    <Input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                    <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                    <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
+                  Cambiar Contraseña
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
         </div>
       </main>
       <BottomNav />
