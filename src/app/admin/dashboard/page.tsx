@@ -41,7 +41,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -231,7 +231,16 @@ export default function AdminDashboardPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
+
+  const timeRangeLabels: Record<string, string> = {
+    today: 'Hoy',
+    week: 'Esta Semana',
+    month: 'Este Mes',
+    year: 'Este Año',
+    all: 'Global',
+  };
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     const [docs, sells, pats, apps, docPays, sellPays, materials, tickets] = await Promise.all([
@@ -970,6 +979,52 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const { filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses } = useMemo(() => {
+    if (timeRange === 'all') {
+      return {
+        filteredDoctorPayments: doctorPayments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        filteredSellerPayments: sellerPayments.sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()),
+        filteredCompanyExpenses: companyExpenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      };
+    }
+
+    const now = new Date();
+    let startDate: Date, endDate: Date;
+    
+    switch (timeRange) {
+        case 'today':
+            startDate = startOfDay(now);
+            endDate = endOfDay(now);
+            break;
+        case 'week':
+            startDate = startOfWeek(now, { locale: es });
+            endDate = endOfDay(now);
+            break;
+        case 'year':
+            startDate = startOfYear(now);
+            endDate = endOfYear(now);
+            break;
+        case 'month':
+        default:
+            startDate = startOfMonth(now);
+            endDate = endOfMonth(now);
+            break;
+    }
+
+    const filterByDateField = (items: any[], dateField: 'date' | 'paymentDate') => {
+        return items.filter(item => {
+            if (!item[dateField]) return false;
+            const itemDate = new Date(item[dateField] + 'T00:00:00');
+            return itemDate >= startDate && itemDate <= endDate;
+        }).sort((a, b) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+    };
+
+    return {
+      filteredDoctorPayments: filterByDateField(doctorPayments, 'date'),
+      filteredSellerPayments: filterByDateField(sellerPayments, 'paymentDate'),
+      filteredCompanyExpenses: filterByDateField(companyExpenses, 'date'),
+    };
+  }, [doctorPayments, sellerPayments, companyExpenses, timeRange]);
 
   const stats = useMemo(() => {
     const totalDoctors = doctors.length;
@@ -977,9 +1032,9 @@ export default function AdminDashboardPage() {
     const totalSellers = sellers.length;
     const totalPatients = patients.length;
     
-    const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
-    const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalExpenses = companyExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalRevenue = filteredDoctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+    const commissionsPaid = filteredSellerPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalExpenses = filteredCompanyExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
         totalDoctors,
@@ -991,7 +1046,8 @@ export default function AdminDashboardPage() {
         totalExpenses,
         netProfit: totalRevenue - commissionsPaid - totalExpenses,
     }
-  }, [doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses]);
+  }, [doctors, sellers, patients, filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
+
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
@@ -1021,13 +1077,14 @@ export default function AdminDashboardPage() {
     doc.text("Reporte Financiero de SUMA", 105, 20, { align: 'center' });
     doc.setFontSize(12);
     doc.text(`Fecha de Generación: ${format(new Date(), 'dd/MM/yyyy')}`, 105, 28, { align: 'center' });
+    doc.text(`Período del Reporte: ${timeRangeLabels[timeRange]}`, 105, 34, { align: 'center' });
 
     doc.setFontSize(16);
-    doc.text("Resumen General", 14, 45);
-    doc.line(14, 47, 196, 47);
+    doc.text("Resumen General", 14, 50);
+    doc.line(14, 52, 196, 52);
 
     doc.setFontSize(12);
-    const summaryY = 55;
+    const summaryY = 60;
     const summaryData = [
         ["Ingresos Totales (Suscripciones):", `$${stats.totalRevenue.toFixed(2)}`],
         ["Comisiones Pagadas a Vendedoras:", `$${stats.commissionsPaid.toFixed(2)}`],
@@ -1052,7 +1109,7 @@ export default function AdminDashboardPage() {
     doc.line(14, currentY + 2, 196, currentY + 2);
     currentY += 10;
     const incomeHead = [['Fecha', 'Médico', 'ID Transacción', 'Monto']];
-    const incomeBody = doctorPayments
+    const incomeBody = filteredDoctorPayments
         .filter(p => p.status === 'Paid')
         .map(p => [
             format(new Date(p.date + 'T00:00:00'), 'dd/MM/yyyy'),
@@ -1069,7 +1126,7 @@ export default function AdminDashboardPage() {
     doc.line(14, currentY + 2, 196, currentY + 2);
     currentY += 10;
     const commissionHead = [['Fecha', 'Vendedora', 'Período', 'Monto']];
-    const commissionBody = sellerPayments.map(p => [
+    const commissionBody = filteredSellerPayments.map(p => [
         format(new Date(p.paymentDate + 'T00:00:00'), 'dd/MM/yyyy'),
         sellers.find(s => s.id === p.sellerId)?.name || 'N/A',
         p.period,
@@ -1084,7 +1141,7 @@ export default function AdminDashboardPage() {
     doc.line(14, currentY + 2, 196, currentY + 2);
     currentY += 10;
     const expenseHead = [['Fecha', 'Descripción', 'Categoría', 'Monto']];
-    const expenseBody = companyExpenses.map(e => [
+    const expenseBody = filteredCompanyExpenses.map(e => [
         format(new Date(e.date + 'T00:00:00'), 'dd/MM/yyyy'),
         e.description,
         e.category.charAt(0).toUpperCase() + e.category.slice(1),
@@ -1163,7 +1220,7 @@ export default function AdminDashboardPage() {
                               </CardHeader>
                               <CardContent>
                                   <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${stats.netProfit.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos</p>
+                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos (Global)</p>
                               </CardContent>
                           </Card>
                       </div>
@@ -1485,6 +1542,16 @@ export default function AdminDashboardPage() {
                 {currentTab === 'finances' && (
                  <div className="mt-6">
                     <div className="space-y-6">
+                        <div className="w-full">
+                            <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
+                                <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
+                                <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
+                                <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
+                                <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                                <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Global</Button>
+                            </div>
+                        </div>
+
                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                           <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1493,7 +1560,7 @@ export default function AdminDashboardPage() {
                               </CardHeader>
                               <CardContent>
                                   <div className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Pagos de médicos recibidos</p>
+                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
                            <Card>
@@ -1503,7 +1570,7 @@ export default function AdminDashboardPage() {
                               </CardHeader>
                               <CardContent>
                                   <div className="text-2xl font-bold text-amber-600">${stats.commissionsPaid.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Pagos a vendedoras</p>
+                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
                            <Card>
@@ -1513,7 +1580,7 @@ export default function AdminDashboardPage() {
                               </CardHeader>
                               <CardContent>
                                   <div className="text-2xl font-bold text-red-600">${stats.totalExpenses.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Gastos de la empresa</p>
+                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
                           <Card>
@@ -1523,7 +1590,7 @@ export default function AdminDashboardPage() {
                               </CardHeader>
                               <CardContent>
                                   <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${stats.netProfit.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos</p>
+                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
                       </div>
@@ -1563,7 +1630,7 @@ export default function AdminDashboardPage() {
                                                   <TableRow key={payment.id}>
                                                       <TableCell className="font-medium">{payment.doctorName}</TableCell>
                                                       <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                      <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                      <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
                                                       <TableCell className="text-center">
                                                           <Button variant="outline" size="sm" onClick={() => handleViewProof(payment.paymentProofUrl)}>
                                                               <Eye className="mr-2 h-4 w-4" /> Ver
@@ -1591,7 +1658,7 @@ export default function AdminDashboardPage() {
                                           <div key={payment.id} className="p-4 border rounded-lg space-y-3">
                                               <div>
                                                   <p className="font-semibold">{payment.doctorName}</p>
-                                                  <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })} - <span className="font-mono">${payment.amount.toFixed(2)}</span></p>
+                                                  <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })} - <span className="font-mono">${(payment.amount || 0).toFixed(2)}</span></p>
                                               </div>
                                               <Separator />
                                               <Button variant="outline" size="sm" className="w-full mb-2" onClick={() => handleViewProof(payment.paymentProofUrl)}>
@@ -1616,7 +1683,7 @@ export default function AdminDashboardPage() {
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <CardTitle>Gastos Operativos de SUMA</CardTitle>
-                                <CardDescription>Registro de todos los egresos de la empresa.</CardDescription>
+                                <CardDescription>Registro de todos los egresos de la empresa ({timeRangeLabels[timeRange]}).</CardDescription>
                             </div>
                             <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}>
                                 <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
@@ -1635,7 +1702,7 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {companyExpenses.map((expense) => (
+                                    {filteredCompanyExpenses.map((expense) => (
                                         <TableRow key={expense.id}>
                                             <TableCell>{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
                                             <TableCell className="font-medium">{expense.description}</TableCell>
@@ -1647,12 +1714,12 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {companyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>}
+                                    {filteredCompanyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>}
                                 </TableBody>
                                 </Table>
                             </div>
                             <div className="space-y-4 md:hidden">
-                                {companyExpenses.map((expense) => (
+                                {filteredCompanyExpenses.map((expense) => (
                                     <div key={expense.id} className="p-4 border rounded-lg space-y-3">
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -1669,7 +1736,7 @@ export default function AdminDashboardPage() {
                                         </div>
                                     </div>
                                 ))}
-                                {companyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados.</p>}
+                                {filteredCompanyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>}
                             </div>
                         </CardContent>
                       </Card>
@@ -1701,7 +1768,7 @@ export default function AdminDashboardPage() {
                                                             <TableRow key={payment.id}>
                                                                 <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL", { locale: es })}</TableCell>
                                                                 <TableCell>{payment.doctorName}</TableCell>
-                                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                                <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
                                                                 <TableCell>
                                                                     <Badge className={cn({
                                                                         'bg-green-600 text-white': payment.status === 'Paid',
@@ -2635,7 +2702,7 @@ export default function AdminDashboardPage() {
                                         .map(payment => (
                                             <TableRow key={payment.id}>
                                                 <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
                                                 <TableCell>
                                                     <Badge className={cn({
                                                         'bg-green-600 text-white': payment.status === 'Paid',
@@ -2990,5 +3057,6 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
 
 
