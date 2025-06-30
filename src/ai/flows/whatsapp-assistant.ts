@@ -110,19 +110,13 @@ const whatsappAssistantFlow = ai.defineFlow(
       system: systemPrompt,
       history: genkitHistory,
       tools: [findDoctorsTool],
-      output: {
-        schema: WhatsAppAssistantOutputSchema,
-      }
     });
 
-    if (!response.output) {
-      const text = response.text;
-      if (text) {
-          return { response: text };
-      }
-      throw new Error("El asistente no pudo generar una respuesta.");
+    const text = response.text;
+    if (text) {
+        return { response: text };
     }
-    
-    return response.output;
+
+    throw new Error("El asistente no pudo generar una respuesta.");
   }
 );
