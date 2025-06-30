@@ -102,6 +102,7 @@ const ProfileFormSchema = z.object({
     description: z.string().min(20, "La descripción debe tener al menos 20 caracteres."),
     specialty: z.string(),
     slotDuration: z.number().int().min(5, "La duración debe ser de al menos 5 minutos").positive("La duración debe ser positiva"),
+    consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
     city: z.string(),
     sector: z.string().optional(),
     address: z.string().min(10, "La dirección completa es requerida."),
@@ -802,6 +803,7 @@ export default function DoctorDashboardPage() {
       const result = ProfileFormSchema.safeParse({
           ...dataToSave,
           slotDuration: Number(dataToSave.slotDuration),
+          consultationFee: Number(dataToSave.consultationFee),
       });
 
       if (!result.success) {
@@ -1695,7 +1697,7 @@ export default function DoctorDashboardPage() {
                               <div className="space-y-4">
                                    <Label className="text-base font-semibold">Información Profesional</Label>
                                    <div className="space-y-2"><Label htmlFor="prof-desc">Descripción Pública</Label><Textarea id="prof-desc" value={profileForm.description} onChange={(e) => handleProfileInputChange('description', e.target.value)} rows={4} placeholder="Describe tu experiencia..."/></div>
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                       <div className="space-y-2"><Label>Especialidad</Label><Select value={profileForm.specialty} onValueChange={(value) => handleProfileInputChange('specialty', value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
                                       <div className="space-y-2">
                                         <Label htmlFor="prof-slot-duration">Duración de Cita (minutos)</Label>
@@ -1706,6 +1708,18 @@ export default function DoctorDashboardPage() {
                                             onChange={(e) => handleProfileInputChange('slotDuration', parseInt(e.target.value, 10) || 0)}
                                             placeholder="Ej: 20"
                                             min="5"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="prof-consultation-fee">Tarifa de Consulta ({currency})</Label>
+                                        <Input
+                                            id="prof-consultation-fee"
+                                            type="number"
+                                            value={profileForm.consultationFee ?? ''}
+                                            onChange={(e) => handleProfileInputChange('consultationFee', parseFloat(e.target.value) || 0)}
+                                            placeholder="Ej: 20"
+                                            min="0"
+                                            step="0.01"
                                         />
                                       </div>
                                    </div>
@@ -2167,3 +2181,4 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
