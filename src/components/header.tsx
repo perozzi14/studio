@@ -447,11 +447,27 @@ export function Header() {
                   <LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión
                 </Link>
               </Button>
-              <Button asChild>
-                <Link href="/auth/register">
-                  <UserPlus className="mr-2 h-4 w-4" /> Regístrate
-                </Link>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <UserPlus className="mr-2 h-4 w-4" /> Regístrate
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/register">
+                      <User className="mr-2 h-4 w-4" />
+                      Como Paciente
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/register-doctor">
+                      <Stethoscope className="mr-2 h-4 w-4" />
+                      Como Médico
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </nav>
@@ -687,9 +703,14 @@ export function Header() {
                           <Link href="/auth/login">Iniciar Sesión</Link>
                         </Button>
                       </SheetClose>
-                       <SheetClose asChild>
+                      <SheetClose asChild>
                         <Button className="w-full" asChild>
-                          <Link href="/auth/register">Regístrate</Link>
+                          <Link href="/auth/register">Registrarse (Paciente)</Link>
+                        </Button>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Button className="w-full" variant="secondary" asChild>
+                          <Link href="/auth/register-doctor">Registrarse (Médico)</Link>
                         </Button>
                       </SheetClose>
                     </div>
