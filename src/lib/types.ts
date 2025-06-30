@@ -1,6 +1,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -81,6 +82,7 @@ export type Doctor = {
   coupons: Coupon[];
   schedule: Schedule;
   slotDuration: number;
+  consultationFee: number;
   sellerId: string | null;
   status: 'active' | 'inactive';
   lastPaymentDate: string;
@@ -131,6 +133,7 @@ export type Appointment = {
   time: string;
   services: Service[];
   totalPrice: number;
+  consultationFee: number;
   paymentMethod: 'efectivo' | 'transferencia';
   paymentStatus: 'Pendiente' | 'Pagado';
   paymentProof: string | null;

@@ -61,6 +61,7 @@ const DoctorFormSchema = z.object({
   address: z.string().min(5, "La dirección es requerida."),
   sellerId: z.string().nullable(),
   slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
+  consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
 });
 
 const SellerFormSchema = z.object({
@@ -332,6 +333,7 @@ export default function AdminDashboardPage() {
             address: formData.get('doc-address') as string,
             sellerId: formData.get('doc-seller') as string,
             slotDuration: parseInt(formData.get('doc-slot-duration') as string, 10),
+            consultationFee: parseInt(formData.get('doc-consultation-fee') as string, 10),
         };
 
         const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -342,7 +344,7 @@ export default function AdminDashboardPage() {
             return;
         }
 
-        const { name, email, specialty, city, address, sellerId, slotDuration } = result.data;
+        const { name, email, specialty, city, address, sellerId, slotDuration, consultationFee } = result.data;
         const sellerIdValue = sellerId === 'null' || !sellerId ? null : sellerId;
 
         if (editingDoctor) {
@@ -350,6 +352,7 @@ export default function AdminDashboardPage() {
                 name, email, specialty, city, address,
                 sellerId: sellerIdValue,
                 slotDuration,
+                consultationFee,
             };
             if (result.data.password) {
               updatedDoctorData.password = result.data.password;
@@ -375,7 +378,8 @@ export default function AdminDashboardPage() {
                 description: '',
                 services: [],
                 bankDetails: [],
-                slotDuration: slotDuration,
+                slotDuration,
+                consultationFee,
                 schedule: {
                     monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
                     tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -2306,6 +2310,10 @@ export default function AdminDashboardPage() {
                         <Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label>
                         <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue={editingDoctor?.slotDuration || 30} className="col-span-3" required min="5"/>
                     </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label>
+                        <Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={editingDoctor?.consultationFee ?? 20} className="col-span-3" required min="0"/>
+                    </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
@@ -2336,6 +2344,7 @@ export default function AdminDashboardPage() {
                             <p className="col-span-full"><strong>Ubicación:</strong> {`${selectedDoctor.address}, ${selectedDoctor.sector}, ${selectedDoctor.city}`}</p>
                             <p><strong>Miembro desde:</strong> {format(new Date(selectedDoctor.joinDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
                             <p><strong>Duración de Cita:</strong> {selectedDoctor.slotDuration} min</p>
+                            <p><strong>Tarifa de Consulta:</strong> ${selectedDoctor.consultationFee.toFixed(2)}</p>
                             <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
                             <div className="flex items-center gap-2">
                                 <strong>Estado:</strong>

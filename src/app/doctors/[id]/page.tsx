@@ -109,9 +109,10 @@ export default function DoctorProfilePage() {
   }, [selectedServices]);
 
   const finalPrice = useMemo(() => {
-    const priceAfterDiscount = subtotal - discountAmount;
+    if (!doctor) return 0;
+    const priceAfterDiscount = doctor.consultationFee + subtotal - discountAmount;
     return priceAfterDiscount < 0 ? 0 : priceAfterDiscount;
-  }, [subtotal, discountAmount]);
+  }, [doctor, subtotal, discountAmount]);
 
   const availableSlots = useMemo(() => {
     if (!doctor || !selectedDate) return [];
@@ -144,19 +145,20 @@ export default function DoctorProfilePage() {
   };
   
   const handleApplyCoupon = () => {
-    if (!id || !couponInput) return;
+    if (!id || !couponInput || !doctor) return;
     const applicableCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
     const coupon = applicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
+    const totalBeforeDiscount = doctor.consultationFee + subtotal;
 
     if (coupon) {
       let discount = 0;
       if (coupon.discountType === 'percentage') {
-        discount = (subtotal * coupon.value) / 100;
+        discount = (totalBeforeDiscount * coupon.value) / 100;
       } else {
         discount = coupon.value;
       }
       
-      const finalDiscount = Math.min(discount, subtotal);
+      const finalDiscount = Math.min(discount, totalBeforeDiscount);
 
       setDiscountAmount(finalDiscount);
       setAppliedCoupon(coupon);
@@ -193,9 +195,7 @@ export default function DoctorProfilePage() {
   };
 
   const handleServicesSubmit = () => {
-    if (selectedServices.length > 0) {
-      setStep('selectPayment');
-    }
+    setStep('selectPayment');
   };
 
   const handlePaymentSubmit = () => {
@@ -226,6 +226,7 @@ export default function DoctorProfilePage() {
     addAppointment({
       doctorId: doctor.id,
       doctorName: doctor.name,
+      consultationFee: doctor.consultationFee,
       date: selectedDate.toISOString().split('T')[0],
       time: selectedTime,
       services: selectedServices,
@@ -393,11 +394,11 @@ export default function DoctorProfilePage() {
           <>
             <CardHeader>
               <CardTitle className="text-2xl">Paso 2: Elige los Servicios</CardTitle>
-              <CardDescription>Selecciona los servicios que necesitas. Puedes elegir más de uno.</CardDescription>
+              <CardDescription>La tarifa de consulta se añade automáticamente. Selecciona los servicios adicionales que necesites.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3 rounded-md border p-4">
-                {doctor.services.map((service) => (
+                {doctor.services.length > 0 ? doctor.services.map((service) => (
                   <div key={service.id} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Checkbox
@@ -411,7 +412,7 @@ export default function DoctorProfilePage() {
                     </div>
                     <span className="font-semibold text-primary">${service.price}</span>
                   </div>
-                ))}
+                )) : <p className="text-sm text-muted-foreground text-center">El Dr. no tiene servicios adicionales registrados.</p>}
               </div>
               
               <div className="space-y-2">
@@ -426,14 +427,18 @@ export default function DoctorProfilePage() {
                     {appliedCoupon ? (
                       <Button variant="outline" onClick={handleRemoveCoupon}>Quitar</Button>
                     ) : (
-                      <Button onClick={handleApplyCoupon} disabled={!couponInput || subtotal === 0}>Aplicar</Button>
+                      <Button onClick={handleApplyCoupon} disabled={!couponInput || (doctor.consultationFee + subtotal) === 0}>Aplicar</Button>
                     )}
                  </div>
               </div>
 
               <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg space-y-3">
+                 <div className="w-full flex justify-between items-center text-base font-normal text-muted-foreground">
+                    <span>Tarifa de Consulta:</span>
+                    <span>${doctor.consultationFee.toFixed(2)}</span>
+                </div>
                 <div className="w-full flex justify-between items-center">
-                    <span>Subtotal:</span>
+                    <span>Subtotal Servicios:</span>
                     <span>${subtotal.toFixed(2)}</span>
                 </div>
                 {appliedCoupon && (
@@ -452,7 +457,7 @@ export default function DoctorProfilePage() {
                  <Button variant="outline" onClick={() => setStep('selectDateTime')} className="w-full">
                     Atrás
                   </Button>
-                  <Button onClick={handleServicesSubmit} disabled={selectedServices.length === 0} className="w-full" size="lg">
+                  <Button onClick={handleServicesSubmit} className="w-full" size="lg">
                     Continuar al Paso 3
                   </Button>
               </div>
@@ -565,7 +570,8 @@ export default function DoctorProfilePage() {
                     <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     <p><strong>Hora:</strong> {selectedTime}</p>
                     <div>
-                        <p><strong>Servicios:</strong></p>
+                        <p><strong>Tarifa de Consulta:</strong> ${doctor.consultationFee.toFixed(2)}</p>
+                        <p><strong>Servicios Adicionales:</strong></p>
                         <ul className="list-disc list-inside text-muted-foreground">
                             {selectedServices.map(s => <li key={s.id}>{s.name} (${s.price})</li>)}
                         </ul>
