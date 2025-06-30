@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header, BottomNav } from "@/components/header";
 import * as firestoreService from '@/lib/firestoreService';
-import { type Doctor, type Service, type BankDetail, type Coupon } from "@/lib/types";
+import { type Doctor, type Service, type BankDetail, type Coupon, type Appointment } from "@/lib/types";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export default function DoctorProfilePage() {
   const { coupons } = useSettings();
 
   const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
@@ -70,19 +71,38 @@ export default function DoctorProfilePage() {
 
   useEffect(() => {
     if (id) {
-        const fetchDoctor = async () => {
+        const fetchDoctorAndAppointments = async () => {
             setIsLoading(true);
-            const docData = await firestoreService.getDoctor(id);
-            if (docData) {
-                setDoctor(docData);
-            } else {
-                router.push('/find-a-doctor'); // Or a 404 page
+            try {
+                const [docData, docAppointments] = await Promise.all([
+                    firestoreService.getDoctor(id),
+                    firestoreService.getDoctorAppointments(id),
+                ]);
+
+                if (docData) {
+                    setDoctor(docData);
+                    setAppointments(docAppointments);
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Médico no encontrado",
+                        description: "No se pudo encontrar el perfil de este médico.",
+                    });
+                    router.push('/find-a-doctor');
+                }
+            } catch (error) {
+                 toast({
+                    variant: "destructive",
+                    title: "Error de Carga",
+                    description: "No se pudieron cargar los datos del médico.",
+                });
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         }
-        fetchDoctor();
+        fetchDoctorAndAppointments();
     }
-  }, [id, router]);
+  }, [id, router, toast]);
 
   const subtotal = useMemo(() => {
     return selectedServices.reduce((total, service) => total + service.price, 0);
@@ -107,8 +127,13 @@ export default function DoctorProfilePage() {
         allSlots = [...allSlots, ...generated];
     });
 
-    return allSlots;
-  }, [selectedDate, doctor]);
+    const selectedDateString = selectedDate.toISOString().split('T')[0];
+    const bookedSlots = appointments
+      .filter(appt => appt.date === selectedDateString)
+      .map(appt => appt.time);
+
+    return allSlots.filter(slot => !bookedSlots.includes(slot));
+  }, [selectedDate, doctor, appointments]);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) =>
