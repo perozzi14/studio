@@ -49,6 +49,7 @@ const BankDetailFormSchema = z.object({
   accountHolder: z.string().min(3, "El nombre del titular es requerido."),
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+  description: z.string().optional(),
 });
 
 const SupportTicketSchema = z.object({
@@ -317,6 +318,7 @@ export default function SellerDashboardPage() {
         accountHolder: formData.get('accountHolder') as string,
         idNumber: formData.get('idNumber') as string,
         accountNumber: formData.get('accountNumber') as string,
+        description: formData.get('description') as string,
     };
     const result = BankDetailFormSchema.safeParse(dataToValidate);
 
@@ -703,18 +705,22 @@ export default function SellerDashboardPage() {
                       </CardHeader>
                       <CardContent>
                           <Table className="hidden md:table">
-                              <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
+                              <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Descripción</TableHead><TableHead>Titular</TableHead><TableHead>Nro. de Cuenta</TableHead><TableHead>C.I./R.I.F.</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
                               <TableBody>
                                   {(sellerData.bankDetails || []).map(bd => (
                                       <TableRow key={bd.id}>
-                                          <TableCell className="font-medium">{bd.bank}</TableCell><TableCell>{bd.accountHolder}</TableCell><TableCell>{bd.accountNumber}</TableCell><TableCell>{bd.idNumber}</TableCell>
+                                          <TableCell className="font-medium">{bd.bank}</TableCell>
+                                          <TableCell className="text-muted-foreground">{bd.description || '-'}</TableCell>
+                                          <TableCell>{bd.accountHolder}</TableCell>
+                                          <TableCell>{bd.accountNumber}</TableCell>
+                                          <TableCell>{bd.idNumber}</TableCell>
                                           <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
                                               <Button variant="outline" size="icon" onClick={() => handleOpenBankDetailDialog(bd)}><Pencil className="h-4 w-4" /></Button>
                                               <Button variant="destructive" size="icon" onClick={() => handleDeleteBankDetail(bd.id)}><Trash2 className="h-4 w-4" /></Button>
                                           </div></TableCell>
                                       </TableRow>
                                   ))}
-                                  {(sellerData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={5} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
+                                  {(sellerData.bankDetails || []).length === 0 && (<TableRow><TableCell colSpan={6} className="text-center h-24">No tienes cuentas bancarias registradas.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                           <div className="space-y-4 md:hidden">
@@ -722,9 +728,10 @@ export default function SellerDashboardPage() {
                                   <div key={bd.id} className="p-4 border rounded-lg space-y-4">
                                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                           <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
+                                          <div><p className="text-xs text-muted-foreground">Descripción</p><p className="font-medium">{bd.description || '-'}</p></div>
                                           <div><p className="text-xs text-muted-foreground">Titular</p><p className="font-medium">{bd.accountHolder}</p></div>
                                           <div><p className="text-xs text-muted-foreground">Nro. Cuenta</p><p className="font-mono text-sm">{bd.accountNumber}</p></div>
-                                          <div><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
+                                          <div className="col-span-2"><p className="text-xs text-muted-foreground">C.I./R.I.F.</p><p className="font-mono text-sm">{bd.idNumber}</p></div>
                                       </div>
                                       <Separator />
                                       <div className="flex justify-end gap-2">
@@ -790,6 +797,7 @@ export default function SellerDashboardPage() {
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input id="idNumber" name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Input id="description" name="description" defaultValue={editingBankDetail?.description} className="col-span-3" placeholder="Ej: Cuenta en Dólares" /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
@@ -819,8 +827,7 @@ export default function SellerDashboardPage() {
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input id="expenseDate" name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input id="expenseDescription" name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input id="expenseAmount" name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
-                </div>
-                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
+                </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
 

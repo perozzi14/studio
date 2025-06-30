@@ -103,6 +103,7 @@ const BankDetailFormSchema = z.object({
   accountHolder: z.string().min(3, "El nombre del titular es requerido."),
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
+  description: z.string().optional(),
 });
 
 const MarketingMaterialSchema = z.object({
@@ -784,6 +785,7 @@ export default function AdminDashboardPage() {
         accountHolder: formData.get('accountHolder') as string,
         idNumber: formData.get('idNumber') as string,
         accountNumber: formData.get('accountNumber') as string,
+        description: formData.get('description') as string,
     };
     
     const result = BankDetailFormSchema.safeParse(dataToValidate);
@@ -1751,8 +1753,8 @@ export default function AdminDashboardPage() {
                                 {companyBankDetails.map(bd => (
                                     <div key={bd.id} className="flex justify-between items-center p-2 rounded-md border">
                                         <div>
-                                            <p className="font-medium">{bd.bank}</p>
-                                            <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                                            <p className="font-medium">{bd.bank} {bd.description && <span className="font-normal text-muted-foreground">({bd.description})</span>}</p>
+                                            <p className="text-xs text-muted-foreground">{bd.accountHolder} - Cta. ...{bd.accountNumber.slice(-4)}</p>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button size="icon" variant="outline" onClick={() => { setEditingCompanyBankDetail(bd); setIsCompanyBankDetailDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
@@ -2057,7 +2059,9 @@ export default function AdminDashboardPage() {
                         <Card>
                             <CardHeader className="flex-row items-center justify-between">
                                 <CardTitle>Historial de Pagos</CardTitle>
-                                <Button size="sm" onClick={() => setIsRegisterPaymentDialogOpen(true)}><PlusCircle className="mr-2" /> Registrar Pago</Button>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" onClick={() => handleRegisterPaymentDialogChange(true)}><PlusCircle className="mr-2" /> Registrar Pago</Button>
+                                </DialogTrigger>
                             </CardHeader>
                             <CardContent>
                                 <Table>
@@ -2493,6 +2497,10 @@ export default function AdminDashboardPage() {
                       <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
                         <Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="description" className="text-right">Descripción</Label>
+                        <Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} className="col-span-3" placeholder="Ej: Cuenta Principal, Zelle, etc."/>
                     </div>
                 </div>
                 <DialogFooter>

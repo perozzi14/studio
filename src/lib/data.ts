@@ -26,6 +26,7 @@ export const mockCompanyBankDetails: BankDetail[] = [
     accountHolder: 'SUMA C.A.',
     accountNumber: '0134-0000-0000-0000-0000',
     idNumber: 'J-12345678-9',
+    description: 'Cuenta Principal',
   },
   {
     id: '9902',
@@ -33,6 +34,7 @@ export const mockCompanyBankDetails: BankDetail[] = [
     accountHolder: 'SUMA C.A.',
     accountNumber: '0105-0000-0000-0000-0000',
     idNumber: 'J-12345678-9',
+    description: 'PagoMóvil',
   },
 ];
 
@@ -67,7 +69,8 @@ export const sellers: Seller[] = [
         bank: "Bancamiga",
         accountNumber: "0172-0009-0009-0009-0009",
         accountHolder: "Vendedora Principal",
-        idNumber: "V-99.888.777"
+        idNumber: "V-99.888.777",
+        description: "Cuenta en Dólares",
       }
     ],
     expenses: [
@@ -123,7 +126,7 @@ export const doctors: Doctor[] = [
       { id: '103', name: "Ecocardiograma", price: 80 },
     ],
     bankDetails: [
-      { id: '1001', bank: "Banesco", accountNumber: "0134-0001-0001-0001-0001", accountHolder: "Ana Rodriguez", idNumber: "V-12.345.678" },
+      { id: '1001', bank: "Banesco", accountNumber: "0134-0001-0001-0001-0001", accountHolder: "Ana Rodriguez", idNumber: "V-12.345.678", description: "Personal" },
       { id: '1002', bank: "Mercantil", accountNumber: "0105-0001-0001-0001-0001", accountHolder: "Ana Rodriguez", idNumber: "V-12.345.678" }
     ],
     expenses: [

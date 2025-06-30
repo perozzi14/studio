@@ -3,6 +3,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -16,6 +17,7 @@ export type BankDetail = {
   accountNumber: string;
   accountHolder: string;
   idNumber: string;
+  description?: string;
 };
 
 export type Service = {
