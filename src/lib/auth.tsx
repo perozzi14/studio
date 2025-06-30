@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     switch(loggedInUser.role) {
       case 'admin': router.push('/admin/dashboard'); break;
       case 'doctor': router.push('/doctor/dashboard'); break;
-      case 'seller': router.push('/seller/dashboard'); break;
+      case 'seller': router.push('/seller/dashboard?view=referrals'); break;
       case 'patient': router.push('/dashboard'); break;
     }
   };
