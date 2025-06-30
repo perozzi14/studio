@@ -12,7 +12,7 @@ interface PDFReportParams {
   sections: {
     title: string;
     columns: string[];
-    data: string[][];
+    data: (string | number)[][];
   }[];
   fileName: string;
 }
@@ -58,3 +58,5 @@ export function generatePdfReport({ title, subtitle, sections, fileName }: PDFRe
 
   doc.save(fileName);
 }
+
+    

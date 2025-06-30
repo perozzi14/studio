@@ -48,7 +48,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
@@ -59,6 +58,7 @@ import { Switch } from '@/components/ui/switch';
 import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
+import { generatePdfReport } from '@/lib/pdf-utils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { z } from 'zod';
@@ -119,7 +119,6 @@ const SubscriptionPaymentSchema = z.object({
 const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.");
 const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
 
-
 const chartConfig = {
   income: {
     label: "Ingresos",
@@ -129,7 +128,7 @@ const chartConfig = {
     label: "Gastos",
     color: "hsl(var(--destructive))",
   },
-} satisfies ChartConfig;
+};
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
@@ -356,7 +355,9 @@ export default function DoctorDashboardPage() {
   }, [appointments]);
 
   const financialStats = useMemo(() => {
-    if (!doctorData || !appointments) return null;
+    if (!doctorData || !appointments) {
+        return { totalRevenue: 0, totalExpenses: 0, netProfit: 0, chartData: [], paidAppointments: [], paidAppointmentsCount: 0 };
+    }
 
     const now = new Date();
     let filteredAppointments = appointments;
@@ -751,14 +752,18 @@ export default function DoctorDashboardPage() {
   };
 
   const handleGeneratePrescription = () => {
-    if (!selectedAppointment || !selectedAppointment.patient || !doctorData) return;
-
+    if (!selectedAppointment || !selectedAppointment.patient || !doctorData) {
+      return;
+    }
     const result = PrescriptionSchema.safeParse(selectedAppointment.prescription);
     if (!result.success) {
-        toast({ variant: "destructive", title: "Récipé Inválido", description: "La prescripción no puede estar vacía o ser demasiado corta." });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Récipé Inválido",
+        description: "La prescripción no puede estar vacía o ser demasiado corta.",
+      });
+      return;
     }
-
     const doc = new jsPDF();
     
     doc.setFontSize(20);
@@ -777,12 +782,12 @@ export default function DoctorDashboardPage() {
     doc.text("Paciente:", 20, 58);
     doc.setFont("helvetica", "normal");
     doc.text(selectedAppointment.patient.name, 40, 58);
-
+    
     doc.setFont("helvetica", "bold");
     doc.text("Cédula:", 130, 58);
     doc.setFont("helvetica", "normal");
     doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
-
+    
     doc.setFont("helvetica", "bold");
     doc.text("Fecha:", 20, 66);
     doc.setFont("helvetica", "normal");
@@ -802,73 +807,54 @@ export default function DoctorDashboardPage() {
     doc.text("Firma del Médico", 105, 275, { align: 'center' });
     doc.text(doctorData.cedula, 105, 280, { align: 'center' });
     
-    doc.save(`Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`);
+    doc.save(
+      `Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`
+    );
   };
   
   const handleGenerateFinanceReport = () => {
     if (!financialStats || !doctorData) return;
-
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
-
-    const timeLabel = timeRangeLabels[timeRange];
-    doc.setFontSize(12);
-    doc.text(`Período: ${timeLabel} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
-    
-    const summaryData = [
-        ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
-        ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
-        ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
-        ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
-    ];
-    
-    (doc as any).autoTable({
-        startY: 40,
-        head: [['Concepto', 'Monto']],
-        body: summaryData,
-        theme: 'grid'
-    });
-
-    let lastY = (doc as any).lastAutoTable.finalY + 15;
-    
-    doc.setFontSize(14);
-    doc.text("Detalle de Ingresos", 14, lastY);
-    
+  
     const incomeData = financialStats.paidAppointments.map(a => [
         format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
         a.patientName,
         a.services.map(s => s.name).join(', '),
         `$${a.totalPrice.toFixed(2)}`
     ]);
-
-    (doc as any).autoTable({
-        startY: lastY + 5,
-        head: [['Fecha', 'Paciente', 'Servicios', 'Monto']],
-        body: incomeData,
-        theme: 'striped'
-    });
-
-    lastY = (doc as any).lastAutoTable.finalY + 15;
-    
-    doc.setFontSize(14);
-    doc.text("Detalle de Gastos", 14, lastY);
-    
+  
     const expenseData = (doctorData.expenses || []).map(e => [
         format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
         e.description,
         `$${e.amount.toFixed(2)}`
     ]);
-
-    (doc as any).autoTable({
-        startY: lastY + 5,
-        head: [['Fecha', 'Descripción', 'Monto']],
-        body: expenseData,
-        theme: 'striped'
+  
+    generatePdfReport({
+      title: `Reporte Financiero - ${doctorData.name}`,
+      subtitle: `Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`,
+      sections: [
+        {
+          title: 'Resumen',
+          columns: ['Concepto', 'Monto'],
+          data: [
+            ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
+            ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
+            ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
+            ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
+          ]
+        },
+        {
+          title: 'Detalle de Ingresos',
+          columns: ['Fecha', 'Paciente', 'Servicios', 'Monto'],
+          data: incomeData,
+        },
+        {
+          title: 'Detalle de Gastos',
+          columns: ['Fecha', 'Descripción', 'Monto'],
+          data: expenseData,
+        }
+      ],
+      fileName: `Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`
     });
-    
-    doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
   
   const handleReportPayment = async (e: React.FormEvent) => {
@@ -1133,7 +1119,7 @@ export default function DoctorDashboardPage() {
                                             </Button>
                                         </div>
                                         <div className="text-sm">
-                                          <span className="font-semibold">Servicios: </span>
+                                          <span className="font-semibold">Servicios: </span> 
                                           {appt.services.map(s => s.name).join(', ')}
                                         </div>
                                         <Separator/>
@@ -1630,7 +1616,7 @@ export default function DoctorDashboardPage() {
                           </TableBody>
                       </Table>
                       <div className="space-y-4 md:hidden">
-                          {(doctorData.bankDetails || []).map(bd => (
+                          {(doctorData.bankDetails || []).length > 0 ? (doctorData.bankDetails || []).map(bd => (
                               <div key={bd.id} className="p-4 border rounded-lg space-y-4">
                                   <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                       <div><p className="text-xs text-muted-foreground">Banco</p><p className="font-medium">{bd.bank}</p></div>
@@ -1885,3 +1871,5 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
+    
