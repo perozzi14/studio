@@ -326,12 +326,10 @@ export default function DoctorDashboardPage() {
     if (!selectedAppointment) return;
 
     const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
-
-    if (updatedApptFromList) {
-        const { patient, ...currentApptDataInState } = selectedAppointment;
-        if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
-            setSelectedAppointment(prev => prev ? { ...updatedApptFromList, patient: prev.patient } : null);
-        }
+    
+    // Only update state if there's an actual change to prevent an infinite loop
+    if (updatedApptFromList && JSON.stringify(updatedApptFromList) !== JSON.stringify(selectedAppointment)) {
+        setSelectedAppointment(prev => prev ? { ...updatedApptFromList, patient: prev.patient } : null);
     }
   }, [appointments, selectedAppointment]);
 
@@ -984,7 +982,12 @@ export default function DoctorDashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">Agenda de Hoy</CardTitle>
+                                <CardTitle className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2">Agenda de Hoy</span>
+                                    {todayAppointments.length > 0 && (
+                                        <Badge variant="secondary">{todayAppointments.length} {todayAppointments.length === 1 ? 'cita' : 'citas'}</Badge>
+                                    )}
+                                </CardTitle>
                                 <CardDescription>{format(new Date(), "eeee, d 'de' LLLL", { locale: es })}</CardDescription>
                             </CardHeader>
                             <CardContent>
