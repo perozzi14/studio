@@ -2,6 +2,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -218,11 +219,15 @@ export type CompanyExpense = {
     category: 'operativo' | 'marketing' | 'personal';
 };
 
+export type City = {
+    name: string;
+    subscriptionFee: number;
+};
+
 // For settings document in Firestore
 export type AppSettings = {
-    cities: string[];
+    cities: City[];
     specialties: string[];
-    doctorSubscriptionFee: number;
     companyBankDetails: BankDetail[];
     timezone: string;
     logoUrl: string;

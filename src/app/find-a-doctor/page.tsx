@@ -211,8 +211,8 @@ export default function FindDoctorPage() {
                     <SelectContent>
                       <SelectItem value="all">Todas las ciudades</SelectItem>
                       {cities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
+                        <SelectItem key={city.name} value={city.name}>
+                          {city.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

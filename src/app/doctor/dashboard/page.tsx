@@ -227,7 +227,7 @@ export default function DoctorDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'appointments';
   const { toast } = useToast();
-  const { specialties, cities, doctorSubscriptionFee, currency, companyBankDetails } = useSettings();
+  const { specialties, cities, currency, companyBankDetails } = useSettings();
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -330,7 +330,10 @@ export default function DoctorDashboardPage() {
     
     if (updatedApptFromList) {
       const { patient, ...currentAppointmentCoreData } = selectedAppointment;
-      if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentAppointmentCoreData)) {
+      const appointmentCoreDataString = JSON.stringify(currentAppointmentCoreData, Object.keys(currentAppointmentCoreData).sort());
+      const updatedApptFromListString = JSON.stringify(updatedApptFromList, Object.keys(updatedApptFromList).sort());
+
+      if (appointmentCoreDataString !== updatedApptFromListString) {
           setSelectedAppointment(prev => {
               if (!prev) return null;
               return { ...updatedApptFromList, patient: prev.patient };
@@ -490,6 +493,12 @@ export default function DoctorDashboardPage() {
 
     return { totalRevenue, totalExpenses, netProfit, chartData, paidAppointments, paidAppointmentsCount: paidAppointments.length };
   }, [doctorData, appointments, timeRange]);
+  
+  const doctorCityFee = useMemo(() => {
+    if (!doctorData || !cities) return 0;
+    return cities.find(c => c.name === doctorData.city)?.subscriptionFee || 0;
+  }, [cities, doctorData]);
+
 
   const handleConfirmPayment = async (appointmentId: string) => {
     await firestoreService.updateAppointment(appointmentId, { paymentStatus: 'Pagado' });
@@ -1580,8 +1589,8 @@ export default function DoctorDashboardPage() {
                                 <p className="text-lg font-semibold">{format(new Date(doctorData.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
                             </div>
                              <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Monto Mensual</p>
-                                <p className="text-lg font-semibold">${doctorSubscriptionFee.toFixed(2)}</p>
+                                <p className="text-sm font-medium text-muted-foreground">Monto Mensual ({doctorData.city})</p>
+                                <p className="text-lg font-semibold">${doctorCityFee.toFixed(2)}</p>
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between border-t pt-6">
@@ -1728,7 +1737,7 @@ export default function DoctorDashboardPage() {
                               <div className="space-y-4">
                                   <Label className="text-base font-semibold">Ubicación del Consultorio</Label>
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                       <div className="space-y-2"><Label>Ciudad</Label><Select value={profileForm.city} onValueChange={(value) => handleProfileInputChange('city', value)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+                                       <div className="space-y-2"><Label>Ciudad</Label><Select value={profileForm.city} onValueChange={(value) => handleProfileInputChange('city', value)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                                       <div className="space-y-2"><Label htmlFor="prof-sector">Sector</Label><Input id="prof-sector" value={profileForm.sector} onChange={(e) => handleProfileInputChange('sector', e.target.value)} /></div>
                                       <div className="space-y-2 md:col-span-3"><Label htmlFor="prof-address">Dirección Completa</Label><Input id="prof-address" value={profileForm.address} onChange={(e) => handleProfileInputChange('address', e.target.value)} /></div>
                                   </div>
@@ -2171,7 +2180,7 @@ export default function DoctorDashboardPage() {
           <DialogContent>
             <DialogHeader><DialogTitle>Reportar Pago de Suscripción</DialogTitle><DialogDescription>Completa los datos de la transferencia que realizaste.</DialogDescription></DialogHeader>
             <form onSubmit={handleReportPayment}><div className="space-y-4 py-4">
-                  <div><Label htmlFor="payment-amount">Monto Pagado ({currency})</Label><Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorSubscriptionFee.toFixed(2)} required /></div>
+                  <div><Label htmlFor="payment-amount">Monto Pagado ({currency})</Label><Input id="payment-amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder={doctorCityFee.toFixed(2)} required /></div>
                   <div><Label htmlFor="payment-date">Fecha del Pago</Label><Input id="payment-date" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required /></div>
                   <div><Label htmlFor="payment-ref">Número de Referencia</Label><Input id="payment-ref" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="00123456" required /></div>
                   <div><Label htmlFor="payment-proof">Comprobante de Pago</Label><Input id="payment-proof" type="file" accept="image/*" onChange={(e) => setPaymentProof(e.target.files ? e.target.files[0] : null)} required /></div>
@@ -2181,4 +2190,3 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
-

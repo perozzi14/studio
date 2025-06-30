@@ -1,5 +1,6 @@
 
-import type { Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, CompanyExpense, BankDetail, Coupon, Schedule } from './types';
+
+import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, CompanyExpense, BankDetail, Coupon, Schedule } from './types';
 
 export const specialties = [
   "Cardiología",
@@ -13,10 +14,10 @@ export const specialties = [
   "Medicina Estética",
 ];
 
-export const cities = [
-  "Caracas",
-  "Maracaibo",
-  "Valencia",
+export const cities: City[] = [
+  { name: "Caracas", subscriptionFee: 50 },
+  { name: "Maracaibo", subscriptionFee: 40 },
+  { name: "Valencia", subscriptionFee: 45 },
 ];
 
 export const mockCompanyBankDetails: BankDetail[] = [

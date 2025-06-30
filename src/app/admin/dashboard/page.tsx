@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -91,6 +91,11 @@ const ExpenseFormSchema = z.object({
   description: z.string().min(3, "La descripción es requerida."),
   amount: z.number().positive("El monto debe ser positivo."),
   category: z.enum(['operativo', 'marketing', 'personal']),
+});
+
+const CityFormSchema = z.object({
+  name: z.string().min(2, "El nombre es requerido."),
+  subscriptionFee: z.number().min(0, "La tarifa debe ser un número positivo."),
 });
 
 const NameSchema = z.string().min(2, "El nombre es requerido.");
@@ -178,7 +183,6 @@ export default function AdminDashboardPage() {
 
   // States for Settings & Company Finances
   const { 
-      doctorSubscriptionFee,
       cities,
       specialties,
       beautySpecialties,
@@ -203,11 +207,10 @@ export default function AdminDashboardPage() {
       deleteBankDetail
   } = useSettings();
   
-  const [tempSubscriptionFee, setTempSubscriptionFee] = useState<string>('');
   const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
-  const [editingCity, setEditingCity] = useState<{ originalName: string, newName: string } | null>(null);
+  const [editingCity, setEditingCity] = useState<{ originalName: string, name: string; subscriptionFee: number; } | null>(null);
   const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false);
   const [editingSpecialty, setEditingSpecialty] = useState<{ originalName: string, newName: string } | null>(null);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
@@ -272,21 +275,12 @@ export default function AdminDashboardPage() {
 
 
   useEffect(() => {
-    if (doctorSubscriptionFee) {
-        setTempSubscriptionFee(doctorSubscriptionFee.toString());
-    }
     if (logoUrl) {
         setTempLogoUrl(logoUrl);
     }
-  }, [doctorSubscriptionFee, logoUrl]);
+  }, [logoUrl]);
   
   const handleSaveSettings = async () => {
-    const newFee = parseFloat(tempSubscriptionFee);
-    if (isNaN(newFee) || newFee <= 0) {
-        toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, ingresa un número válido para la suscripción." });
-        return;
-    }
-
     let finalLogoUrl = logoUrl;
     if (logoFile) {
         // In a real app, upload to storage and get URL.
@@ -294,8 +288,7 @@ export default function AdminDashboardPage() {
     } else {
         finalLogoUrl = tempLogoUrl;
     }
-
-    await updateSetting('doctorSubscriptionFee', newFee);
+    
     await updateSetting('logoUrl', finalLogoUrl);
 
     toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
@@ -736,19 +729,26 @@ export default function AdminDashboardPage() {
     e.preventDefault();
     if (!editingCity) return;
     
-    const newName = (e.currentTarget.elements.namedItem('city-name') as HTMLInputElement).value;
-    const result = NameSchema.safeParse(newName);
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+        name: formData.get('city-name') as string,
+        subscriptionFee: parseFloat(formData.get('city-fee') as string),
+    };
+    
+    const result = CityFormSchema.safeParse(dataToValidate);
 
     if (!result.success) {
-        toast({ variant: "destructive", title: "Nombre requerido", description: result.error.errors.map(e => e.message).join(' ') });
+        toast({ variant: "destructive", title: "Datos inválidos", description: result.error.errors.map(e => e.message).join(' ') });
         return;
     }
 
+    const cityObject: City = result.data;
+
     if (editingCity.originalName) {
-        await updateListItem('cities', editingCity.originalName, newName);
+        await updateListItem('cities', editingCity.originalName, cityObject);
         toast({ title: "Ciudad Actualizada" });
     } else {
-        await addListItem('cities', newName);
+        await addListItem('cities', cityObject);
         toast({ title: "Ciudad Agregada" });
     }
     setIsCityDialogOpen(false);
@@ -911,6 +911,8 @@ export default function AdminDashboardPage() {
         netProfit: totalRevenue - commissionsPaid - totalExpenses,
     }
   }, [doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses]);
+
+  const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
   const pendingDoctorPayments = useMemo(() => {
     return doctorPayments.filter(p => p.status === 'Pending');
@@ -1199,8 +1201,12 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {sellers.map((seller) => {
                                       const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
-                                      const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
-                                      const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
+                                      const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
+                                      const activeDoctorsCount = activeDoctors.length;
+                                      const pendingCommission = activeDoctors.reduce((sum, doc) => {
+                                          const fee = cityFeesMap.get(doc.city) || 0;
+                                          return sum + (fee * seller.commissionRate);
+                                      }, 0);
                                       const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
                                       return (
                                         <TableRow key={seller.id}>
@@ -1232,9 +1238,13 @@ export default function AdminDashboardPage() {
                           <div className="space-y-4 md:hidden">
                                 {sellers.map((seller) => {
                                     const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
-                                    const activeDoctorsCount = sellerDoctors.filter(d => d.status === 'active').length;
-                                    const pendingCommission = activeDoctorsCount * doctorSubscriptionFee * seller.commissionRate;
-                                     const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
+                                    const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
+                                    const activeDoctorsCount = activeDoctors.length;
+                                    const pendingCommission = activeDoctors.reduce((sum, doc) => {
+                                        const fee = cityFeesMap.get(doc.city) || 0;
+                                        return sum + (fee * seller.commissionRate);
+                                    }, 0);
+                                    const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
                                     return (
                                         <div key={seller.id} className="p-4 border rounded-lg space-y-4">
                                             <div className="flex items-center gap-3 mb-2">
@@ -1736,19 +1746,6 @@ export default function AdminDashboardPage() {
                             </CardHeader>
                             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
                                 <div className="space-y-4">
-                                    <Label className="text-base">Plan de Suscripción</Label>
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                        <Input
-                                            id="subscription-fee"
-                                            type="number"
-                                            value={tempSubscriptionFee}
-                                            onChange={(e) => setTempSubscriptionFee(e.target.value)}
-                                            step="0.01"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
                                     <Label className="text-base">Moneda Principal</Label>
                                     <div className="flex items-center gap-2">
                                         <Wallet className="h-5 w-5 text-muted-foreground" />
@@ -1776,7 +1773,7 @@ export default function AdminDashboardPage() {
                                         </Select>
                                     </div>
                                 </div>
-                                <div className="space-y-4 row-span-2">
+                                <div className="space-y-4 row-span-2 md:col-span-2">
                                     <Label className="text-base">Logo de SUMA</Label>
                                     <div className="space-y-2">
                                         <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
@@ -1900,20 +1897,30 @@ export default function AdminDashboardPage() {
                              <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="flex items-center gap-2"><MapPin /> Gestión de Ubicaciones</CardTitle>
-                                    <Button size="sm" onClick={() => { setEditingCity({ originalName: '', newName: '' }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
+                                    <Button size="sm" onClick={() => { setEditingCity({ originalName: '', name: '', subscriptionFee: 0 }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-2">
-                                    {cities.map(city => (
-                                        <div key={city} className="flex justify-between items-center p-2 rounded-md border">
-                                            <span className="font-medium">{city}</span>
-                                            <div className="flex gap-2">
-                                                <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city, newName: city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city)}><Trash2 className="h-4 w-4"/></Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Ciudad</TableHead>
+                                                <TableHead>Tarifa de Suscripción</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                        {cities.map(city => (
+                                            <TableRow key={city.name}>
+                                                <TableCell className="font-medium">{city.name}</TableCell>
+                                                <TableCell className="font-mono">${city.subscriptionFee.toFixed(2)}</TableCell>
+                                                <TableCell className="flex justify-end gap-2">
+                                                    <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                    <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
                                 </CardContent>
                             </Card>
 
@@ -2148,8 +2155,12 @@ export default function AdminDashboardPage() {
             {managingSeller && (
             (() => {
                 const referredDoctors = doctors.filter(d => d.sellerId === managingSeller.id);
-                const activeReferredCount = referredDoctors.filter(d => d.status === 'active').length;
-                const pendingCommission = activeReferredCount * doctorSubscriptionFee * managingSeller.commissionRate;
+                const activeReferred = referredDoctors.filter(d => d.status === 'active');
+                const activeReferredCount = activeReferred.length;
+                const pendingCommission = activeReferred.reduce((sum, doc) => {
+                    const fee = cityFeesMap.get(doc.city) || 0;
+                    return sum + (fee * managingSeller.commissionRate);
+                }, 0);
                 const totalPaid = sellerPayments.filter(p => p.sellerId === managingSeller.id).reduce((sum, p) => sum + p.amount, 0);
 
                 return (
@@ -2289,7 +2300,7 @@ export default function AdminDashboardPage() {
                         <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
                          <Select name="doc-city" defaultValue={editingDoctor?.city}>
                             <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                            <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                            <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -2571,9 +2582,15 @@ export default function AdminDashboardPage() {
                   <DialogTitle>{editingCity?.originalName ? `Editando "${editingCity.originalName}"` : 'Agregar Nueva Ciudad'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSaveCity}>
-                <div className="py-4">
-                    <Label htmlFor="city-name">Nombre de la Ciudad</Label>
-                    <Input id="city-name" name="city-name" defaultValue={editingCity?.newName || ''} />
+                <div className="grid grid-cols-1 gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="city-name">Nombre de la Ciudad</Label>
+                        <Input id="city-name" name="city-name" defaultValue={editingCity?.name || ''} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="city-fee">Tarifa de Suscripción ($)</Label>
+                        <Input id="city-fee" name="city-fee" type="number" defaultValue={editingCity?.subscriptionFee || 0} />
+                    </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>

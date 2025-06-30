@@ -3,13 +3,12 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import * as firestoreService from './firestoreService';
-import type { AppSettings, Coupon, CompanyExpense, BankDetail } from './types';
+import type { AppSettings, Coupon, CompanyExpense, BankDetail, City } from './types';
 import { useToast } from '@/hooks/use-toast';
 
 interface SettingsContextType {
   settings: AppSettings | null;
-  doctorSubscriptionFee: number;
-  cities: string[];
+  cities: City[];
   specialties: string[];
   beautySpecialties: string[];
   timezone: string;
@@ -21,9 +20,9 @@ interface SettingsContextType {
 
   updateSetting: (key: keyof Omit<AppSettings, 'cities' | 'specialties' | 'companyBankDetails'>, value: any) => Promise<void>;
   
-  addListItem: (listName: 'cities' | 'specialties', item: string) => Promise<void>;
-  updateListItem: (listName: 'cities' | 'specialties', oldItem: string, newItem: string) => Promise<void>;
-  deleteListItem: (listName: 'cities' | 'specialties', item: string) => Promise<void>;
+  addListItem: (listName: 'cities' | 'specialties', item: City | string) => Promise<void>;
+  updateListItem: (listName: 'cities' | 'specialties', oldItemName: string, newItem: City | string) => Promise<void>;
+  deleteListItem: (listName: 'cities' | 'specialties', itemToDeleteName: string) => Promise<void>;
   
   addCompanyExpense: (expense: Omit<CompanyExpense, 'id'>) => Promise<void>;
   updateCompanyExpense: (id: string, data: Partial<CompanyExpense>) => Promise<void>;
@@ -42,7 +41,6 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 const skeletonContextValue: SettingsContextType = {
   settings: null,
-  doctorSubscriptionFee: 50, // A sensible default
   cities: [],
   specialties: [],
   beautySpecialties: [],
@@ -104,29 +102,57 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(newSettings);
   }, [settings]);
   
-  const addListItem = useCallback(async (listName: 'cities' | 'specialties', item: string) => {
+  const addListItem = useCallback(async (listName: 'cities' | 'specialties', item: City | string) => {
     if (!settings || !item) return;
-    const list = settings[listName] || [];
-    if (list.map(i => i.toLowerCase()).includes(item.toLowerCase())) {
-        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `"${item}" ya existe en la lista.` });
+
+    if (listName === 'cities') {
+      const cityItem = item as City;
+      const list = settings.cities || [];
+      if (list.some(c => c.name.toLowerCase() === cityItem.name.toLowerCase())) {
+        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `La ciudad "${cityItem.name}" ya existe.` });
         return;
+      }
+      const newList = [...list, cityItem];
+      await updateSetting('cities', newList);
+    } else { // It's a specialty (string)
+      const specialtyItem = item as string;
+      const list = settings.specialties || [];
+      if (list.map(i => i.toLowerCase()).includes(specialtyItem.toLowerCase())) {
+        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `"${specialtyItem}" ya existe en la lista.` });
+        return;
+      }
+      const newList = [...list, specialtyItem];
+      await updateSetting('specialties', newList);
     }
-    const newList = [...list, item];
-    await updateSetting(listName, newList);
   }, [settings, updateSetting, toast]);
 
-  const updateListItem = useCallback(async (listName: 'cities' | 'specialties', oldItem: string, newItem: string) => {
+  const updateListItem = useCallback(async (listName: 'cities' | 'specialties', oldItemName: string, newItem: City | string) => {
     if (!settings || !newItem) return;
-    const list = settings[listName] || [];
-    const newList = list.map(item => item === oldItem ? newItem : item);
-    await updateSetting(listName, newList);
+
+    if (listName === 'cities') {
+      const newCityItem = newItem as City;
+      const list = settings.cities || [];
+      const newList = list.map(item => item.name === oldItemName ? newCityItem : item);
+      await updateSetting('cities', newList);
+    } else { // It's a specialty (string)
+      const newSpecialtyItem = newItem as string;
+      const list = settings.specialties || [];
+      const newList = list.map(item => item === oldItemName ? newSpecialtyItem : item);
+      await updateSetting('specialties', newList);
+    }
   }, [settings, updateSetting]);
 
-  const deleteListItem = useCallback(async (listName: 'cities' | 'specialties', itemToDelete: string) => {
+  const deleteListItem = useCallback(async (listName: 'cities' | 'specialties', itemToDeleteName: string) => {
     if (!settings) return;
-    const list = settings[listName] || [];
-    const newList = list.filter(item => item !== itemToDelete);
-    await updateSetting(listName, newList);
+    if (listName === 'cities') {
+      const list = settings.cities || [];
+      const newList = list.filter(item => item.name !== itemToDeleteName);
+      await updateSetting('cities', newList);
+    } else { // It's a specialty (string)
+      const list = settings.specialties || [];
+      const newList = list.filter(item => item !== itemToDeleteName);
+      await updateSetting('specialties', newList);
+    }
   }, [settings, updateSetting]);
 
   const addCompanyExpense = useCallback(async (expense: Omit<CompanyExpense, 'id'>) => {
@@ -180,7 +206,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const value: SettingsContextType = {
     settings,
-    doctorSubscriptionFee: settings?.doctorSubscriptionFee || 0,
     cities: settings?.cities || [],
     specialties: settings?.specialties || [],
     beautySpecialties: settings?.beautySpecialties || [],

@@ -197,7 +197,7 @@ export default function ProfilePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {cities.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                        <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
