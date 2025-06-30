@@ -158,7 +158,8 @@ export default function SellerDashboardPage() {
   const [isMaterialDetailOpen, setIsMaterialDetailOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<MarketingMaterial | null>(null);
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
-
+  const [isDoctorPaymentsDialogOpen, setIsDoctorPaymentsDialogOpen] = useState(false);
+  const [selectedDoctorForPayments, setSelectedDoctorForPayments] = useState<Doctor | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'seller' || !user.id) return;
@@ -277,6 +278,10 @@ export default function SellerDashboardPage() {
     return doctors;
   }, [referredDoctors, searchTerm, cityFilter, doctorsToShow]);
 
+  const handleViewDoctorPayments = (doctor: Doctor) => {
+    setSelectedDoctorForPayments(doctor);
+    setIsDoctorPaymentsDialogOpen(true);
+  };
 
    const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -631,6 +636,7 @@ export default function SellerDashboardPage() {
                                         <TableRow>
                                             <TableHead>Médico</TableHead><TableHead>Contacto</TableHead><TableHead>Especialidad</TableHead>
                                             <TableHead>Ubicación</TableHead><TableHead>Fecha de Registro</TableHead><TableHead className="text-center">Estado</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -647,9 +653,15 @@ export default function SellerDashboardPage() {
                                                     {doctor.status === 'active' ? <CheckCircle className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
                                                     {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
                                                 </Badge></TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="icon" onClick={() => handleViewDoctorPayments(doctor)}>
+                                                        <DollarSign className="h-4 w-4"/>
+                                                        <span className="sr-only">Ver Pagos</span>
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         )) : (
-                                            <TableRow><TableCell colSpan={6} className="h-24 text-center">No se encontraron médicos con los filtros actuales.</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={7} className="h-24 text-center">No se encontraron médicos con los filtros actuales.</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
@@ -663,7 +675,6 @@ export default function SellerDashboardPage() {
                                                     {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
                                                 </Badge>
                                             </div>
-                                            <Separator/>
                                             <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                                                 <div><p className="font-semibold text-xs text-muted-foreground mb-1">Ubicación</p><p>{doctor.city}</p></div>
                                                 <div><p className="font-semibold text-xs text-muted-foreground mb-1">Fecha Registro</p><p>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</p></div>
@@ -674,6 +685,10 @@ export default function SellerDashboardPage() {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <Separator />
+                                            <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewDoctorPayments(doctor)}>
+                                                <DollarSign className="mr-2 h-4 w-4" /> Ver Historial de Pagos
+                                            </Button>
                                         </div>
                                     )) : (<div className="h-24 text-center flex items-center justify-center text-muted-foreground">No se encontraron médicos con los filtros actuales.</div>)}
                                 </div>
@@ -745,86 +760,6 @@ export default function SellerDashboardPage() {
                                 </div>
                             </CardFooter>
                         </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Actividad de Suscripciones de Referidos</CardTitle>
-                                <CardDescription>
-                                    Revisa los últimos pagos de suscripción de los médicos que has referido.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table className="hidden md:table">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Médico</TableHead>
-                                            <TableHead>Fecha de Pago</TableHead>
-                                            <TableHead className="text-right">Monto</TableHead>
-                                            <TableHead className="text-center">Estado</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {doctorPayments.length > 0 ? (
-                                            doctorPayments
-                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                                .slice(0, 10)
-                                                .map(payment => (
-                                                    <TableRow key={payment.id}>
-                                                        <TableCell className="font-medium">{payment.doctorName}</TableCell>
-                                                        <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                        <TableCell className="text-right font-mono">${payment.amount.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-center">
-                                                            <Badge className={cn({
-                                                                'bg-green-600 text-white': payment.status === 'Paid',
-                                                                'bg-amber-500 text-white': payment.status === 'Pending',
-                                                                'bg-red-600 text-white': payment.status === 'Rejected',
-                                                            })}>
-                                                                {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
-                                                            </Badge>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">
-                                                    No hay pagos registrados de tus médicos referidos.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                                <div className="space-y-4 md:hidden">
-                                    {doctorPayments.length > 0 ? (
-                                        doctorPayments
-                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                            .slice(0, 10)
-                                            .map(payment => (
-                                                <div key={payment.id} className="p-4 border rounded-lg space-y-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <p className="font-semibold">{payment.doctorName}</p>
-                                                            <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
-                                                        </div>
-                                                        <Badge className={cn({
-                                                            'bg-green-600 text-white': payment.status === 'Paid',
-                                                            'bg-amber-500 text-white': payment.status === 'Pending',
-                                                            'bg-red-600 text-white': payment.status === 'Rejected',
-                                                        })}>
-                                                            {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-right font-mono text-lg">${payment.amount.toFixed(2)}</p>
-                                                </div>
-                                            ))
-                                    ) : (
-                                        <p className="text-center text-muted-foreground py-8">
-                                            No hay pagos registrados de tus médicos referidos.
-                                        </p>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
 
                          <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
@@ -1172,6 +1107,59 @@ export default function SellerDashboardPage() {
                         <Button type="submit">Guardar Médico</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isDoctorPaymentsDialogOpen} onOpenChange={setIsDoctorPaymentsDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Historial de Pagos de {selectedDoctorForPayments?.name}</DialogTitle>
+                    <DialogDescription>
+                        Lista de todos los pagos de suscripción realizados por este médico.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 max-h-[60vh] overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Monto</TableHead>
+                                <TableHead>Estado</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {doctorPayments.filter(p => p.doctorId === selectedDoctorForPayments?.id).length > 0 ? (
+                                doctorPayments
+                                    .filter(p => p.doctorId === selectedDoctorForPayments?.id)
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map(payment => (
+                                        <TableRow key={payment.id}>
+                                            <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                            <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                            <TableCell>
+                                                <Badge className={cn({
+                                                    'bg-green-600 text-white': payment.status === 'Paid',
+                                                    'bg-amber-500 text-white': payment.status === 'Pending',
+                                                    'bg-red-600 text-white': payment.status === 'Rejected',
+                                                })}>
+                                                    {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        Este médico no tiene pagos registrados.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
