@@ -2441,7 +2441,7 @@ export default function AdminDashboardPage() {
                             <p className="col-span-full"><strong>Ubicación:</strong> {`${selectedDoctor.address}, ${selectedDoctor.sector}, ${selectedDoctor.city}`}</p>
                             <p><strong>Miembro desde:</strong> {format(new Date(selectedDoctor.joinDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
                             <p><strong>Duración de Cita:</strong> {selectedDoctor.slotDuration} min</p>
-                            <p><strong>Tarifa de Consulta:</strong> ${selectedDoctor.consultationFee.toFixed(2)}</p>
+                            <p><strong>Tarifa de Consulta:</strong> ${(selectedDoctor.consultationFee ?? 0).toFixed(2)}</p>
                             <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
                             <div className="flex items-center gap-2">
                                 <strong>Estado:</strong>
@@ -2834,6 +2834,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-
-
