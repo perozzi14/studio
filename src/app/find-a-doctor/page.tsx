@@ -62,7 +62,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
 };
 
 export default function FindDoctorPage() {
-  const { cities, specialties } = useSettings();
+  const { cities, specialties, beautySpecialties } = useSettings();
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,9 +114,12 @@ export default function FindDoctorPage() {
       .slice(0, 6);
   }, [allDoctors]);
 
-  const aestheticDoctors = useMemo(() => {
-    return allDoctors.filter((d) => d.specialty === "Medicina Estética");
-  }, [allDoctors]);
+  const beautyDoctors = useMemo(() => {
+    if (!beautySpecialties || beautySpecialties.length === 0) {
+        return [];
+    }
+    return allDoctors.filter((d) => beautySpecialties.includes(d.specialty));
+  }, [allDoctors, beautySpecialties]);
 
 
   const visibleSpecialties = showAllSpecialties
@@ -309,10 +312,10 @@ export default function FindDoctorPage() {
                 </Carousel>
               </section>
 
-              {aestheticDoctors.length > 0 && (
+              {beautyDoctors.length > 0 && (
                 <section>
                   <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <Sparkles className="text-pink-400" /> Medicina Estética
+                    <Sparkles className="text-pink-400" /> Belleza y Bienestar
                   </h2>
                   <Carousel
                     opts={{
@@ -322,7 +325,7 @@ export default function FindDoctorPage() {
                     className="w-full"
                   >
                     <CarouselContent>
-                      {aestheticDoctors.map((doctor) => (
+                      {beautyDoctors.map((doctor) => (
                         <CarouselItem
                           key={doctor.id}
                           className="md:basis-1/2 lg:basis-1/3"

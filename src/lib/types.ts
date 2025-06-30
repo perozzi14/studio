@@ -5,6 +5,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -226,4 +227,5 @@ export type AppSettings = {
     timezone: string;
     logoUrl: string;
     currency: string;
+    beautySpecialties?: string[];
 }

@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -50,6 +50,7 @@ import { Textarea } from '@/components/ui/textarea';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { z } from 'zod';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -177,6 +178,7 @@ export default function AdminDashboardPage() {
       doctorSubscriptionFee,
       cities,
       specialties,
+      beautySpecialties,
       coupons,
       timezone,
       logoUrl,
@@ -282,9 +284,12 @@ export default function AdminDashboardPage() {
         return;
     }
 
-    let finalLogoUrl = tempLogoUrl;
+    let finalLogoUrl = logoUrl;
     if (logoFile) {
+        // In a real app, upload to storage and get URL.
         finalLogoUrl = 'https://placehold.co/150x50.png';
+    } else {
+        finalLogoUrl = tempLogoUrl;
     }
 
     await updateSetting('doctorSubscriptionFee', newFee);
@@ -859,6 +864,16 @@ export default function AdminDashboardPage() {
       
       fetchData();
       setIsMarketingDialogOpen(false);
+  };
+
+  const handleBeautySpecialtyChange = async (specialty: string, checked: boolean) => {
+    const currentList = beautySpecialties || [];
+    const newList = checked
+      ? [...currentList, specialty]
+      : currentList.filter((s) => s !== specialty);
+    
+    await updateSetting('beautySpecialties', newList);
+    toast({ title: "Especialidades de Belleza Actualizadas" });
   };
 
 
@@ -1808,6 +1823,31 @@ export default function AdminDashboardPage() {
                             </CardContent>
                         </Card>
                       </div>
+
+                       <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Sparkles /> Especialidades de Belleza</CardTitle>
+                                <CardDescription>Selecciona qué especialidades aparecerán en la sección destacada de "Belleza y Bienestar" en la página de búsqueda.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2 max-h-60 overflow-y-auto">
+                                {specialties.map(spec => (
+                                    <div key={spec} className="flex items-center space-x-3">
+                                        <Checkbox
+                                            id={`beauty-${spec}`}
+                                            checked={(beautySpecialties || []).includes(spec)}
+                                            onCheckedChange={(checked) => handleBeautySpecialtyChange(spec, !!checked)}
+                                        />
+                                        <label
+                                            htmlFor={`beauty-${spec}`}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                           {spec}
+                                        </label>
+                                    </div>
+                                ))}
+                                {specialties.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">Primero debes agregar especialidades.</p>}
+                            </CardContent>
+                        </Card>
 
                       <Card>
                         <CardHeader>

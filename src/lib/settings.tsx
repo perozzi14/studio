@@ -11,6 +11,7 @@ interface SettingsContextType {
   doctorSubscriptionFee: number;
   cities: string[];
   specialties: string[];
+  beautySpecialties: string[];
   timezone: string;
   logoUrl: string;
   currency: string;
@@ -44,6 +45,7 @@ const skeletonContextValue: SettingsContextType = {
   doctorSubscriptionFee: 50, // A sensible default
   cities: [],
   specialties: [],
+  beautySpecialties: [],
   timezone: '',
   logoUrl: '',
   currency: 'USD',
@@ -181,6 +183,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     doctorSubscriptionFee: settings?.doctorSubscriptionFee || 0,
     cities: settings?.cities || [],
     specialties: settings?.specialties || [],
+    beautySpecialties: settings?.beautySpecialties || [],
     timezone: settings?.timezone || '',
     logoUrl: settings?.logoUrl || '',
     currency: settings?.currency || 'USD',

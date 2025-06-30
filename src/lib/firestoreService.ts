@@ -115,6 +115,7 @@ export const seedDatabase = async () => {
         timezone: 'America/Caracas',
         logoUrl: '/logo.svg',
         currency: 'USD',
+        beautySpecialties: ["Medicina Estética"],
     };
     batch.set(settingsRef, settingsData);
 
