@@ -120,7 +120,7 @@ const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10
 const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
 
 
-const chartConfig: ChartConfig = {
+const chartConfig = {
   income: {
     label: "Ingresos",
     color: "hsl(var(--primary))",
@@ -129,15 +129,15 @@ const chartConfig: ChartConfig = {
     label: "Gastos",
     color: "hsl(var(--destructive))",
   },
-};
+} satisfies ChartConfig;
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
     week: 'Esta Semana',
     month: 'Este Mes',
     year: 'Este Año',
+    all: 'Todos',
 };
-
 
 function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails }: { appointment: Appointment, onConfirmPayment: (id: string) => void, onViewDetails: (appointment: Appointment) => void }) {
     return (
@@ -218,7 +218,7 @@ export default function DoctorDashboardPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
 
   const [doctorData, setDoctorData] = useState<Doctor | null>(null);
   const [profileForm, setProfileForm] = useState<Doctor | null>(null);
@@ -359,77 +359,48 @@ export default function DoctorDashboardPage() {
     if (!doctorData || !appointments) return null;
 
     const now = new Date();
-    let startDate, endDate;
+    let filteredAppointments = appointments;
+    let filteredExpenses = doctorData.expenses || [];
 
-    switch (timeRange) {
-        case 'today': startDate = startOfDay(now); endDate = endOfDay(now); break;
-        case 'week': startDate = startOfWeek(now, { locale: es }); endDate = endOfDay(now); break;
-        case 'year': startDate = startOfYear(now); endDate = endOfYear(now); break;
-        case 'month': default: startDate = startOfMonth(now); endDate = endOfMonth(now); break;
+    if (timeRange !== 'all') {
+        let startDate: Date, endDate: Date;
+        switch (timeRange) {
+            case 'today':
+                startDate = startOfDay(now);
+                endDate = endOfDay(now);
+                break;
+            case 'week':
+                startDate = startOfWeek(now, { locale: es });
+                endDate = endOfDay(now);
+                break;
+            case 'year':
+                startDate = startOfYear(now);
+                endDate = endOfYear(now);
+                break;
+            case 'month':
+            default:
+                startDate = startOfMonth(now);
+                endDate = endOfMonth(now);
+                break;
+        }
+
+        filteredAppointments = appointments.filter(a => {
+            const apptDate = new Date(a.date + 'T00:00:00');
+            return apptDate >= startDate && apptDate <= endDate;
+        });
+
+        filteredExpenses = (doctorData.expenses || []).filter(e => {
+            const expDate = new Date(e.date + 'T00:00:00');
+            return expDate >= startDate && expDate <= endDate;
+        });
     }
 
-    const filteredAppointments = appointments.filter(a => {
-        const apptDate = new Date(a.date + 'T00:00:00');
-        return apptDate >= startDate && apptDate <= endDate;
-    });
-
-    const filteredExpenses = (doctorData.expenses || []).filter(e => {
-        const expDate = new Date(e.date + 'T00:00:00');
-        return expDate >= startDate && expDate <= endDate;
-    });
-    
     const paidAppointments = filteredAppointments.filter(a => a.paymentStatus === 'Pagado');
     const totalRevenue = paidAppointments.reduce((sum, a) => sum + a.totalPrice, 0);
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
-
-    let chartData: { label: string; income: number; expenses: number; }[] = [];
-
-    if (timeRange === 'year') {
-        const monthOrder = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        const monthlyData: Record<string, { income: number; expenses: number }> = {};
-        monthOrder.forEach(m => monthlyData[m] = { income: 0, expenses: 0 });
-        paidAppointments.forEach(appt => {
-            const month = format(new Date(appt.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
-            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
-            if (monthlyData[capitalizedMonth]) monthlyData[capitalizedMonth].income += appt.totalPrice;
-        });
-        filteredExpenses.forEach(exp => {
-            const month = format(new Date(exp.date + 'T00:00:00'), 'MMM', { locale: es }).replace('.','');
-            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
-            if (monthlyData[capitalizedMonth]) monthlyData[capitalizedMonth].expenses += exp.amount;
-        });
-        chartData = Object.entries(monthlyData).map(([label, data]) => ({ label, ...data })).filter(d => d.income > 0 || d.expenses > 0);
-    } else if (timeRange === 'month') {
-        const weeklyData: Record<string, { income: number; expenses: number }> = {};
-        paidAppointments.forEach(appt => {
-            const weekNumber = getWeek(new Date(appt.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
-            const weekLabel = `Semana ${weekNumber}`;
-            if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
-            weeklyData[weekLabel].income += appt.totalPrice;
-        });
-        filteredExpenses.forEach(exp => {
-            const weekNumber = getWeek(new Date(exp.date + 'T00:00:00'), { locale: es, weekStartsOn: 1 });
-            const weekLabel = `Semana ${weekNumber}`;
-            if (!weeklyData[weekLabel]) weeklyData[weekLabel] = { income: 0, expenses: 0 };
-            weeklyData[weekLabel].expenses += exp.amount;
-        });
-        chartData = Object.entries(weeklyData).map(([label, data]) => ({ label, ...data })).sort((a,b) => parseInt(a.label.split(' ')[1]) - parseInt(b.label.split(' ')[1]));
-    } else if (timeRange === 'week') {
-        const dailyData: Record<string, { income: number; expenses: number }> = {};
-        const daysOfWeek = eachDayOfInterval({ start: startDate, end: endDate });
-        const dayOrder = daysOfWeek.map(d => format(d, "E", { locale: es }));
-        dayOrder.forEach(dayLabel => dailyData[dayLabel] = { income: 0, expenses: 0 });
-        paidAppointments.forEach(appt => {
-            const dayLabel = format(new Date(appt.date + 'T00:00:00'), "E", { locale: es });
-            if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].income += appt.totalPrice;
-        });
-        filteredExpenses.forEach(exp => {
-            const dayLabel = format(new Date(exp.date + 'T00:00:00'), "E", { locale: es });
-            if (dailyData[dayLabel] !== undefined) dailyData[dayLabel].expenses += exp.amount;
-        });
-        chartData = dayOrder.map(label => ({ label, ...dailyData[label] }));
-    }
+    
+    const chartData: { label: string; income: number; expenses: number; }[] = [];
 
     return { totalRevenue, totalExpenses, netProfit, chartData, paidAppointments, paidAppointmentsCount: paidAppointments.length };
   }, [doctorData, appointments, timeRange]);
@@ -836,13 +807,15 @@ export default function DoctorDashboardPage() {
   
   const handleGenerateFinanceReport = () => {
     if (!financialStats || !doctorData) return;
-    const doc = new jsPDF();
 
+    const doc = new jsPDF();
+    
     doc.setFontSize(18);
     doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
-    
+
+    const timeLabel = timeRangeLabels[timeRange];
     doc.setFontSize(12);
-    doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
+    doc.text(`Período: ${timeLabel} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
     
     const summaryData = [
         ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
@@ -857,41 +830,41 @@ export default function DoctorDashboardPage() {
         body: summaryData,
         theme: 'grid'
     });
-    
+
     let lastY = (doc as any).lastAutoTable.finalY + 15;
     
     doc.setFontSize(14);
     doc.text("Detalle de Ingresos", 14, lastY);
     
-    const incomeBody = financialStats.paidAppointments.map(a => [ 
-        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'), 
-        a.patientName, 
-        a.services.map(s => s.name).join(', '), 
-        `$${a.totalPrice.toFixed(2)}` 
+    const incomeData = financialStats.paidAppointments.map(a => [
+        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
+        a.patientName,
+        a.services.map(s => s.name).join(', '),
+        `$${a.totalPrice.toFixed(2)}`
     ]);
 
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Paciente', 'Servicios', 'Monto']],
-        body: incomeBody,
+        body: incomeData,
         theme: 'striped'
     });
-    
-    lastY = (doc as any).lastAutoTable.finalY + 15;
 
+    lastY = (doc as any).lastAutoTable.finalY + 15;
+    
     doc.setFontSize(14);
     doc.text("Detalle de Gastos", 14, lastY);
-
-    const expenseBody = (doctorData.expenses || []).map(e => [ 
-        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'), 
-        e.description, 
-        `$${e.amount.toFixed(2)}` 
-    ]);
     
+    const expenseData = (doctorData.expenses || []).map(e => [
+        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
+        e.description,
+        `$${e.amount.toFixed(2)}`
+    ]);
+
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Descripción', 'Monto']],
-        body: expenseBody,
+        body: expenseData,
         theme: 'striped'
     });
     
@@ -1205,11 +1178,12 @@ export default function DoctorDashboardPage() {
               <div className="mt-6">
                 <div className="space-y-6">
                     <div className="w-full">
-                        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
                             <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
                             <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
                             <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
                             <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                            <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Todos</Button>
                         </div>
                     </div>
 
