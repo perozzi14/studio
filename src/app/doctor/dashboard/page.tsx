@@ -68,7 +68,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const ServiceFormSchema = z.object({
   name: z.string().min(3, "El nombre del servicio es requerido."),
   price: z.number().positive("El precio debe ser un número positivo."),
-});
+})
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -76,24 +76,24 @@ const BankDetailFormSchema = z.object({
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
   description: z.string().optional(),
-});
+})
 
 const ExpenseFormSchema = z.object({
   description: z.string().min(3, "La descripción es requerida."),
   amount: z.number().positive("El monto debe ser un número positivo."),
   date: z.string().min(1, "La fecha es requerida."),
-});
+})
 
 const CouponFormSchema = z.object({
   code: z.string().min(3, "El código debe tener al menos 3 caracteres.").toUpperCase(),
   discountType: z.enum(['percentage', 'fixed']),
   value: z.number().positive("El valor debe ser positivo."),
-});
+})
 
 const SupportTicketSchema = z.object({
   subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres."),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
-});
+})
 
 const ProfileFormSchema = z.object({
     name: z.string().min(3, "El nombre es requerido."),
@@ -107,17 +107,17 @@ const ProfileFormSchema = z.object({
     address: z.string().min(10, "La dirección completa es requerida."),
     profileImage: z.string().optional(),
     bannerImage: z.string().optional(),
-});
+})
 
 const SubscriptionPaymentSchema = z.object({
   amount: z.number().positive("El monto debe ser positivo."),
   date: z.string().min(1, "La fecha es requerida."),
   transactionId: z.string().min(5, "La referencia es requerida."),
   paymentProof: z.any().refine(file => file?.name, "El comprobante es requerido."),
-});
+})
 
-const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.");
-const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
+const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.")
+const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.")
 
 
 const chartConfig = {
@@ -129,7 +129,7 @@ const chartConfig = {
     label: "Gastos",
     color: "hsl(var(--destructive))",
   },
-} satisfies ChartConfig;
+} satisfies ChartConfig
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
