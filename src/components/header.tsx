@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -29,6 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
+import { useDoctorNotifications } from "@/lib/doctor-notifications";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import * as firestoreService from '@/lib/firestoreService';
@@ -40,15 +41,13 @@ import { es } from 'date-fns/locale';
 export function Header() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
+  const { doctorNotifications, doctorUnreadCount, checkAndSetDoctorNotifications, markDoctorNotificationsAsRead } = useDoctorNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
   
-  const [doctorNotifications, setDoctorNotifications] = useState<DoctorNotification[]>([]);
-  const [doctorUnreadCount, setDoctorUnreadCount] = useState(0);
-
   const getAdminNotificationIcon = (type: AdminNotification['type']) => {
     switch(type) {
         case 'payment': return <DollarSign className="h-4 w-4 text-green-500" />;
@@ -61,6 +60,10 @@ export function Header() {
   const getDoctorNotificationIcon = (type: DoctorNotification['type']) => {
     switch(type) {
         case 'payment_verification': return <DollarSign className="h-4 w-4 text-amber-500" />;
+        case 'patient_confirmed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+        case 'patient_cancelled': return <XCircle className="h-4 w-4 text-red-500" />;
+        case 'new_message': return <MessageSquare className="h-4 w-4 text-blue-500" />;
+        case 'support_reply': return <LifeBuoy className="h-4 w-4 text-orange-500" />;
         default: return <BellRing className="h-4 w-4 text-primary" />;
     }
   };
@@ -113,40 +116,23 @@ export function Header() {
     const interval = setInterval(fetchAdminNotifications, 60000); // Poll every 60 seconds
     return () => clearInterval(interval);
   }, [fetchAdminNotifications]);
-
-  const fetchDoctorNotifications = useCallback(async () => {
-    if (user?.role !== 'doctor' || !user.id) {
-        setDoctorNotifications([]);
-        setDoctorUnreadCount(0);
-        return;
-    }
-
-    const appointments = await firestoreService.getDoctorAppointments(user.id);
-
-    const paymentVerificationNotifications: DoctorNotification[] = appointments
-        .filter(appt => appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente')
-        .map(appt => ({
-            id: `verify-${appt.id}`,
-            type: 'payment_verification',
-            title: 'Verificación de Pago',
-            description: `El paciente ${appt.patientName} espera aprobación.`,
-            date: appt.date,
-            read: false, // These are always "unread" until actioned
-            link: `/doctor/dashboard?view=appointments`
-        }));
-    
-    const allNotifications = [...paymentVerificationNotifications]
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    setDoctorNotifications(allNotifications);
-    setDoctorUnreadCount(allNotifications.length);
-  }, [user]);
-
+  
   useEffect(() => {
-    fetchDoctorNotifications();
-    const interval = setInterval(fetchDoctorNotifications, 60000);
+    const fetchDoctorDataForNotifications = async () => {
+        if (user?.role === 'doctor' && user.id) {
+            const [appointments, tickets] = await Promise.all([
+                firestoreService.getDoctorAppointments(user.id),
+                firestoreService.getSupportTickets()
+            ]);
+            const userTickets = tickets.filter(t => t.userId === user.email);
+            checkAndSetDoctorNotifications(appointments, userTickets);
+        }
+    };
+    
+    fetchDoctorDataForNotifications();
+    const interval = setInterval(fetchDoctorDataForNotifications, 30000); // Check every 30s
     return () => clearInterval(interval);
-  }, [fetchDoctorNotifications]);
+  }, [user, checkAndSetDoctorNotifications]);
 
 
   const markAdminNotificationsAsRead = async () => {
@@ -305,7 +291,7 @@ export function Header() {
           )}
 
           {user && isDoctor && (
-            <Popover>
+            <Popover onOpenChange={(open) => { if (open && doctorUnreadCount > 0) markDoctorNotificationsAsRead(); }}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative ml-2">
                   <Bell className="h-5 w-5" />
@@ -324,14 +310,14 @@ export function Header() {
                 {doctorNotifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
                     {doctorNotifications.map(n => (
-                      <Link href={n.link} key={n.id} className="p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50">
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
                         <div className="mt-1">
                           {getDoctorNotificationIcon(n.type)}
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.createdAt), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -500,7 +486,7 @@ export function Header() {
           )}
 
           {user && isDoctor && (
-            <Popover>
+            <Popover onOpenChange={(open) => { if (open && doctorUnreadCount > 0) markDoctorNotificationsAsRead(); }}>
                 <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
@@ -519,14 +505,14 @@ export function Header() {
                 {doctorNotifications.length > 0 ? (
                     <div className="space-y-1 max-h-80 overflow-y-auto">
                     {doctorNotifications.map(n => (
-                        <Link href={n.link} key={n.id} className="p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50">
+                        <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
                         <div className="mt-1">
                             {getDoctorNotificationIcon(n.type)}
                         </div>
                         <div className="flex-1">
                             <p className="font-semibold text-sm">{n.title}</p>
                             <p className="text-xs text-muted-foreground">{n.description}</p>
-                            <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                            <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.createdAt), { locale: es, addSuffix: true })}</p>
                         </div>
                         </Link>
                     ))}

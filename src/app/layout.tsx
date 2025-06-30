@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth";
 import { AppointmentProvider } from "@/lib/appointments";
 import { NotificationProvider } from "@/lib/notifications";
+import { DoctorNotificationProvider } from "@/lib/doctor-notifications";
 import { SettingsProvider } from "@/lib/settings";
 import "./globals.css";
 
@@ -35,10 +36,12 @@ export default function RootLayout({
         <AuthProvider>
           <AppointmentProvider>
             <NotificationProvider>
-              <SettingsProvider>
-                {children}
-                <Toaster />
-              </SettingsProvider>
+              <DoctorNotificationProvider>
+                <SettingsProvider>
+                  {children}
+                  <Toaster />
+                </SettingsProvider>
+              </DoctorNotificationProvider>
             </NotificationProvider>
           </AppointmentProvider>
         </AuthProvider>

@@ -4,6 +4,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -204,10 +205,11 @@ export type AdminNotification = {
 
 export type DoctorNotification = {
     id: string;
-    type: 'payment_verification' | 'support_reply' | 'subscription_update';
+    type: 'payment_verification' | 'support_reply' | 'subscription_update' | 'new_message' | 'patient_confirmed' | 'patient_cancelled';
     title: string;
     description: string;
-    date: string; // ISO string
+    date: string; // ISO string of the event
+    createdAt: string; // ISO string of notification creation
     read: boolean;
     link: string;
 };
