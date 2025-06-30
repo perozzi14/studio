@@ -6,10 +6,8 @@ import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { app } from './firebase';
-
-const auth = getAuth(app);
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from './firebase';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
