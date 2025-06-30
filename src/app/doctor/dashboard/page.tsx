@@ -68,7 +68,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const ServiceFormSchema = z.object({
   name: z.string().min(3, "El nombre del servicio es requerido."),
   price: z.number().positive("El precio debe ser un número positivo."),
-})
+});
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -76,24 +76,24 @@ const BankDetailFormSchema = z.object({
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
   description: z.string().optional(),
-})
+});
 
 const ExpenseFormSchema = z.object({
   description: z.string().min(3, "La descripción es requerida."),
   amount: z.number().positive("El monto debe ser un número positivo."),
   date: z.string().min(1, "La fecha es requerida."),
-})
+});
 
 const CouponFormSchema = z.object({
   code: z.string().min(3, "El código debe tener al menos 3 caracteres.").toUpperCase(),
   discountType: z.enum(['percentage', 'fixed']),
   value: z.number().positive("El valor debe ser positivo."),
-})
+});
 
 const SupportTicketSchema = z.object({
   subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres."),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
-})
+});
 
 const ProfileFormSchema = z.object({
     name: z.string().min(3, "El nombre es requerido."),
@@ -107,20 +107,20 @@ const ProfileFormSchema = z.object({
     address: z.string().min(10, "La dirección completa es requerida."),
     profileImage: z.string().optional(),
     bannerImage: z.string().optional(),
-})
+});
 
 const SubscriptionPaymentSchema = z.object({
   amount: z.number().positive("El monto debe ser positivo."),
   date: z.string().min(1, "La fecha es requerida."),
   transactionId: z.string().min(5, "La referencia es requerida."),
   paymentProof: z.any().refine(file => file?.name, "El comprobante es requerido."),
-})
+});
 
-const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.")
-const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.")
+const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.");
+const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
 
 
-const chartConfig = {
+const chartConfig: ChartConfig = {
   income: {
     label: "Ingresos",
     color: "hsl(var(--primary))",
@@ -129,7 +129,7 @@ const chartConfig = {
     label: "Gastos",
     color: "hsl(var(--destructive))",
   },
-} satisfies ChartConfig
+};
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
@@ -693,7 +693,7 @@ export default function DoctorDashboardPage() {
     const result = SupportTicketSchema.safeParse(dataToValidate);
 
     if (!result.success) {
-      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      const errorMessage = result.error.errors.map(e => e.message).join(' ');
       toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
       setIsSubmittingTicket(false);
       return;
@@ -789,17 +789,48 @@ export default function DoctorDashboardPage() {
     }
 
     const doc = new jsPDF();
-    doc.setFontSize(20); doc.setFont("helvetica", "bold"); doc.text(doctorData.name, 20, 20);
-    doc.setFontSize(12); doc.setFont("helvetica", "normal"); doc.text(doctorData.specialty, 20, 27);
-    doc.text(doctorData.address, 20, 34); doc.text(`${doctorData.city}, Venezuela`, 20, 41);
+    
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text(doctorData.name, 20, 20);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(doctorData.specialty, 20, 27);
+    doc.text(doctorData.address, 20, 34);
+    doc.text(`${doctorData.city}, Venezuela`, 20, 41);
+    
     doc.line(20, 50, 190, 50);
-    doc.setFont("helvetica", "bold"); doc.text("Paciente:", 20, 58); doc.setFont("helvetica", "normal"); doc.text(selectedAppointment.patient.name, 40, 58);
-    doc.setFont("helvetica", "bold"); doc.text("Cédula:", 130, 58); doc.setFont("helvetica", "normal"); doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
-    doc.setFont("helvetica", "bold"); doc.text("Fecha:", 20, 66); doc.setFont("helvetica", "normal"); doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Paciente:", 20, 58);
+    doc.setFont("helvetica", "normal");
+    doc.text(selectedAppointment.patient.name, 40, 58);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Cédula:", 130, 58);
+    doc.setFont("helvetica", "normal");
+    doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Fecha:", 20, 66);
+    doc.setFont("helvetica", "normal");
+    doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
+    
     doc.line(20, 75, 190, 75);
-    doc.setFontSize(26); doc.text("Rp.", 20, 90); doc.setFontSize(12);
-    const prescriptionText = result.data; const splitText = doc.splitTextToSize(prescriptionText, 160); doc.text(splitText, 25, 100);
-    doc.line(80, 270, 130, 270); doc.text("Firma del Médico", 105, 275, { align: 'center' }); doc.text(doctorData.cedula, 105, 280, { align: 'center' });
+    
+    doc.setFontSize(26);
+    doc.text("Rp.", 20, 90);
+    
+    doc.setFontSize(12);
+    const prescriptionText = result.data;
+    const splitText = doc.splitTextToSize(prescriptionText, 160);
+    doc.text(splitText, 25, 100);
+    
+    doc.line(80, 270, 130, 270);
+    doc.text("Firma del Médico", 105, 275, { align: 'center' });
+    doc.text(doctorData.cedula, 105, 280, { align: 'center' });
+    
     doc.save(`Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`);
   };
   
@@ -807,33 +838,63 @@ export default function DoctorDashboardPage() {
     if (!financialStats || !doctorData) return;
     const doc = new jsPDF();
 
-    doc.setFontSize(18); doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
-    doc.setFontSize(12); doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
+    doc.setFontSize(18);
+    doc.text(`Reporte Financiero - ${doctorData.name}`, 14, 22);
+    
+    doc.setFontSize(12);
+    doc.text(`Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`, 14, 30);
+    
     const summaryData = [
         ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
         ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
         ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
         ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
     ];
-    (doc as any).autoTable({ startY: 40, head: [['Concepto', 'Monto']], body: summaryData, theme: 'grid' });
+    
+    (doc as any).autoTable({
+        startY: 40,
+        head: [['Concepto', 'Monto']],
+        body: summaryData,
+        theme: 'grid'
+    });
+    
     let lastY = (doc as any).lastAutoTable.finalY + 15;
     
-    doc.setFontSize(14); doc.text("Detalle de Ingresos", 14, lastY);
+    doc.setFontSize(14);
+    doc.text("Detalle de Ingresos", 14, lastY);
+    
+    const incomeBody = financialStats.paidAppointments.map(a => [ 
+        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'), 
+        a.patientName, 
+        a.services.map(s => s.name).join(', '), 
+        `$${a.totalPrice.toFixed(2)}` 
+    ]);
+
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Paciente', 'Servicios', 'Monto']],
-        body: financialStats.paidAppointments.map(a => [ format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'), a.patientName, a.services.map(s => s.name).join(', '), `$${a.totalPrice.toFixed(2)}` ]),
+        body: incomeBody,
         theme: 'striped'
     });
+    
     lastY = (doc as any).lastAutoTable.finalY + 15;
 
-    doc.setFontSize(14); doc.text("Detalle de Gastos", 14, lastY);
+    doc.setFontSize(14);
+    doc.text("Detalle de Gastos", 14, lastY);
+
+    const expenseBody = (doctorData.expenses || []).map(e => [ 
+        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'), 
+        e.description, 
+        `$${e.amount.toFixed(2)}` 
+    ]);
+    
     (doc as any).autoTable({
         startY: lastY + 5,
         head: [['Fecha', 'Descripción', 'Monto']],
-        body: (doctorData.expenses || []).map(e => [ format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'), e.description, `$${e.amount.toFixed(2)}` ]),
+        body: expenseBody,
         theme: 'striped'
     });
+    
     doc.save(`Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
   
