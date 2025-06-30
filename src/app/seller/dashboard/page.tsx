@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage, type Expense } from '@/lib/types';
+import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage, type Expense, type DoctorPayment } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -130,6 +130,7 @@ export default function SellerDashboardPage() {
   const [sellerData, setSellerData] = useState<Seller | null>(null);
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
 
@@ -164,18 +165,21 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
 
     try {
-        const [seller, allDocs, allPayments, materials, allTickets] = await Promise.all([
+        const [seller, allDocs, allPayments, materials, allTickets, allDoctorPayments] = await Promise.all([
             firestoreService.getSeller(user.id),
             firestoreService.getDoctors(),
             firestoreService.getSellerPayments(),
             firestoreService.getMarketingMaterials(),
             firestoreService.getSupportTickets(),
+            firestoreService.getDoctorPayments(),
         ]);
         
         if (seller) {
+            const referredDoctorIds = allDocs.filter(d => d.sellerId === seller.id).map(d => d.id);
             setSellerData(seller);
             setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
             setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
+            setDoctorPayments(allDoctorPayments.filter(p => referredDoctorIds.includes(p.doctorId)));
             setMarketingMaterials(materials);
             setSupportTickets(allTickets.filter(t => t.userId === user.email));
         }
@@ -740,6 +744,85 @@ export default function SellerDashboardPage() {
                                     <span className="text-amber-600">${financeStats.pendingCommission.toFixed(2)}</span>
                                 </div>
                             </CardFooter>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Actividad de Suscripciones de Referidos</CardTitle>
+                                <CardDescription>
+                                    Revisa los últimos pagos de suscripción de los médicos que has referido.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table className="hidden md:table">
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Médico</TableHead>
+                                            <TableHead>Fecha de Pago</TableHead>
+                                            <TableHead className="text-right">Monto</TableHead>
+                                            <TableHead className="text-center">Estado</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {doctorPayments.length > 0 ? (
+                                            doctorPayments
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .slice(0, 10)
+                                                .map(payment => (
+                                                    <TableRow key={payment.id}>
+                                                        <TableCell className="font-medium">{payment.doctorName}</TableCell>
+                                                        <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                        <TableCell className="text-right font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge className={cn({
+                                                                'bg-green-600 text-white': payment.status === 'Paid',
+                                                                'bg-amber-500 text-white': payment.status === 'Pending',
+                                                                'bg-red-600 text-white': payment.status === 'Rejected',
+                                                            })}>
+                                                                {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                    No hay pagos registrados de tus médicos referidos.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                                <div className="space-y-4 md:hidden">
+                                    {doctorPayments.length > 0 ? (
+                                        doctorPayments
+                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                            .slice(0, 10)
+                                            .map(payment => (
+                                                <div key={payment.id} className="p-4 border rounded-lg space-y-3">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-semibold">{payment.doctorName}</p>
+                                                            <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
+                                                        </div>
+                                                        <Badge className={cn({
+                                                            'bg-green-600 text-white': payment.status === 'Paid',
+                                                            'bg-amber-500 text-white': payment.status === 'Pending',
+                                                            'bg-red-600 text-white': payment.status === 'Rejected',
+                                                        })}>
+                                                            {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-right font-mono text-lg">${payment.amount.toFixed(2)}</p>
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-8">
+                                            No hay pagos registrados de tus médicos referidos.
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
                         </Card>
 
 
