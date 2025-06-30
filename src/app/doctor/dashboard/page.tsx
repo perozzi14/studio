@@ -224,7 +224,6 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails 
     );
 }
 
-
 export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -330,7 +329,7 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (doctorData?.id) {
-      setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+        setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
     }
   }, [doctorData]);
 
@@ -463,7 +462,7 @@ export default function DoctorDashboardPage() {
     const now = new Date();
     let filteredAppointments = appointments;
     let filteredExpenses = doctorData.expenses || [];
-    let timeRangeStartDate: Date = startOfYear(now), timeRangeEndDate: Date = endOfYear(now); // Default to year
+    let timeRangeStartDate: Date = startOfYear(now), timeRangeEndDate: Date = endOfYear(now);
 
     if (timeRange !== 'all') {
         switch (timeRange) {
@@ -503,7 +502,7 @@ export default function DoctorDashboardPage() {
     const netProfit = totalRevenue - totalExpenses;
     
     const chartData: { label: string; income: number; expenses: number }[] = [];
-    if (timeRange === 'week' || timeRange === 'month') {
+    if (timeRange === 'week' || timeRange === 'month' || timeRange === 'today') {
         const intervalDays = eachDayOfInterval({ start: timeRangeStartDate, end: timeRangeEndDate });
         intervalDays.forEach(day => {
             const dayString = format(day, 'yyyy-MM-dd');
@@ -522,7 +521,7 @@ export default function DoctorDashboardPage() {
               });
             }
         });
-    } else { // 'year' or 'all'
+    } else {
         const dataByMonth: { [key: string]: { income: number; expenses: number } } = {};
         
         const allRelevantTransactions = [
@@ -859,7 +858,6 @@ export default function DoctorDashboardPage() {
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'bannerImage') => {
       if (e.target.files && e.target.files[0] && profileForm) {
         const file = e.target.files[0];
-        // In a real app, upload to storage and get URL. For now, use blob URL.
         const newUrl = URL.createObjectURL(file);
         setProfileForm(prev => ({ ...prev!, [field]: newUrl }));
       }
@@ -883,7 +881,6 @@ export default function DoctorDashboardPage() {
           return;
       }
       
-      // Note: Image upload logic would go here. For now, we save the blob URL.
       await firestoreService.updateDoctor(doctorData.id, result.data as Partial<Doctor>);
       fetchData();
       toast({ title: "¡Perfil Actualizado!", description: "Tu información personal ha sido guardada correctamente." });
@@ -924,7 +921,7 @@ export default function DoctorDashboardPage() {
     await firestoreService.updateAppointment(selectedAppointment.id, {
       prescription: result.data,
     });
-    fetchData(); // Refresh data
+    fetchData();
     toast({
       title: 'Récipé Guardado',
       description: 'La prescripción del paciente ha sido actualizada.',
@@ -1013,7 +1010,6 @@ export default function DoctorDashboardPage() {
 
     const { amount, date, transactionId, paymentProof: proofFile } = result.data;
 
-    // TODO: Upload file to Firebase Storage and get URL. For now, using a placeholder.
     const newPayment: Omit<DoctorPayment, 'id'> = {
       doctorId: doctorData.id,
       doctorName: doctorData.name,
@@ -1081,7 +1077,6 @@ export default function DoctorDashboardPage() {
         setIsSendingDoctorMessage(false);
     }
   };
-
 
   if (isLoading || !user || !doctorData || !financialStats || !profileForm) {
     return (
@@ -2267,6 +2262,38 @@ export default function DoctorDashboardPage() {
                 )}
             </DialogContent>
         </Dialog>
+
+        <Dialog open={isReportPaymentDialogOpen} onOpenChange={setIsReportPaymentDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Reportar Pago de Suscripción</DialogTitle>
+                    <DialogDescription>Completa los datos de tu pago para que sea verificado por el equipo de SUMA.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleReportPayment} className="grid gap-4 py-4">
+                    <div>
+                        <Label htmlFor="paymentAmount">Monto Pagado ({currency})</Label>
+                        <Input id="paymentAmount" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label htmlFor="paymentDate">Fecha del Pago</Label>
+                        <Input id="paymentDate" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label htmlFor="paymentRef">Referencia de Transacción</Label>
+                        <Input id="paymentRef" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label htmlFor="paymentProof">Comprobante (Imagen o PDF)</Label>
+                        <Input id="paymentProof" type="file" onChange={(e) => setPaymentProof(e.target.files?.[0] || null)} required />
+                    </div>
+                     <DialogFooter className="pt-4">
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit">Enviar Reporte</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 }
