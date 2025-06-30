@@ -4,6 +4,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin';
@@ -191,6 +192,16 @@ export type AdminSupportTicket = {
 export type AdminNotification = {
     id: string;
     type: 'payment' | 'new_doctor' | 'support_ticket';
+    title: string;
+    description: string;
+    date: string; // ISO string
+    read: boolean;
+    link: string;
+};
+
+export type DoctorNotification = {
+    id: string;
+    type: 'payment_verification' | 'support_reply' | 'subscription_update';
     title: string;
     description: string;
     date: string; // ISO string
