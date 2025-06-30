@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from './firebase'; // <-- Added import for auth
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // <-- Added imports for Google Auth
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -17,6 +19,7 @@ interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>; // <-- Added new function
   logout: () => void;
   updateUser: (data: Partial<Patient>) => void;
   toggleFavoriteDoctor: (doctorId: string) => void;
@@ -176,6 +179,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser));
     router.push('/dashboard');
   };
+  
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const googleUser = result.user;
+
+      if (!googleUser.email) {
+        toast({ variant: 'destructive', title: 'Error de Google', description: 'No se pudo obtener el correo electrónico de tu cuenta de Google.' });
+        return;
+      }
+      
+      let userToAuth = await firestoreService.findUserByEmail(googleUser.email);
+
+      // If user doesn't exist, create a new patient record
+      if (!userToAuth) {
+        const newPatientData: Omit<Patient, 'id'> = {
+          name: googleUser.displayName || 'Usuario de Google',
+          email: googleUser.email,
+          password: '', // No password for social logins
+          age: null,
+          gender: null,
+          profileImage: googleUser.photoURL || null,
+          cedula: null,
+          phone: googleUser.phoneNumber || null,
+          city: null,
+          favoriteDoctorIds: []
+        };
+        const newPatientId = await firestoreService.addPatient(newPatientData);
+        userToAuth = { ...newPatientData, id: newPatientId, role: 'patient' };
+      }
+      
+      // Deny login if the email belongs to a non-patient user
+      if (userToAuth.role !== 'patient') {
+        toast({ variant: 'destructive', title: 'Acceso Denegado', description: 'El inicio de sesión con Google es solo para pacientes. Por favor, usa tu correo y contraseña.' });
+        return;
+      }
+
+      const loggedInUser = buildUserFromData(userToAuth);
+      setUser(loggedInUser);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+
+      router.push('/dashboard');
+      
+    } catch (error: any) {
+      console.error("Error during Google sign-in:", error);
+      toast({ variant: 'destructive', title: 'Error de Autenticación', description: `No se pudo iniciar sesión con Google. ${error.message}` });
+    }
+  };
 
   const logout = () => {
     setUser(null);
@@ -206,7 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, toggleFavoriteDoctor }}>
+    <AuthContext.Provider value={{ user, login, register, signInWithGoogle, logout, updateUser, toggleFavoriteDoctor }}>
       {children}
     </AuthContext.Provider>
   );
