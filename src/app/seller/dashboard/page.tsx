@@ -186,7 +186,7 @@ export default function SellerDashboardPage() {
   }, [doctorSubscriptionFee, sellerData]);
 
   const financeStats = useMemo(() => {
-    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
     
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     const pendingCommission = activeReferred.length * commissionPerDoctor;
@@ -223,6 +223,7 @@ export default function SellerDashboardPage() {
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
     const nextPaymentYear = getMonth(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
+    const currentPeriod = format(new Date(), "LLLL 'de' yyyy", { locale: es });
 
     return { 
         totalReferred: referredDoctors.length, 
@@ -232,6 +233,7 @@ export default function SellerDashboardPage() {
         totalExpenses,
         netProfit,
         nextPaymentDate,
+        currentPeriod,
         filteredPayments,
         filteredExpenses,
         activeReferred,
@@ -599,7 +601,8 @@ export default function SellerDashboardPage() {
                             <CardHeader>
                                 <CardTitle>Desglose de Comisiones Pendientes</CardTitle>
                                 <CardDescription>
-                                    Comisiones estimadas a pagar el próximo <span className="font-semibold text-primary">{financeStats.nextPaymentDate}</span>, basadas en tus médicos activos.
+                                    Desglose de tu próxima comisión para el período de <span className="font-semibold capitalize">{financeStats.currentPeriod}</span>.
+                                    El pago se realizará el <span className="font-semibold text-primary">{financeStats.nextPaymentDate}</span>.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -607,7 +610,7 @@ export default function SellerDashboardPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Médico Activo</TableHead>
-                                            <TableHead>Especialidad</TableHead>
+                                            <TableHead>Fecha de Ingreso</TableHead>
                                             <TableHead className="text-right">Comisión Estimada</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -616,7 +619,7 @@ export default function SellerDashboardPage() {
                                             financeStats.activeReferred.map(doctor => (
                                                 <TableRow key={doctor.id}>
                                                     <TableCell className="font-medium">{doctor.name}</TableCell>
-                                                    <TableCell>{doctor.specialty}</TableCell>
+                                                    <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
                                                     <TableCell className="text-right font-mono">${commissionPerDoctor.toFixed(2)}</TableCell>
                                                 </TableRow>
                                             ))
