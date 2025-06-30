@@ -328,23 +328,13 @@ export default function DoctorDashboardPage() {
     const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
     
     if (updatedApptFromList) {
-        // For comparison, create a version of the currently displayed appointment
-        // data that *does not* include the 'patient' object, as that object
-        // is fetched and added separately and is not part of the core appointment data.
-        const { patient, ...currentAppointmentCoreData } = selectedAppointment;
-
-        // Compare the raw data from the list with the core data being displayed.
-        // If they are not identical, it means the appointment was updated elsewhere
-        // (e.g., by the polling mechanism).
-        if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentAppointmentCoreData)) {
-            // Update the state to reflect the latest appointment data, but make sure
-            // to preserve the 'patient' object we already fetched.
-            setSelectedAppointment(prev => {
-                if (!prev) return null;
-                // Combine the latest appointment data with the existing patient details.
-                return { ...updatedApptFromList, patient: prev.patient };
-            });
-        }
+      const { patient, ...currentAppointmentCoreData } = selectedAppointment;
+      if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentAppointmentCoreData)) {
+          setSelectedAppointment(prev => {
+              if (!prev) return null;
+              return { ...updatedApptFromList, patient: prev.patient };
+          });
+      }
     }
   }, [appointments, selectedAppointment]);
 
@@ -407,37 +397,37 @@ export default function DoctorDashboardPage() {
     const now = new Date();
     let filteredAppointments = appointments;
     let filteredExpenses = doctorData.expenses || [];
+    let timeRangeStartDate: Date = startOfYear(now), timeRangeEndDate: Date = endOfYear(now); // Default to year
 
     if (timeRange !== 'all') {
-        let startDate: Date, endDate: Date;
         switch (timeRange) {
             case 'today':
-                startDate = startOfDay(now);
-                endDate = endOfDay(now);
+                timeRangeStartDate = startOfDay(now);
+                timeRangeEndDate = endOfDay(now);
                 break;
             case 'week':
-                startDate = startOfWeek(now, { locale: es });
-                endDate = endOfDay(now);
+                timeRangeStartDate = startOfWeek(now, { locale: es });
+                timeRangeEndDate = endOfDay(now);
                 break;
             case 'year':
-                startDate = startOfYear(now);
-                endDate = endOfYear(now);
+                timeRangeStartDate = startOfYear(now);
+                timeRangeEndDate = endOfYear(now);
                 break;
             case 'month':
             default:
-                startDate = startOfMonth(now);
-                endDate = endOfMonth(now);
+                timeRangeStartDate = startOfMonth(now);
+                timeRangeEndDate = endOfMonth(now);
                 break;
         }
 
         filteredAppointments = appointments.filter(a => {
             const apptDate = new Date(a.date + 'T00:00:00');
-            return apptDate >= startDate && apptDate <= endDate;
+            return apptDate >= timeRangeStartDate && apptDate <= timeRangeEndDate;
         });
 
         filteredExpenses = (doctorData.expenses || []).filter(e => {
             const expDate = new Date(e.date + 'T00:00:00');
-            return expDate >= startDate && expDate <= endDate;
+            return expDate >= timeRangeStartDate && expDate <= timeRangeEndDate;
         });
     }
 
@@ -446,7 +436,56 @@ export default function DoctorDashboardPage() {
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
     
-    const chartData: { label: string; income: number; expenses: number; }[] = [];
+    const chartData: { label: string; income: number; expenses: number }[] = [];
+    if (timeRange === 'week' || timeRange === 'month') {
+        const intervalDays = eachDayOfInterval({ start: timeRangeStartDate, end: timeRangeEndDate });
+        intervalDays.forEach(day => {
+            const dayString = format(day, 'yyyy-MM-dd');
+            const income = paidAppointments
+                .filter(a => a.date === dayString)
+                .reduce((sum, a) => sum + a.totalPrice, 0);
+            const expenses = filteredExpenses
+                .filter(e => e.date === dayString)
+                .reduce((sum, e) => sum + e.amount, 0);
+            
+            if (income > 0 || expenses > 0) {
+              chartData.push({
+                  label: format(day, 'dd/MM'),
+                  income,
+                  expenses,
+              });
+            }
+        });
+    } else { // 'year' or 'all'
+        const dataByMonth: { [key: string]: { income: number; expenses: number } } = {};
+        
+        const allRelevantTransactions = [
+            ...paidAppointments.map(a => ({ type: 'income', date: a.date, amount: a.totalPrice })),
+            ...filteredExpenses.map(e => ({ type: 'expense', date: e.date, amount: e.amount }))
+        ];
+
+        allRelevantTransactions.forEach(t => {
+            const monthKey = format(new Date(t.date + 'T00:00:00'), 'yyyy-MM');
+            if (!dataByMonth[monthKey]) {
+                dataByMonth[monthKey] = { income: 0, expenses: 0 };
+            }
+            if (t.type === 'income') {
+                dataByMonth[monthKey].income += t.amount;
+            } else {
+                dataByMonth[monthKey].expenses += t.amount;
+            }
+        });
+
+        const sortedMonthKeys = Object.keys(dataByMonth).sort();
+        sortedMonthKeys.forEach(monthKey => {
+            const [year, month] = monthKey.split('-').map(Number);
+            chartData.push({
+                label: format(new Date(year, month - 1), 'MMM', { locale: es }),
+                income: dataByMonth[monthKey].income,
+                expenses: dataByMonth[monthKey].expenses,
+            });
+        });
+    }
 
     return { totalRevenue, totalExpenses, netProfit, chartData, paidAppointments, paidAppointmentsCount: paidAppointments.length };
   }, [doctorData, appointments, timeRange]);
