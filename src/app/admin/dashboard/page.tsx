@@ -9,7 +9,7 @@ import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -190,6 +190,7 @@ export default function AdminDashboardPage() {
       coupons,
       timezone,
       logoUrl,
+      heroImageUrl,
       currency,
       companyBankDetails,
       companyExpenses,
@@ -210,6 +211,8 @@ export default function AdminDashboardPage() {
   
   const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [tempHeroImageUrl, setTempHeroImageUrl] = useState<string>('');
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
   const [isCityDialogOpen, setIsCityDialogOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<{ originalName: string, name: string; subscriptionFee: number; } | null>(null);
   const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false);
@@ -276,24 +279,33 @@ export default function AdminDashboardPage() {
 
 
   useEffect(() => {
-    if (logoUrl) {
-        setTempLogoUrl(logoUrl);
-    }
-  }, [logoUrl]);
+    if (logoUrl) setTempLogoUrl(logoUrl);
+    if (heroImageUrl) setTempHeroImageUrl(heroImageUrl);
+  }, [logoUrl, heroImageUrl]);
   
-  const handleSaveSettings = async () => {
+  const handleSaveImages = async () => {
     let finalLogoUrl = logoUrl;
     if (logoFile) {
-        // In a real app, upload to storage and get URL.
         finalLogoUrl = 'https://placehold.co/150x50.png';
     } else {
         finalLogoUrl = tempLogoUrl;
     }
     
-    await updateSetting('logoUrl', finalLogoUrl);
+    let finalHeroImageUrl = heroImageUrl;
+    if (heroImageFile) {
+      finalHeroImageUrl = 'https://placehold.co/1200x600.png';
+    } else {
+      finalHeroImageUrl = tempHeroImageUrl;
+    }
+    
+    await Promise.all([
+      updateSetting('logoUrl', finalLogoUrl),
+      updateSetting('heroImageUrl', finalHeroImageUrl)
+    ]);
 
-    toast({ title: "Configuración Guardada", description: "Los ajustes generales han sido actualizados." });
-    setLogoFile(null); // Clear the file input after saving
+    toast({ title: "Imágenes Guardadas", description: "Las imágenes de la plataforma han sido actualizadas." });
+    setLogoFile(null);
+    setHeroImageFile(null);
   };
   
   useEffect(() => {
@@ -1838,40 +1850,6 @@ export default function AdminDashboardPage() {
                                         </Select>
                                     </div>
                                 </div>
-                                <div className="space-y-4 row-span-2 md:col-span-2">
-                                    <Label className="text-base">Logo de SUMA</Label>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
-                                        <div className="flex items-center gap-2">
-                                            <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                                            <Input
-                                                id="logo-url"
-                                                type="text"
-                                                value={tempLogoUrl}
-                                                onChange={(e) => setTempLogoUrl(e.target.value)}
-                                                placeholder="https://ejemplo.com/logo.png"
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-center text-muted-foreground">O</p>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="logoFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Upload className="h-5 w-5 text-muted-foreground"/>
-                                            <Input id="logoFile" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-                                        </div>
-                                        {logoFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {logoFile.name}</p>}
-                                    </div>
-                                    {logoUrl && !logoFile && (
-                                        <div className="mt-2">
-                                            <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
-                                            <Image src={logoUrl} alt="Logo de SUMA" width={128} height={40} className="rounded-md border p-2 bg-background object-contain mt-1" />
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                            <CardContent>
-                                <Button onClick={handleSaveSettings}>Guardar Cambios Generales</Button>
                             </CardContent>
                         </Card>
                          <Card>
@@ -1898,6 +1876,70 @@ export default function AdminDashboardPage() {
                             </CardContent>
                         </Card>
                       </div>
+
+                      <Card>
+                          <CardHeader>
+                              <CardTitle className="flex items-center gap-2"><ImageIcon /> Gestión de Imágenes</CardTitle>
+                              <CardDescription>Cambia las imágenes principales de la plataforma.</CardDescription>
+                          </CardHeader>
+                          <CardContent className="grid md:grid-cols-2 gap-8">
+                              <div className="space-y-4">
+                                  <Label className="text-base font-semibold">Logo de SUMA</Label>
+                                  <div className="space-y-2">
+                                      <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
+                                      <div className="flex items-center gap-2">
+                                          <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                          <Input id="logo-url" type="text" value={tempLogoUrl} onChange={(e) => setTempLogoUrl(e.target.value)} placeholder="https://ejemplo.com/logo.png" />
+                                      </div>
+                                  </div>
+                                  <p className="text-xs text-center text-muted-foreground">O</p>
+                                  <div className="space-y-2">
+                                      <Label htmlFor="logoFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
+                                      <div className="flex items-center gap-2">
+                                          <Upload className="h-5 w-5 text-muted-foreground"/>
+                                          <Input id="logoFile" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                                      </div>
+                                      {logoFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {logoFile.name}</p>}
+                                  </div>
+                                  {logoUrl && !logoFile && (
+                                      <div className="mt-2">
+                                          <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
+                                          <Image src={logoUrl} alt="Logo de SUMA" width={128} height={40} className="rounded-md border p-2 bg-background object-contain mt-1" />
+                                      </div>
+                                  )}
+                              </div>
+                              <div className="space-y-4">
+                                  <Label className="text-base font-semibold">Imagen Principal (Homepage)</Label>
+                                  <div className="space-y-2">
+                                      <Label htmlFor="hero-url" className="text-xs font-normal text-muted-foreground">URL de la Imagen</Label>
+                                      <div className="flex items-center gap-2">
+                                          <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                          <Input id="hero-url" type="text" value={tempHeroImageUrl} onChange={(e) => setTempHeroImageUrl(e.target.value)} placeholder="https://ejemplo.com/imagen.png" />
+                                      </div>
+                                  </div>
+                                  <p className="text-xs text-center text-muted-foreground">O</p>
+                                  <div className="space-y-2">
+                                      <Label htmlFor="heroImageFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
+                                      <div className="flex items-center gap-2">
+                                          <Upload className="h-5 w-5 text-muted-foreground"/>
+                                          <Input id="heroImageFile" type="file" accept="image/*" onChange={(e) => setHeroImageFile(e.target.files?.[0] || null)} />
+                                      </div>
+                                      {heroImageFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {heroImageFile.name}</p>}
+                                  </div>
+                                  {heroImageUrl && !heroImageFile && (
+                                      <div className="mt-2">
+                                          <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
+                                          <div className="relative aspect-video w-full">
+                                              <Image src={heroImageUrl} alt="Imagen principal" layout="fill" className="rounded-md border object-cover mt-1" />
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </CardContent>
+                          <CardFooter>
+                              <Button onClick={handleSaveImages}>Guardar Imágenes</Button>
+                          </CardFooter>
+                      </Card>
 
                        <Card>
                             <CardHeader>
@@ -2834,3 +2876,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+

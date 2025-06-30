@@ -1,6 +1,4 @@
 
-'use client';
-
 import { db } from './firebase';
 import {
   collection,
@@ -110,10 +108,10 @@ export const seedDatabase = async () => {
     const settingsData: AppSettings = {
         cities: mockData.cities,
         specialties: mockData.specialties,
-        doctorSubscriptionFee: 50,
         companyBankDetails: mockData.mockCompanyBankDetails,
         timezone: 'America/Caracas',
-        logoUrl: '/logo.svg',
+        logoUrl: 'https://placehold.co/150x50.png',
+        heroImageUrl: 'https://placehold.co/1200x600.png',
         currency: 'USD',
         beautySpecialties: ["Medicina Estética"],
     };

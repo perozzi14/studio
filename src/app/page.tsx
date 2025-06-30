@@ -4,8 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, UserCheck, CalendarDays, Bot } from "lucide-react";
 import React from "react";
+import * as firestoreService from "@/lib/firestoreService";
 
-export default function Home() {
+export default async function Home() {
+  const settings = await firestoreService.getSettings();
+  const heroImageUrl = settings?.heroImageUrl || "https://placehold.co/1200x600.png";
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -35,7 +39,7 @@ export default function Home() {
         <section className="container pb-20 md:pb-32">
            <div className="relative rounded-xl shadow-2xl overflow-hidden">
              <Image
-                src="https://placehold.co/1200x600.png"
+                src={heroImageUrl}
                 alt="Paciente feliz en consulta con un doctor"
                 width={1200}
                 height={600}
@@ -94,3 +98,4 @@ function FeatureCard({
     </div>
   );
 }
+

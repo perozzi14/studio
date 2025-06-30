@@ -6,6 +6,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -249,4 +250,6 @@ export type AppSettings = {
     logoUrl: string;
     currency: string;
     beautySpecialties?: string[];
+    heroImageUrl?: string;
 }
+

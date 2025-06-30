@@ -13,6 +13,7 @@ interface SettingsContextType {
   beautySpecialties: string[];
   timezone: string;
   logoUrl: string;
+  heroImageUrl: string;
   currency: string;
   companyBankDetails: BankDetail[];
   companyExpenses: CompanyExpense[];
@@ -46,6 +47,7 @@ const skeletonContextValue: SettingsContextType = {
   beautySpecialties: [],
   timezone: '',
   logoUrl: '',
+  heroImageUrl: '',
   currency: 'USD',
   companyBankDetails: [],
   companyExpenses: [],
@@ -211,6 +213,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     beautySpecialties: settings?.beautySpecialties || [],
     timezone: settings?.timezone || '',
     logoUrl: settings?.logoUrl || '',
+    heroImageUrl: settings?.heroImageUrl || '',
     currency: settings?.currency || 'USD',
     companyBankDetails: settings?.companyBankDetails || [],
     companyExpenses,
@@ -252,3 +255,4 @@ export function useSettings() {
   }
   return context;
 }
+

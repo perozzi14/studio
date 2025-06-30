@@ -1,6 +1,6 @@
 
 
-import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, CompanyExpense, BankDetail, Coupon, Schedule } from './types';
+import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, CompanyExpense, BankDetail, Coupon, Schedule, AppSettings } from './types';
 
 export const specialties = [
   "Cardiología",
@@ -339,3 +339,15 @@ export const mockCompanyExpenses: CompanyExpense[] = [
     { id: 'cexp-3', date: '2024-05-15', description: 'Nómina - Administrador', amount: 1200, category: 'personal' },
     { id: 'cexp-4', date: '2024-05-25', description: 'Pago de servicios (internet, luz)', amount: 150, category: 'operativo' },
 ];
+
+export const mockSettings: AppSettings = {
+    cities: cities,
+    specialties: specialties,
+    companyBankDetails: mockCompanyBankDetails,
+    timezone: 'America/Caracas',
+    logoUrl: 'https://placehold.co/150x50.png',
+    heroImageUrl: 'https://placehold.co/1200x600.png',
+    currency: 'USD',
+    beautySpecialties: ["Medicina Estética"],
+};
+
