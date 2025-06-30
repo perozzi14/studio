@@ -110,7 +110,7 @@ export default function DoctorProfilePage() {
 
   const finalPrice = useMemo(() => {
     if (!doctor) return 0;
-    const priceAfterDiscount = doctor.consultationFee + subtotal - discountAmount;
+    const priceAfterDiscount = (doctor.consultationFee || 0) + subtotal - discountAmount;
     return priceAfterDiscount < 0 ? 0 : priceAfterDiscount;
   }, [doctor, subtotal, discountAmount]);
 
@@ -148,7 +148,7 @@ export default function DoctorProfilePage() {
     if (!id || !couponInput || !doctor) return;
     const applicableCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
     const coupon = applicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
-    const totalBeforeDiscount = doctor.consultationFee + subtotal;
+    const totalBeforeDiscount = (doctor.consultationFee || 0) + subtotal;
 
     if (coupon) {
       let discount = 0;
@@ -210,11 +210,11 @@ export default function DoctorProfilePage() {
       return;
     }
     
-    if (paymentMethod === 'transferencia' && !paymentProof) {
+    if (paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail)) {
       toast({
         variant: "destructive",
-        title: "Comprobante Requerido",
-        description: "Por favor, sube el comprobante de pago para continuar.",
+        title: "Información Faltante",
+        description: "Por favor, selecciona una cuenta y sube el comprobante de pago.",
       });
       return;
     }
@@ -226,7 +226,7 @@ export default function DoctorProfilePage() {
     addAppointment({
       doctorId: doctor.id,
       doctorName: doctor.name,
-      consultationFee: doctor.consultationFee,
+      consultationFee: doctor.consultationFee || 0,
       date: selectedDate.toISOString().split('T')[0],
       time: selectedTime,
       services: selectedServices,
@@ -427,7 +427,7 @@ export default function DoctorProfilePage() {
                     {appliedCoupon ? (
                       <Button variant="outline" onClick={handleRemoveCoupon}>Quitar</Button>
                     ) : (
-                      <Button onClick={handleApplyCoupon} disabled={!couponInput || (doctor.consultationFee + subtotal) === 0}>Aplicar</Button>
+                      <Button onClick={handleApplyCoupon} disabled={!couponInput || ((doctor.consultationFee || 0) + subtotal) === 0}>Aplicar</Button>
                     )}
                  </div>
               </div>
@@ -435,7 +435,7 @@ export default function DoctorProfilePage() {
               <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg space-y-3">
                  <div className="w-full flex justify-between items-center text-base font-normal text-muted-foreground">
                     <span>Tarifa de Consulta:</span>
-                    <span>${doctor.consultationFee.toFixed(2)}</span>
+                    <span>${(doctor.consultationFee || 0).toFixed(2)}</span>
                 </div>
                 <div className="w-full flex justify-between items-center">
                     <span>Subtotal Servicios:</span>
@@ -474,22 +474,26 @@ export default function DoctorProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <RadioGroup value={paymentMethod || ''} onValueChange={(value) => setPaymentMethod(value as 'efectivo' | 'transferencia')}>
-                <Label className="flex items-center space-x-3 p-4 border rounded-md cursor-pointer hover:bg-muted/50">
+                <div className="flex items-center space-x-3 p-4 border rounded-md">
                   <RadioGroupItem value="efectivo" id="efectivo" />
-                  <Banknote className="h-6 w-6 text-green-600" />
-                  <div>
-                    <span className="font-semibold">Efectivo</span>
-                    <p className="text-sm text-muted-foreground">Paga el monto total el día de tu cita.</p>
-                  </div>
-                </Label>
-                <Label className="flex items-center space-x-3 p-4 border rounded-md cursor-pointer hover:bg-muted/50">
+                  <Label htmlFor="efectivo" className="flex items-center space-x-3 cursor-pointer">
+                    <Banknote className="h-6 w-6 text-green-600" />
+                    <div>
+                      <span className="font-semibold">Efectivo</span>
+                      <p className="text-sm text-muted-foreground">Paga el monto total el día de tu cita.</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-4 border rounded-md">
                   <RadioGroupItem value="transferencia" id="transferencia" />
-                  <Landmark className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <span className="font-semibold">Transferencia Bancaria</span>
-                    <p className="text-sm text-muted-foreground">Realiza el pago y sube el comprobante.</p>
-                  </div>
-                </Label>
+                  <Label htmlFor="transferencia" className="flex items-center space-x-3 cursor-pointer">
+                    <Landmark className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <span className="font-semibold">Transferencia Bancaria</span>
+                      <p className="text-sm text-muted-foreground">Realiza el pago y sube el comprobante.</p>
+                    </div>
+                  </Label>
+                </div>
               </RadioGroup>
 
               {paymentMethod === 'transferencia' && (
@@ -498,27 +502,33 @@ export default function DoctorProfilePage() {
                     <CardTitle className="text-lg">Selecciona una Cuenta y Sube el Comprobante</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                     <RadioGroup 
-                      value={selectedBankDetail?.id.toString()} 
-                      onValueChange={(value) => {
-                        const bankId = value;
-                        setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
-                      }}
-                      className="space-y-2"
-                    >
-                      {doctor.bankDetails.map((bd) => (
-                        <Label key={bd.id} className="flex items-center space-x-3 p-3 border rounded-md cursor-pointer hover:bg-muted/50 has-[input:checked]:bg-primary/10 has-[input:checked]:border-primary">
-                          <RadioGroupItem value={bd.id.toString()} id={`bank-${bd.id}`} />
-                          <div className="flex items-center gap-2">
-                            <Landmark className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <span className="font-semibold">{bd.bank}</span>
-                              <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                     {doctor.bankDetails.length > 0 ? (
+                        <RadioGroup 
+                          value={selectedBankDetail?.id || ''}
+                          onValueChange={(value) => {
+                            const bankId = value;
+                            setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
+                          }}
+                          className="space-y-2"
+                        >
+                          {doctor.bankDetails.map((bd) => (
+                            <div key={bd.id} className="flex items-center space-x-3 p-3 border rounded-md has-[input:checked]:bg-primary/10 has-[input:checked]:border-primary">
+                                <RadioGroupItem value={bd.id} id={`bank-${bd.id}`} />
+                                <Label htmlFor={`bank-${bd.id}`} className="flex items-center gap-2 w-full cursor-pointer">
+                                  <Landmark className="h-5 w-5 text-muted-foreground" />
+                                  <div>
+                                    <span className="font-semibold">{bd.bank}</span>
+                                    <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                                  </div>
+                                </Label>
                             </div>
-                          </div>
-                        </Label>
-                      ))}
-                    </RadioGroup>
+                          ))}
+                        </RadioGroup>
+                      ) : (
+                        <p className="text-sm text-center text-muted-foreground p-4 bg-background rounded-md">
+                          Este médico no ha registrado cuentas bancarias para transferencias.
+                        </p>
+                      )}
 
                     {selectedBankDetail && (
                       <div className="space-y-2 border-t pt-4 mt-4">
@@ -570,7 +580,7 @@ export default function DoctorProfilePage() {
                     <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     <p><strong>Hora:</strong> {selectedTime}</p>
                     <div>
-                        <p><strong>Tarifa de Consulta:</strong> ${doctor.consultationFee.toFixed(2)}</p>
+                        <p><strong>Tarifa de Consulta:</strong> ${(doctor.consultationFee || 0).toFixed(2)}</p>
                         <p><strong>Servicios Adicionales:</strong></p>
                         <ul className="list-disc list-inside text-muted-foreground">
                             {selectedServices.map(s => <li key={s.id}>{s.name} (${s.price})</li>)}
