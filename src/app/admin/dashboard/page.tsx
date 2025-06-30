@@ -950,25 +950,51 @@ export default function AdminDashboardPage() {
     
     let currentY = summaryY + (summaryData.length * 8) + 20;
 
+    // Incomes
+    doc.setFontSize(16);
+    doc.text("Detalle de Ingresos (Suscripciones Pagadas)", 14, currentY);
+    doc.line(14, currentY + 2, 196, currentY + 2);
+    currentY += 10;
+    const incomeHead = [['Fecha', 'Médico', 'ID Transacción', 'Monto']];
+    const incomeBody = doctorPayments
+        .filter(p => p.status === 'Paid')
+        .map(p => [
+            format(new Date(p.date + 'T00:00:00'), 'dd/MM/yyyy'),
+            p.doctorName,
+            p.transactionId,
+            `$${p.amount.toFixed(2)}`
+        ]);
+    (doc as any).autoTable({ startY: currentY, head: incomeHead, body: incomeBody, theme: 'striped' });
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Commissions
+    doc.setFontSize(16);
+    doc.text("Detalle de Comisiones Pagadas", 14, currentY);
+    doc.line(14, currentY + 2, 196, currentY + 2);
+    currentY += 10;
+    const commissionHead = [['Fecha', 'Vendedora', 'Período', 'Monto']];
+    const commissionBody = sellerPayments.map(p => [
+        format(new Date(p.paymentDate + 'T00:00:00'), 'dd/MM/yyyy'),
+        sellers.find(s => s.id === p.sellerId)?.name || 'N/A',
+        p.period,
+        `$${p.amount.toFixed(2)}`
+    ]);
+    (doc as any).autoTable({ startY: currentY, head: commissionHead, body: commissionBody, theme: 'striped' });
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Expenses
     doc.setFontSize(16);
     doc.text("Detalle de Gastos Operativos", 14, currentY);
     doc.line(14, currentY + 2, 196, currentY + 2);
     currentY += 10;
-    
-    const head = [['Fecha', 'Descripción', 'Categoría', 'Monto']];
-    const body = companyExpenses.map(e => [
+    const expenseHead = [['Fecha', 'Descripción', 'Categoría', 'Monto']];
+    const expenseBody = companyExpenses.map(e => [
         format(new Date(e.date + 'T00:00:00'), 'dd/MM/yyyy'),
         e.description,
         e.category.charAt(0).toUpperCase() + e.category.slice(1),
         `$${e.amount.toFixed(2)}`
     ]);
-
-    (doc as any).autoTable({
-        startY: currentY,
-        head: head,
-        body: body,
-        theme: 'striped'
-    });
+    (doc as any).autoTable({ startY: currentY, head: expenseHead, body: expenseBody, theme: 'striped' });
     
     doc.save(`Reporte_Financiero_SUMA_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
@@ -1628,34 +1654,56 @@ export default function AdminDashboardPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Título</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Descripción</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {marketingMaterials.map((material) => (
-                                        <TableRow key={material.id}>
-                                            <TableCell className="font-medium">{material.title}</TableCell>
-                                            <TableCell className="capitalize">{material.type}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{material.description}</TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                            <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Título</TableHead>
+                                            <TableHead>Tipo</TableHead>
+                                            <TableHead>Descripción</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {marketingMaterials.map((material) => (
+                                            <TableRow key={material.id}>
+                                                <TableCell className="font-medium">{material.title}</TableCell>
+                                                <TableCell className="capitalize">{material.type}</TableCell>
+                                                <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{material.description}</TableCell>
+                                                <TableCell className="text-right flex items-center justify-end gap-2">
+                                                    <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {marketingMaterials.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">No hay materiales de marketing cargados.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="space-y-4 md:hidden">
+                                {marketingMaterials.map((material) => (
+                                    <div key={material.id} className="p-4 border rounded-lg space-y-3">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <p className="font-semibold">{material.title}</p>
+                                                <Badge variant="secondary" className="capitalize mt-1">{material.type}</Badge>
+                                            </div>
+                                            <div className="flex gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {marketingMaterials.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">No hay materiales de marketing cargados.</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">{material.description}</p>
+                                    </div>
+                                ))}
+                                {marketingMaterials.length === 0 && (
+                                    <p className="text-center text-muted-foreground py-8">No hay materiales de marketing cargados.</p>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -1900,27 +1948,48 @@ export default function AdminDashboardPage() {
                                     <Button size="sm" onClick={() => { setEditingCity({ originalName: '', name: '', subscriptionFee: 0 }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
                                 </CardHeader>
                                 <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Ciudad</TableHead>
-                                                <TableHead>Tarifa de Suscripción</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
+                                    <div className="hidden md:block">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Ciudad</TableHead>
+                                                    <TableHead>Tarifa de Suscripción</TableHead>
+                                                    <TableHead className="text-right">Acciones</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                            {cities.map((city, index) => (
+                                                <TableRow key={`${city.name}-${index}`}>
+                                                    <TableCell className="font-medium">{city.name}</TableCell>
+                                                    <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
+                                                    <TableCell className="flex justify-end gap-2">
+                                                        <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                        <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    <div className="space-y-4 md:hidden">
                                         {cities.map((city, index) => (
-                                            <TableRow key={`${city.name}-${index}`}>
-                                                <TableCell className="font-medium">{city.name}</TableCell>
-                                                <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
-                                                <TableCell className="flex justify-end gap-2">
-                                                    <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                    <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
-                                                </TableCell>
-                                            </TableRow>
+                                            <div key={`${city.name}-${index}-mobile`} className="p-4 border rounded-lg space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="font-semibold">{city.name}</p>
+                                                        <p className="text-sm font-mono text-muted-foreground">${(city.subscriptionFee || 0).toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                        <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ))}
-                                        </TableBody>
-                                    </Table>
+                                        {cities.length === 0 && (
+                                            <p className="text-center text-muted-foreground py-8">No hay ciudades registradas.</p>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
 
@@ -2748,3 +2817,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
