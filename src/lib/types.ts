@@ -1,5 +1,6 @@
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -79,7 +80,7 @@ export type Doctor = {
   expenses: Expense[];
   coupons: Coupon[];
   schedule: Schedule;
-  slotDuration: 30 | 60;
+  slotDuration: number;
   sellerId: string | null;
   status: 'active' | 'inactive';
   lastPaymentDate: string;

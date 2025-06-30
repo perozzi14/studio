@@ -101,7 +101,7 @@ const ProfileFormSchema = z.object({
     whatsapp: z.string().optional(),
     description: z.string().min(20, "La descripción debe tener al menos 20 caracteres."),
     specialty: z.string(),
-    slotDuration: z.number(),
+    slotDuration: z.number().int().min(5, "La duración debe ser de al menos 5 minutos").positive("La duración debe ser positiva"),
     city: z.string(),
     sector: z.string().optional(),
     address: z.string().min(10, "La dirección completa es requerida."),
@@ -1394,90 +1394,6 @@ export default function DoctorDashboardPage() {
               </div>
               )}
 
-              {currentTab === 'subscription' && (
-                <div className="mt-6">
-                    <div className="grid md:grid-cols-5 gap-8 items-start">
-                        <div className="md:col-span-3 space-y-8">
-                            <Card>
-                                <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard/> Estado de tu Suscripción</CardTitle></CardHeader>
-                                <CardContent className="space-y-4">
-                                     <div className="p-4 border rounded-lg space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span>Estado:</span>
-                                            <Badge className={cn({
-                                                'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
-                                                'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
-                                                'bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive',
-                                            })}>
-                                                {doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago Pendiente' : 'Inactiva'}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Próximo Pago:</span>
-                                            <span className="font-medium">{format(new Date(doctorData.nextPaymentDate), "d 'de' LLLL, yyyy", {locale: es})}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Monto Mensual:</span>
-                                            <span className="font-semibold">${doctorSubscriptionFee.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">Mantén tu suscripción activa para asegurar tu visibilidad en la plataforma.</p>
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader><CardTitle>Historial de Pagos de Suscripción</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Fecha Reporte</TableHead><TableHead>Monto</TableHead><TableHead>Referencia</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {doctorPayments.filter(p => p.doctorId === doctorData.id).map(p => (
-                                                <TableRow key={p.id}>
-                                                    <TableCell>{format(new Date(p.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                                    <TableCell className="font-mono">${p.amount.toFixed(2)}</TableCell>
-                                                    <TableCell className="font-mono text-xs">{p.transactionId}</TableCell>
-                                                    <TableCell>
-                                                         <Badge className={cn({
-                                                            'bg-green-600 text-white': p.status === 'Paid',
-                                                            'bg-amber-500 text-white': p.status === 'Pending',
-                                                            'bg-red-600 text-white': p.status === 'Rejected',
-                                                        })}>
-                                                            {p.status === 'Paid' ? 'Pagado' : p.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div className="md:col-span-2 space-y-8">
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Realizar Pago</CardTitle>
-                                    <CardDescription>Usa una de nuestras cuentas para pagar y luego reporta tu pago aquí.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {(companyBankDetails || []).map(bd => (
-                                        <div key={bd.id} className="text-sm p-3 border rounded-lg bg-muted/40">
-                                            <p className="font-bold">{bd.bank}</p>
-                                            <p><span className="text-muted-foreground">Titular:</span> {bd.accountHolder}</p>
-                                            <p><span className="text-muted-foreground">Cuenta:</span> <span className="font-mono">{bd.accountNumber}</span></p>
-                                            <p><span className="text-muted-foreground">ID:</span> {bd.idNumber}</p>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                                <CardFooter>
-                                    <Button className="w-full" onClick={() => setIsReportPaymentDialogOpen(true)} disabled={doctorData.subscriptionStatus === 'pending_payment'}>
-                                        <FileUp className="mr-2 h-4 w-4" /> {doctorData.subscriptionStatus === 'pending_payment' ? 'Pago ya Reportado' : 'Reportar Pago'}
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                    </div>
-                </div>
-              )}
-
               {currentTab === 'profile' && (
               <div className="mt-6">
                 <div className="space-y-6">
@@ -1529,7 +1445,17 @@ export default function DoctorDashboardPage() {
                                    <div className="space-y-2"><Label htmlFor="prof-desc">Descripción Pública</Label><Textarea id="prof-desc" value={profileForm.description} onChange={(e) => handleProfileInputChange('description', e.target.value)} rows={4} placeholder="Describe tu experiencia..."/></div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                       <div className="space-y-2"><Label>Especialidad</Label><Select value={profileForm.specialty} onValueChange={(value) => handleProfileInputChange('specialty', value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-                                      <div className="space-y-2"><Label>Duración de Cita (minutos)</Label><RadioGroup value={profileForm.slotDuration?.toString()} onValueChange={(value) => handleProfileInputChange('slotDuration', parseInt(value))} className="flex gap-4 pt-2"><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="30" /> 30 min</Label><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="60" /> 60 min</Label></RadioGroup></div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="prof-slot-duration">Duración de Cita (minutos)</Label>
+                                        <Input
+                                            id="prof-slot-duration"
+                                            type="number"
+                                            value={profileForm.slotDuration || ''}
+                                            onChange={(e) => handleProfileInputChange('slotDuration', parseInt(e.target.value, 10) || 0)}
+                                            placeholder="Ej: 20"
+                                            min="5"
+                                        />
+                                      </div>
                                    </div>
                               </div>
                               <Separator />

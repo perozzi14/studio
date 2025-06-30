@@ -70,6 +70,7 @@ const DoctorFormSchema = z.object({
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
+  slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
 });
 
 
@@ -459,6 +460,7 @@ export default function SellerDashboardPage() {
       specialty: formData.get('doc-specialty') as string,
       city: formData.get('doc-city') as string,
       address: formData.get('doc-address') as string,
+      slotDuration: parseInt(formData.get('doc-slot-duration') as string, 10),
     };
 
     const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -475,7 +477,7 @@ export default function SellerDashboardPage() {
         return;
     }
 
-    const { name, email, specialty, city, address, password } = result.data;
+    const { name, email, specialty, city, address, password, slotDuration } = result.data;
     
     const now = new Date();
     const nextMonth = new Date(now);
@@ -495,7 +497,7 @@ export default function SellerDashboardPage() {
         description: '',
         services: [],
         bankDetails: [],
-        slotDuration: 30,
+        slotDuration: slotDuration,
         schedule: {
             monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
             tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -1068,6 +1070,10 @@ export default function SellerDashboardPage() {
                                 <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
                                 <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                             </Select>
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label>
+                            <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue="30" className="col-span-3" required min="5"/>
                         </div>
                     </div>
                     <DialogFooter>

@@ -60,6 +60,7 @@ const DoctorFormSchema = z.object({
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   sellerId: z.string().nullable(),
+  slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
 });
 
 const SellerFormSchema = z.object({
@@ -330,6 +331,7 @@ export default function AdminDashboardPage() {
             city: formData.get('doc-city') as string,
             address: formData.get('doc-address') as string,
             sellerId: formData.get('doc-seller') as string,
+            slotDuration: parseInt(formData.get('doc-slot-duration') as string, 10),
         };
 
         const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -340,13 +342,14 @@ export default function AdminDashboardPage() {
             return;
         }
 
-        const { name, email, specialty, city, address, sellerId } = result.data;
+        const { name, email, specialty, city, address, sellerId, slotDuration } = result.data;
         const sellerIdValue = sellerId === 'null' || !sellerId ? null : sellerId;
 
         if (editingDoctor) {
             const updatedDoctorData: Partial<Doctor> = {
                 name, email, specialty, city, address,
                 sellerId: sellerIdValue,
+                slotDuration,
             };
             if (result.data.password) {
               updatedDoctorData.password = result.data.password;
@@ -372,7 +375,7 @@ export default function AdminDashboardPage() {
                 description: '',
                 services: [],
                 bankDetails: [],
-                slotDuration: 30,
+                slotDuration: slotDuration,
                 schedule: {
                     monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
                     tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -2298,6 +2301,10 @@ export default function AdminDashboardPage() {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label>
+                        <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue={editingDoctor?.slotDuration || 30} className="col-span-3" required min="5"/>
                     </div>
                 </div>
                 <DialogFooter>
