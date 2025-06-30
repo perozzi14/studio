@@ -330,7 +330,7 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (doctorData?.id) {
-        setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+      setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
     }
   }, [doctorData]);
 
