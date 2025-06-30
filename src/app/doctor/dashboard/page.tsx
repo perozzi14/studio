@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2 } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1188,8 +1188,8 @@ export default function DoctorDashboardPage() {
                                             </Button>
                                         </div>
                                         <div className="text-sm space-y-1">
-                                          <p><span className="font-semibold">Servicios: </span> 
-                                          {appt.services.map(s => s.name).join(', ')}</p>
+                                          <div><span className="font-semibold">Servicios: </span> 
+                                          {appt.services.map(s => s.name).join(', ')}</div>
                                            <div className="flex items-center gap-1.5"><span className="font-semibold">Confirmación Paciente:</span> 
                                             <Badge variant={
                                                 appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
@@ -1870,7 +1870,7 @@ export default function DoctorDashboardPage() {
                                 <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
                                 <p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p>
                                 <p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p>
-                                <div className="flex items-center gap-2"><p><strong>Confirmación Paciente:</strong></p>
+                                <div className="flex items-center gap-2"><strong>Confirmación Paciente:</strong>
                                      <Badge variant={
                                         selectedAppointment.patientConfirmationStatus === 'Confirmada' ? 'default' : 
                                         selectedAppointment.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
@@ -2031,5 +2031,7 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
+    
 
     
