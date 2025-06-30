@@ -63,6 +63,16 @@ const ExpenseFormSchema = z.object({
   date: z.string().min(1, "La fecha es requerida."),
 });
 
+const DoctorFormSchema = z.object({
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
+  email: z.string().email("Por favor, ingresa un correo electrónico válido."),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres."),
+  specialty: z.string().min(1, "Debes seleccionar una especialidad."),
+  city: z.string().min(1, "Debes seleccionar una ciudad."),
+  address: z.string().min(5, "La dirección es requerida."),
+});
+
+
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
     week: 'Esta Semana',
@@ -112,7 +122,7 @@ export default function SellerDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { doctorSubscriptionFee, cities } = useSettings();
+  const { doctorSubscriptionFee, cities, specialties } = useSettings();
   
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
@@ -144,6 +154,7 @@ export default function SellerDashboardPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isMaterialDetailOpen, setIsMaterialDetailOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<MarketingMaterial | null>(null);
+  const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
 
 
   const fetchData = useCallback(async () => {
@@ -436,6 +447,83 @@ export default function SellerDashboardPage() {
     setIsMaterialDetailOpen(true);
   };
 
+  const handleSaveDoctor = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user || user.role !== 'seller') return;
+
+    const formData = new FormData(e.currentTarget);
+    const dataToValidate = {
+      name: formData.get('doc-name') as string,
+      email: formData.get('doc-email') as string,
+      password: formData.get('doc-password') as string,
+      specialty: formData.get('doc-specialty') as string,
+      city: formData.get('doc-city') as string,
+      address: formData.get('doc-address') as string,
+    };
+
+    const result = DoctorFormSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const errorMessage = result.error.errors.map(err => err.message).join(' ');
+      toast({ variant: 'destructive', title: 'Errores de Validación', description: errorMessage });
+      return;
+    }
+    
+    const existingUser = await firestoreService.findUserByEmail(result.data.email);
+    if (existingUser) {
+        toast({ variant: 'destructive', title: 'Correo ya registrado', description: 'Este correo electrónico ya está en uso por otro usuario.' });
+        return;
+    }
+
+    const { name, email, specialty, city, address, password } = result.data;
+    
+    const newDoctorData: Omit<Doctor, 'id'> = {
+        name, email, specialty, city, address,
+        password: password,
+        sellerId: user.id,
+        cedula: '',
+        sector: '',
+        rating: 0,
+        reviewCount: 0,
+        profileImage: 'https://placehold.co/400x400.png',
+        bannerImage: 'https://placehold.co/1200x400.png',
+        aiHint: 'doctor portrait',
+        description: '',
+        services: [],
+        bankDetails: [],
+        slotDuration: 30,
+        schedule: {
+            monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+            saturday: { active: false, slots: [] },
+            sunday: { active: false, slots: [] },
+        },
+        status: 'inactive',
+        lastPaymentDate: new Date().toISOString().split('T')[0],
+        whatsapp: '',
+        lat: 0, lng: 0,
+        joinDate: new Date().toISOString().split('T')[0],
+        subscriptionStatus: 'inactive',
+        nextPaymentDate: new Date().toISOString().split('T')[0],
+        coupons: [],
+        expenses: [],
+    };
+    
+    try {
+        await firestoreService.addDoctor(newDoctorData);
+        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido como tu referido.` });
+        fetchData();
+        setIsDoctorDialogOpen(false);
+    } catch (error) {
+        console.error("Error adding doctor:", error);
+        toast({ variant: 'destructive', title: 'Error al registrar', description: 'No se pudo crear el médico en la base de datos.' });
+    }
+  };
+
+
 
   if (isLoading || !user || user.role !== 'seller' || !sellerData) {
     return (
@@ -482,9 +570,12 @@ export default function SellerDashboardPage() {
                                     <div>
                                         <CardTitle>Mis Médicos Referidos</CardTitle>
                                         <CardDescription>
-                                            Visualiza los últimos doctores registrados, busca y filtra los médicos que se han unido con tu enlace.
+                                            Busca, filtra y registra los doctores que se han unido con tu enlace.
                                         </CardDescription>
                                     </div>
+                                     <Button onClick={() => setIsDoctorDialogOpen(true)} className="w-full sm:w-auto">
+                                        <PlusCircle className="mr-2 h-4 w-4"/> Registrar Médico
+                                    </Button>
                                 </div>
                                 <div className="mt-4 flex flex-col md:flex-row gap-2">
                                     <div className="relative flex-1">
@@ -931,6 +1022,55 @@ export default function SellerDashboardPage() {
                         </a>
                     </Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Registrar Nuevo Médico</DialogTitle>
+                    <DialogDescription>
+                        Completa la información del perfil del médico. Quedará registrado como tu referido.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSaveDoctor}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-name" className="text-right">Nombre</Label>
+                            <Input id="doc-name" name="doc-name" className="col-span-3" required />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-email" className="text-right">Email</Label>
+                            <Input id="doc-email" name="doc-email" type="email" className="col-span-3" required />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-password" className="text-right">Contraseña</Label>
+                            <Input id="doc-password" name="doc-password" type="password" className="col-span-3" required />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
+                            <Select name="doc-specialty">
+                                <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-address" className="text-right">Dirección</Label>
+                            <Input id="doc-address" name="doc-address" className="col-span-3" required />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
+                            <Select name="doc-city">
+                                <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit">Guardar Médico</Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     </div>
