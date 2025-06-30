@@ -30,7 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import * as firestoreService from '@/lib/firestoreService';
 import { type AdminNotification, type DoctorNotification } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
@@ -65,94 +65,88 @@ export function Header() {
     }
   };
 
-
-  useEffect(() => {
+  const fetchAdminNotifications = useCallback(async () => {
     if (user?.role !== 'admin') {
       setAdminNotifications([]);
       setAdminUnreadCount(0);
       return;
     }
 
-    const fetchAdminNotifications = async () => {
-        const [tickets, payments] = await Promise.all([
-            firestoreService.getSupportTickets(),
-            firestoreService.getDoctorPayments()
-        ]);
+    const [tickets, payments] = await Promise.all([
+        firestoreService.getSupportTickets(),
+        firestoreService.getDoctorPayments()
+    ]);
 
-        const paymentNotifications: AdminNotification[] = payments
-            .filter(p => p.status === 'Pending')
-            .map(p => ({
-                id: `payment-${p.id}`,
-                type: 'payment',
-                title: 'Pago Pendiente de Aprobación',
-                description: `El Dr. ${p.doctorName} ha reportado un pago.`,
-                date: p.date,
-                read: false, 
-                link: `/admin/dashboard?view=finances`
-            }));
-        
-        const ticketNotifications: AdminNotification[] = tickets
-            .filter(t => !t.readByAdmin)
-            .map(t => ({
-                id: `ticket-${t.id}`,
-                type: 'support_ticket',
-                title: 'Nuevo Ticket de Soporte',
-                description: `De: ${t.userName}`,
-                date: t.date,
-                read: false,
-                link: `/admin/dashboard?view=support`
-            }));
-
-        const allNotifications = [...paymentNotifications, ...ticketNotifications]
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        setAdminNotifications(allNotifications);
-        setAdminUnreadCount(allNotifications.length);
-    };
-
-    fetchAdminNotifications();
+    const paymentNotifications: AdminNotification[] = payments
+        .filter(p => p.status === 'Pending' && !p.readByAdmin)
+        .map(p => ({
+            id: `payment-${p.id}`,
+            type: 'payment',
+            title: 'Pago Pendiente de Aprobación',
+            description: `El Dr. ${p.doctorName} ha reportado un pago.`,
+            date: p.date,
+            read: false,
+            link: `/admin/dashboard?view=finances`
+        }));
     
-    const interval = setInterval(fetchAdminNotifications, 60000); // Poll every 60 seconds
-    return () => clearInterval(interval);
+    const ticketNotifications: AdminNotification[] = tickets
+        .filter(t => !t.readByAdmin)
+        .map(t => ({
+            id: `ticket-${t.id}`,
+            type: 'support_ticket',
+            title: 'Nuevo Ticket de Soporte',
+            description: `De: ${t.userName}`,
+            date: t.date,
+            read: false,
+            link: `/admin/dashboard?view=support`
+        }));
 
+    const allNotifications = [...paymentNotifications, ...ticketNotifications]
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    setAdminNotifications(allNotifications);
+    setAdminUnreadCount(allNotifications.length);
   }, [user]);
 
   useEffect(() => {
+    fetchAdminNotifications();
+    const interval = setInterval(fetchAdminNotifications, 60000); // Poll every 60 seconds
+    return () => clearInterval(interval);
+  }, [fetchAdminNotifications]);
+
+  const fetchDoctorNotifications = useCallback(async () => {
     if (user?.role !== 'doctor' || !user.id) {
         setDoctorNotifications([]);
         setDoctorUnreadCount(0);
         return;
     }
 
-    const fetchDoctorNotifications = async () => {
-        if (!user || !user.id) return;
+    const appointments = await firestoreService.getDoctorAppointments(user.id);
 
-        const appointments = await firestoreService.getDoctorAppointments(user.id);
+    const paymentVerificationNotifications: DoctorNotification[] = appointments
+        .filter(appt => appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente')
+        .map(appt => ({
+            id: `verify-${appt.id}`,
+            type: 'payment_verification',
+            title: 'Verificación de Pago',
+            description: `El paciente ${appt.patientName} espera aprobación.`,
+            date: appt.date,
+            read: false, // These are always "unread" until actioned
+            link: `/doctor/dashboard?view=appointments`
+        }));
+    
+    const allNotifications = [...paymentVerificationNotifications]
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    setDoctorNotifications(allNotifications);
+    setDoctorUnreadCount(allNotifications.length);
+  }, [user]);
 
-        const paymentVerificationNotifications: DoctorNotification[] = appointments
-            .filter(appt => appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente')
-            .map(appt => ({
-                id: `verify-${appt.id}`,
-                type: 'payment_verification',
-                title: 'Verificación de Pago',
-                description: `El paciente ${appt.patientName} espera aprobación de pago.`,
-                date: appt.date,
-                read: false, // These are always "unread" until actioned
-                link: `/doctor/dashboard?view=appointments`
-            }));
-        
-        const allNotifications = [...paymentVerificationNotifications]
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        setDoctorNotifications(allNotifications);
-        setDoctorUnreadCount(allNotifications.length);
-    };
-
+  useEffect(() => {
     fetchDoctorNotifications();
     const interval = setInterval(fetchDoctorNotifications, 60000);
     return () => clearInterval(interval);
-
-  }, [user]);
+  }, [fetchDoctorNotifications]);
 
 
   const markAdminNotificationsAsRead = async () => {
@@ -160,15 +154,16 @@ export function Header() {
       .filter(n => n.type === 'support_ticket' && !n.read)
       .map(n => n.id.replace('ticket-', ''));
 
-    if (unreadTicketIds.length > 0) {
-        await firestoreService.batchUpdateNotificationsAsRead(unreadTicketIds, []);
+    const unreadPaymentIds = adminNotifications
+      .filter(n => n.type === 'payment' && !n.read)
+      .map(n => n.id.replace('payment-', ''));
+
+    if (unreadTicketIds.length > 0 || unreadPaymentIds.length > 0) {
+        await firestoreService.batchUpdateNotificationsAsRead(unreadTicketIds, unreadPaymentIds);
         
         // Optimistically update the UI
-        const newUnreadCount = adminNotifications.filter(n => n.type === 'payment').length;
-        setAdminUnreadCount(newUnreadCount);
-        setAdminNotifications(prev => prev.map(n => 
-            n.type === 'support_ticket' ? { ...n, read: true } : n
-        ));
+        setAdminUnreadCount(0);
+        setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })));
     }
   };
 

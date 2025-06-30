@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { Appointment } from './types';
 import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -13,6 +13,7 @@ export interface Notification {
   description: string;
   relativeTime: string;
   read: boolean;
+  createdAt: string; // ISO string to sort and manage notifications
 }
 
 interface NotificationContextType {
@@ -23,14 +24,37 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NOTIFICATION_STORAGE_KEY = 'suma-patient-notifications';
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Notification[];
+        setNotifications(parsed);
+        setUnreadCount(parsed.filter(n => !n.read).length);
+      }
+    } catch (e) {
+      console.error("Failed to load notifications from localStorage", e);
+    }
+  }, []);
+
+
   const checkAndSetNotifications = useCallback((appointments: Appointment[]) => {
     const newNotificationsMap = new Map<string, Notification>();
     const now = new Date();
+    
+    let storedNotifications: Notification[] = [];
+    try {
+        storedNotifications = JSON.parse(localStorage.getItem(NOTIFICATION_STORAGE_KEY) || '[]') as Notification[];
+    } catch {
+        storedNotifications = [];
+    }
+    const existingIds = new Set(storedNotifications.map(n => n.id));
 
     appointments.forEach(appt => {
       const apptDateTime = new Date(`${appt.date}T${appt.time}`);
@@ -39,6 +63,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const createNotification = (timeframe: '24h' | '3h') => {
         const id = `${appt.id}-${timeframe}`;
         
+        if (existingIds.has(id)) return; // Don't create duplicate notifications
+
         const title = timeframe === '24h' 
           ? `Recordatorio: Cita Mañana`
           : `Recordatorio: Cita Pronto`;
@@ -50,40 +76,37 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           appointmentId: appt.id,
           title,
           description,
-          relativeTime: formatDistanceToNow(new Date(), { locale: es, addSuffix: true }),
-          read: false
+          relativeTime: formatDistanceToNow(now, { locale: es, addSuffix: true }),
+          read: false,
+          createdAt: now.toISOString(),
         });
       };
 
-      // Check for 24-hour reminder (window between 23 and 25 hours to catch it)
       if (hoursUntil >= 23 && hoursUntil < 25) {
         createNotification('24h');
       }
-      // Check for 3-hour reminder (window between 2 and 4 hours)
       if (hoursUntil >= 2 && hoursUntil < 4) {
         createNotification('3h');
       }
     });
 
     if (newNotificationsMap.size > 0) {
-      setNotifications(prev => {
-        const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNewNotifications = Array.from(newNotificationsMap.values()).filter(n => !existingIds.has(n.id));
+      const uniqueNewNotifications = Array.from(newNotificationsMap.values());
+      const updatedNotifications = [...uniqueNewNotifications, ...storedNotifications]
+        .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         
-        if (uniqueNewNotifications.length === 0) {
-            return prev;
-        }
-        
-        setUnreadCount(prevUnread => prevUnread + uniqueNewNotifications.length);
-        return [...uniqueNewNotifications, ...prev].sort((a,b) => b.id.localeCompare(a.id));
-      });
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updatedNotifications));
+      setNotifications(updatedNotifications);
+      setUnreadCount(prev => prev + uniqueNewNotifications.length);
     }
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const updated = notifications.map(n => ({ ...n, read: true }));
+    localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+    setNotifications(updated);
     setUnreadCount(0);
-  }, []);
+  }, [notifications]);
   
   const value = { notifications, unreadCount, checkAndSetNotifications, markAllAsRead };
 
