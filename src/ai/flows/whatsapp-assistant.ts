@@ -91,6 +91,13 @@ const systemPrompt = `Eres un asistente de IA altamente profesional y empático 
     *   No repitas preguntas si la información ya fue proporcionada en la conversación. Usa el historial.
 `;
 
+const whatsappAssistantPrompt = ai.definePrompt({
+    name: 'whatsappAssistantPrompt',
+    system: systemPrompt,
+    tools: [findDoctorsTool],
+    input: { schema: z.string() }, // The user's query is the input
+});
+
 const whatsappAssistantFlow = ai.defineFlow(
   {
     name: 'whatsappAssistantFlow',
@@ -104,12 +111,9 @@ const whatsappAssistantFlow = ai.defineFlow(
         content: [{ text: message.text }]
     }));
 
-    // The user's query is passed explicitly to `prompt`. The rest is history.
-    const response = await ai.generate({
-      system: systemPrompt,
+    const response = await whatsappAssistantPrompt.generate({
       history: genkitHistory,
-      prompt: query,
-      tools: [findDoctorsTool],
+      input: query,
     });
 
     const text = response.text;
