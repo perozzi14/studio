@@ -886,7 +886,7 @@ export default function DoctorDashboardPage() {
     const updatedTicket = {
         ...selectedSupportTicket,
         messages: [
-            ...selectedSupportTicket.messages,
+            ...(selectedSupportTicket.messages || []),
             { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
         ]
     };
@@ -1767,7 +1767,7 @@ export default function DoctorDashboardPage() {
                 {selectedSupportTicket && (
                     <>
                         <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
-                            {selectedSupportTicket.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                            {(selectedSupportTicket.messages || []).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
                                 <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'user' && 'justify-end')}>
                                     {msg.sender === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>A</AvatarFallback></Avatar>}
                                     <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>

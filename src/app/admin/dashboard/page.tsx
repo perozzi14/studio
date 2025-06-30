@@ -354,6 +354,7 @@ export default function AdminDashboardPage() {
                 subscriptionStatus: 'inactive',
                 nextPaymentDate: new Date().toISOString().split('T')[0],
                 coupons: [],
+                expenses: [],
             };
             await firestoreService.addDoctor(newDoctorData);
             toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
@@ -622,7 +623,7 @@ export default function AdminDashboardPage() {
     const updatedTicket = {
         ...selectedTicket,
         messages: [
-            ...selectedTicket.messages,
+            ...(selectedTicket.messages || []),
             { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
         ]
     };
@@ -1913,7 +1914,7 @@ export default function AdminDashboardPage() {
                 {selectedTicket && (
                     <>
                         <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
-                            {selectedTicket.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                            {(selectedTicket.messages || []).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
                                 <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'admin' && 'justify-end')}>
                                     {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarFallback>{selectedTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
                                     <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'admin' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
