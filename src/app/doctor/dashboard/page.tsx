@@ -307,11 +307,25 @@ export default function DoctorDashboardPage() {
 
 
   useEffect(() => {
+    // This effect synchronizes the detailed appointment view with the main appointment list.
     if (selectedAppointment) {
-        const updatedAppt = appointments.find(a => a.id === selectedAppointment.id);
-        if (updatedAppt) {
-            setSelectedAppointment(prev => ({...updatedAppt, patient: prev?.patient}));
+      const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
+      
+      if (updatedApptFromList) {
+        // To prevent an infinite loop, we need to check if an update is actually necessary.
+        // We do this by comparing the core appointment data, ignoring the `patient` field
+        // which is only present in our detailed state object.
+        const { patient, ...currentApptDataInState } = selectedAppointment;
+        
+        // Using JSON.stringify is a simple way to deep-compare the objects.
+        if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
+          setSelectedAppointment(prev => {
+            // We use the functional update to safely carry over the patient data.
+            if (!prev) return null;
+            return { ...updatedApptFromList, patient: prev.patient };
+          });
         }
+      }
     }
   }, [appointments, selectedAppointment]);
 
