@@ -153,10 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Handle admin login
     if (lowerEmail === 'admin@admin.com') {
-      if (password === 'AdminSuma2024*') { // Using a simple, non-secure password for this mock.
+      if (password === '1234') { // Using a simple, non-secure password for this mock.
         const adminUser: User = { 
           id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
-          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: 'AdminSuma2024*',
+          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234',
           city: null
         };
         setUser(adminUser);
