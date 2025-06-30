@@ -31,6 +31,9 @@ export default async function Home() {
               <Button size="lg" variant="outline" asChild>
                 <Link href="/dashboard">Portal del Paciente</Link>
               </Button>
+               <Button size="lg" variant="outline" asChild>
+                <Link href="/auth/register-doctor">Registrarse como Médico</Link>
+              </Button>
             </div>
           </div>
         </section>
@@ -98,4 +101,3 @@ function FeatureCard({
     </div>
   );
 }
-

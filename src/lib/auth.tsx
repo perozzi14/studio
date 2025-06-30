@@ -15,10 +15,22 @@ interface User extends Patient {
   referralCode?: string;
 }
 
+interface DoctorRegistrationData {
+  name: string;
+  email: string;
+  password: string;
+  specialty: string;
+  city: string;
+  address: string;
+  slotDuration: number;
+  consultationFee: number;
+}
+
 interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  registerDoctor: (doctorData: DoctorRegistrationData) => Promise<void>;
   signInWithGoogle: () => Promise<void>; // <-- Added new function
   logout: () => void;
   updateUser: (data: Partial<Patient>) => void;
@@ -195,6 +207,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser));
     router.push('/dashboard');
   };
+
+  const registerDoctor = async (doctorData: DoctorRegistrationData) => {
+    const { email, password, name, specialty, city, address, slotDuration, consultationFee } = doctorData;
+    
+    const existingUser = await firestoreService.findUserByEmail(email);
+    if (existingUser) {
+        toast({ variant: "destructive", title: "Error de Registro", description: "Este correo electrónico ya está en uso." });
+        return;
+    }
+    
+    const now = new Date();
+    const nextMonth = new Date(now);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const newDoctorData: Omit<Doctor, 'id'> = {
+        name, email, specialty, city, address, password,
+        sellerId: null, // As requested, referred by admin/system
+        cedula: '',
+        sector: '',
+        rating: 0,
+        reviewCount: 0,
+        profileImage: 'https://placehold.co/400x400.png',
+        bannerImage: 'https://placehold.co/1200x400.png',
+        aiHint: 'doctor portrait',
+        description: 'Especialista comprometido con la salud y el bienestar de mis pacientes.',
+        services: [],
+        bankDetails: [],
+        slotDuration: slotDuration,
+        consultationFee: consultationFee,
+        schedule: {
+            monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            thursday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
+            friday: { active: true, slots: [{ start: "09:00", end: "13:00" }] },
+            saturday: { active: false, slots: [] },
+            sunday: { active: false, slots: [] },
+        },
+        status: 'active',
+        lastPaymentDate: now.toISOString().split('T')[0],
+        whatsapp: '',
+        lat: 0, lng: 0,
+        joinDate: now.toISOString().split('T')[0],
+        subscriptionStatus: 'active',
+        nextPaymentDate: nextMonth.toISOString().split('T')[0],
+        coupons: [],
+        expenses: [],
+    };
+    
+    const newDoctorRef = await firestoreService.addDoctor(newDoctorData);
+    const newDoctorId = newDoctorRef.id;
+    
+    const loggedInUser = buildUserFromData({ ...newDoctorData, id: newDoctorId, role: 'doctor' });
+    setUser(loggedInUser);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    router.push('/doctor/dashboard');
+};
+
   
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -273,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, signInWithGoogle, logout, updateUser, toggleFavoriteDoctor }}>
+    <AuthContext.Provider value={{ user, login, register, registerDoctor, signInWithGoogle, logout, updateUser, toggleFavoriteDoctor }}>
       {children}
     </AuthContext.Provider>
   );
