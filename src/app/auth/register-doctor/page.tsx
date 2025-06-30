@@ -14,11 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Stethoscope, Loader2 } from "lucide-react";
+import { ArrowLeft, Stethoscope, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 const DoctorRegistrationSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -178,6 +179,13 @@ export default function RegisterDoctorPage() {
               Inicia sesión
             </Link>
           </div>
+           <Separator className="my-4" />
+            <Button variant="ghost" asChild className="w-full text-muted-foreground">
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver a la página de inicio
+                </Link>
+            </Button>
         </CardContent>
       </Card>
     </div>

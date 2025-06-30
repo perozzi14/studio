@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag, CheckCircle, XCircle, ClipboardList } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag, CheckCircle, XCircle, ClipboardList, Home, Bot, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -726,25 +726,41 @@ export function Header() {
 }
 
 
-const bottomNavItems = [
+const patientBottomNavItems = [
   { href: "/dashboard", label: "Panel", icon: LayoutDashboard },
   { href: "/find-a-doctor", label: "Buscar", icon: Search },
   { href: "/favorites", label: "Favoritos", icon: Heart },
   { href: "/profile", label: "Perfil", icon: User },
 ];
 
+const publicBottomNavItems = [
+    { href: "/", label: "Inicio", icon: Home },
+    { href: "/find-a-doctor", label: "Buscar", icon: Search },
+    { href: "/ai-assistant", label: "Asistente", icon: Bot },
+    { href: "/auth/login", label: "Acceder", icon: LogIn },
+];
+
+
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  
+  const isPublicPage = ['/', '/find-a-doctor', '/ai-assistant'].includes(pathname);
 
-  if (!user || user.role !== "patient") {
+  let navItems;
+
+  if (user && user.role === 'patient') {
+    navItems = patientBottomNavItems;
+  } else if (!user && isPublicPage) {
+    navItems = publicBottomNavItems;
+  } else {
     return null;
   }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
       <div className="container flex h-16 items-center justify-around px-2">
-        {bottomNavItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

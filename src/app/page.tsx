@@ -1,4 +1,4 @@
-import { Header } from "@/components/header";
+import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,7 +13,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         {/* Hero Section */}
         <section className="container text-center py-20 md:py-32">
           <div className="max-w-3xl mx-auto">
@@ -76,6 +76,7 @@ export default async function Home() {
             </div>
         </section>
       </main>
+      <BottomNav />
     </div>
   );
 }

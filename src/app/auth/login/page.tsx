@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Stethoscope } from "lucide-react";
+import { ArrowLeft, Stethoscope } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -121,11 +121,12 @@ export default function LoginPage() {
             </Link>
           </div>
           <Separator className="my-4" />
-          <div className="text-center">
-             <Link href="/" className="text-sm underline text-muted-foreground hover:text-primary">
-                Ir a la página principal
-              </Link>
-          </div>
+          <Button variant="ghost" asChild className="w-full text-muted-foreground">
+            <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver a la página de inicio
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
