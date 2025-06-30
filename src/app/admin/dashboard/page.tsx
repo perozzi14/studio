@@ -2628,27 +2628,33 @@ export default function AdminDashboardPage() {
                 </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSaveSeller}>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Nombre</Label>
-                        <Input id="name" name="name" defaultValue={editingSeller?.name || ''} className="col-span-3" required />
+                <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="name">Nombre Completo</Label>
+                            <Input id="name" name="name" defaultValue={editingSeller?.name || ''} required />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email">Correo Electrónico</Label>
+                            <Input id="email" name="email" type="email" defaultValue={editingSeller?.email || ''} required />
+                        </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" name="email" type="email" defaultValue={editingSeller?.email || ''} className="col-span-3" required />
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-1.5">
+                            <Label htmlFor="password">Contraseña</Label>
+                            <Input id="password" name="password" type="password" placeholder={editingSeller ? "Dejar en blanco para no cambiar" : ""} />
+                        </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                            <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Repite la contraseña" />
+                        </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="password" className="text-right">Contraseña</Label>
-                        <Input id="password" name="password" type="password" placeholder={editingSeller ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="confirmPassword" className="text-right">Confirmar</Label>
-                        <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Repite la contraseña" className="col-span-3" />
-                    </div>
-                    <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
-                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} className="col-span-3" required />
+                    <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                    <Separator/>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="commission">Comisión (%)</Label>
+                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} required />
                     </div>
                 </div>
                 <DialogFooter>
@@ -2787,63 +2793,74 @@ export default function AdminDashboardPage() {
                 </DialogDescription>
             </DialogHeader>
              <form onSubmit={handleSaveDoctor}>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-name" className="text-right">Nombre</Label>
-                        <Input id="doc-name" name="doc-name" defaultValue={editingDoctor?.name || ''} className="col-span-3" required />
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-name">Nombre Completo</Label>
+                            <Input id="doc-name" name="doc-name" defaultValue={editingDoctor?.name || ''} required />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-email">Correo Electrónico</Label>
+                            <Input id="doc-email" name="doc-email" type="email" defaultValue={editingDoctor?.email || ''} required />
+                        </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-email" className="text-right">Email</Label>
-                        <Input id="doc-email" name="doc-email" type="email" defaultValue={editingDoctor?.email || ''} className="col-span-3" required />
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-password">Contraseña</Label>
+                            <Input id="doc-password" name="doc-password" type="password" placeholder={editingDoctor ? "Dejar en blanco para no cambiar" : ""} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-confirm-password">Confirmar Contraseña</Label>
+                            <Input id="doc-confirm-password" name="doc-confirm-password" type="password" placeholder="Repite la contraseña" />
+                        </div>
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-password" className="text-right">Contraseña</Label>
-                        <Input id="doc-password" name="doc-password" type="password" placeholder={editingDoctor ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
+                     <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                     <Separator/>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-1.5">
+                            <Label htmlFor="doc-specialty">Especialidad</Label>
+                            <Select name="doc-specialty" defaultValue={editingDoctor?.specialty}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="doc-city">Ciudad</Label>
+                             <Select name="doc-city" defaultValue={editingDoctor?.city}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                     </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="doc-address">Dirección del Consultorio</Label>
+                        <Input id="doc-address" name="doc-address" defaultValue={editingDoctor?.address || ''} required />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-confirm-password" className="text-right">Confirmar</Label>
-                        <Input id="doc-confirm-password" name="doc-confirm-password" type="password" placeholder="Repite la contraseña" className="col-span-3" />
-                    </div>
-                    <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
-                        <Select name="doc-specialty" defaultValue={editingDoctor?.specialty}>
-                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                            <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-address" className="text-right">Dirección</Label>
-                        <Input id="doc-address" name="doc-address" defaultValue={editingDoctor?.address || ''} className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-city" className="text-right">Ciudad</Label>
-                         <Select name="doc-city" defaultValue={editingDoctor?.city}>
-                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                            <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-seller" className="text-right">Referido por</Label>
-                        <Select name="doc-seller" defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Selecciona una vendedora" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
-                                {sellers.map(s => (
-                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label>
-                        <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue={editingDoctor?.slotDuration || 30} className="col-span-3" required min="5"/>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label>
-                        <Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={editingDoctor?.consultationFee ?? 20} className="col-span-3" required min="0"/>
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1.5 md:col-span-1">
+                            <Label htmlFor="doc-seller">Referido por</Label>
+                            <Select name="doc-seller" defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona una vendedora" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
+                                    {sellers.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-slot-duration">Duración Cita (min)</Label>
+                            <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue={editingDoctor?.slotDuration || 30} required min="5"/>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-consultation-fee">Tarifa Consulta ($)</Label>
+                            <Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={editingDoctor?.consultationFee ?? 20} required min="0"/>
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
@@ -3151,25 +3168,25 @@ export default function AdminDashboardPage() {
               </DialogHeader>
               <form onSubmit={handleSaveBankDetail}>
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="bankName" className="text-right">Banco</Label>
-                        <Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} className="col-span-3" required />
+                     <div className="space-y-1.5">
+                        <Label htmlFor="bankName">Nombre del Banco</Label>
+                        <Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} required />
                     </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountHolder" className="text-right">Titular</Label>
-                        <Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} className="col-span-3" required />
+                      <div className="space-y-1.5">
+                        <Label htmlFor="accountHolder">Nombre del Titular</Label>
+                        <Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} required />
                     </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label>
-                        <Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} className="col-span-3" required />
+                      <div className="space-y-1.5">
+                        <Label htmlFor="idNumber">C.I./R.I.F.</Label>
+                        <Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} required />
                     </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label>
-                        <Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} className="col-span-3" required />
+                      <div className="space-y-1.5">
+                        <Label htmlFor="accountNumber">Número de Cuenta</Label>
+                        <Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} required />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="description" className="text-right">Descripción</Label>
-                        <Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} className="col-span-3" placeholder="Ej: Cuenta Principal, Zelle, etc."/>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="description">Descripción (Opcional)</Label>
+                        <Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} placeholder="Ej: Cuenta Principal, Zelle, etc."/>
                     </div>
                 </div>
                 <DialogFooter>
@@ -3287,4 +3304,5 @@ export default function AdminDashboardPage() {
   );
 }
 
+    
     
