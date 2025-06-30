@@ -43,27 +43,36 @@ export default function AiAssistantPage() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { sender: "user", text: input };
+    
+    const historyForApi = messages.map(msg => ({
+        sender: msg.sender,
+        text: msg.text,
+    }));
+
     setMessages((prev) => [...prev, userMessage]);
     const currentQuery = input;
     setInput("");
     setIsLoading(true);
 
     try {
-      const output = await whatsappAssistant({ query: currentQuery });
+      const output = await whatsappAssistant({ query: currentQuery, history: historyForApi });
       const assistantMessage: Message = {
         sender: "assistant",
         text: output.response,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
+      const errorMessage: Message = {
+        sender: 'assistant',
+        text: "Lo siento, no pude procesar tu solicitud en este momento. Por favor, inténtalo de nuevo más tarde."
+      };
+      setMessages(prev => [...prev, errorMessage]);
       toast({
         variant: "destructive",
         title: "Ocurrió un Error",
         description:
           err instanceof Error ? err.message : "Ocurrió un error desconocido.",
       });
-      // Remove the user's message if the call fails to show it wasn't processed
-      setMessages(prev => prev.filter(m => m !== userMessage));
     } finally {
       setIsLoading(false);
     }

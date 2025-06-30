@@ -12,6 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { doctors } from '@/lib/data';
+import type { MessageData } from 'genkit';
 
 // Tool to find doctors
 const findDoctorsTool = ai.defineTool(
@@ -45,9 +46,14 @@ const findDoctorsTool = ai.defineTool(
   }
 );
 
+const HistoryMessageSchema = z.object({
+    sender: z.enum(['user', 'assistant']),
+    text: z.string(),
+});
 
 const WhatsAppAssistantInputSchema = z.object({
-  query: z.string().min(1, 'La consulta no puede estar vacía.').max(500, 'La consulta es demasiado larga.').describe('La consulta del usuario a través de WhatsApp.'),
+  query: z.string().min(1, 'La consulta no puede estar vacía.').max(500, 'La consulta es demasiado larga.').describe('La consulta actual del usuario.'),
+  history: z.array(HistoryMessageSchema).optional().describe('El historial de la conversación.')
 });
 export type WhatsAppAssistantInput = z.infer<typeof WhatsAppAssistantInputSchema>;
 
@@ -60,21 +66,16 @@ export async function whatsappAssistant(input: WhatsAppAssistantInput): Promise<
   return whatsappAssistantFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'whatsappAssistantPrompt',
-  input: {schema: WhatsAppAssistantInputSchema},
-  output: {schema: WhatsAppAssistantOutputSchema},
-  tools: [findDoctorsTool],
-  prompt: `Eres un asistente de IA altamente profesional y empático de SUMA (Sistema Unificado de Medicina Avanzada). Tu rol principal es guiar a los pacientes para que encuentren el especialista adecuado y facilitarles el proceso de reserva. Tu comunicación es exclusivamente a través de WhatsApp.
+const systemPrompt = `Eres un asistente de IA altamente profesional y empático de SUMA (Sistema Unificado de Medicina Avanzada). Tu rol principal es guiar a los pacientes para que encuentren el especialista adecuado y facilitarles el proceso de reserva. Tu comunicación es exclusivamente a través de WhatsApp.
 
 **Instrucciones de Operación:**
 
-1.  **Analiza la Consulta:** Lee cuidadosamente la consulta del usuario para entender su necesidad.
+1.  **Analiza la Consulta:** Lee cuidadosamente la consulta del usuario para entender su necesidad, tomando en cuenta el historial de la conversación.
 2.  **Identifica Síntomas y Especialidad:**
     *   Si el usuario describe síntomas (ej. "dolor de pecho", "erupción en la piel", "mucha ansiedad"), infiere la especialidad médica más probable (ej. Cardiología, Dermatología, Psiquiatría).
     *   Si el usuario menciona directamente una especialidad, úsala.
 3.  **Confirma la Ubicación:**
-    *   Si el usuario no especifica una ciudad, DEBES preguntarle "¿En qué ciudad te encuentras?" para poder filtrar la búsqueda.
+    *   Si el usuario no especifica una ciudad, DEBES preguntarle "¿En qué ciudad te encuentras?" para poder filtrar la búsqueda. No asumas una ciudad.
 4.  **Utiliza la Herramienta \`findDoctors\`:**
     *   Una vez que tengas una especialidad (inferida o directa) y una ubicación, DEBES usar la herramienta \`findDoctors\` para obtener una lista de especialistas.
 5.  **Presenta los Resultados de Forma Profesional:**
@@ -87,11 +88,8 @@ const prompt = ai.definePrompt({
     *   Mantén siempre un tono profesional, tranquilizador y servicial.
     *   Sé conciso y claro en tus respuestas.
     *   Utiliza formato (como negritas y listas) para que la información sea fácil de leer en WhatsApp.
-
-**Consulta del Paciente:**
-{{{query}}}
-  `,
-});
+    *   No repitas preguntas si la información ya fue proporcionada en la conversación. Usa el historial.
+`;
 
 const whatsappAssistantFlow = ai.defineFlow(
   {
@@ -99,8 +97,32 @@ const whatsappAssistantFlow = ai.defineFlow(
     inputSchema: WhatsAppAssistantInputSchema,
     outputSchema: WhatsAppAssistantOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async ({ query, history }) => {
+    
+    const genkitHistory: MessageData[] = (history || []).map(message => ({
+        role: message.sender === 'user' ? 'user' : 'model',
+        content: [{ text: message.text }]
+    }));
+
+    genkitHistory.push({ role: 'user', content: [{ text: query }] });
+
+    const response = await ai.generate({
+      system: systemPrompt,
+      history: genkitHistory,
+      tools: [findDoctorsTool],
+      output: {
+        schema: WhatsAppAssistantOutputSchema,
+      }
+    });
+
+    if (!response.output) {
+      const text = response.text;
+      if (text) {
+          return { response: text };
+      }
+      throw new Error("El asistente no pudo generar una respuesta.");
+    }
+    
+    return response.output;
   }
 );
