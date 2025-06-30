@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Dialog,
   DialogContent,
@@ -918,6 +919,21 @@ export default function AdminDashboardPage() {
     return doctorPayments.filter(p => p.status === 'Pending');
   }, [doctorPayments]);
 
+  const paymentsByMonth = useMemo(() => {
+    const grouped: { [month: string]: DoctorPayment[] } = {};
+    const sortedPayments = [...doctorPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    sortedPayments.forEach(payment => {
+        const monthKey = format(new Date(payment.date + 'T00:00:00'), 'LLLL yyyy', { locale: es });
+        if (!grouped[monthKey]) {
+            grouped[monthKey] = [];
+        }
+        grouped[monthKey].push(payment);
+    });
+
+    return grouped;
+  }, [doctorPayments]);
+
   const handleGenerateAdminFinanceReport = () => {
     const doc = new jsPDF();
     
@@ -1580,61 +1596,62 @@ export default function AdminDashboardPage() {
 
                       <Card>
                         <CardHeader>
-                            <CardTitle>Historial de Ingresos (Suscripciones)</CardTitle>
-                            <CardDescription>Historial de pagos de mensualidades de los médicos.</CardDescription>
+                            <CardTitle>Historial de Ingresos por Suscripción</CardTitle>
+                            <CardDescription>Pagos de mensualidades de los médicos, agrupados por mes.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <div className="hidden md:block">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Fecha</TableHead>
-                                            <TableHead>Médico</TableHead>
-                                            <TableHead>Monto</TableHead>
-                                            <TableHead>Estado</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {doctorPayments.map((payment) => (
-                                            <TableRow key={payment.id}>
-                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                <TableCell>{payment.doctorName}</TableCell>
-                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
-                                                <TableCell>
-                                                    <Badge className={cn({
-                                                        'bg-green-600 text-white': payment.status === 'Paid',
-                                                        'bg-amber-500 text-white': payment.status === 'Pending',
-                                                        'bg-red-600 text-white': payment.status === 'Rejected',
-                                                    })}>
-                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
-                                                    </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                             </div>
-                            <div className="space-y-4 md:hidden">
-                                {doctorPayments.map((payment) => (
-                                    <div key={payment.id} className="p-4 border rounded-lg space-y-3">
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div>
-                                                <p className="font-semibold">{payment.doctorName}</p>
-                                                <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
-                                            </div>
-                                             <Badge className={cn({
-                                                'bg-green-600 text-white': payment.status === 'Paid',
-                                                'bg-amber-500 text-white': payment.status === 'Pending',
-                                                'bg-red-600 text-white': payment.status === 'Rejected',
-                                            })}>
-                                                {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-right font-mono text-lg">${payment.amount.toFixed(2)}</p>
-                                    </div>
-                                ))}
-                                {doctorPayments.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>}
-                            </div>
+                            {Object.keys(paymentsByMonth).length > 0 ? (
+                                <Accordion type="single" collapsible className="w-full" defaultValue={Object.keys(paymentsByMonth)[0]}>
+                                    {Object.entries(paymentsByMonth).map(([month, payments]) => (
+                                        <AccordionItem value={month} key={month}>
+                                            <AccordionTrigger className="text-lg font-medium capitalize">{month}</AccordionTrigger>
+                                            <AccordionContent>
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Fecha</TableHead>
+                                                            <TableHead>Médico</TableHead>
+                                                            <TableHead>Monto</TableHead>
+                                                            <TableHead>Estado</TableHead>
+                                                            <TableHead className="text-right">Detalles</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {payments.map((payment) => (
+                                                            <TableRow key={payment.id}>
+                                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL", { locale: es })}</TableCell>
+                                                                <TableCell>{payment.doctorName}</TableCell>
+                                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
+                                                                <TableCell>
+                                                                    <Badge className={cn({
+                                                                        'bg-green-600 text-white': payment.status === 'Paid',
+                                                                        'bg-amber-500 text-white': payment.status === 'Pending',
+                                                                        'bg-red-600 text-white': payment.status === 'Rejected',
+                                                                    })}>
+                                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Button 
+                                                                    variant="outline" 
+                                                                    size="icon" 
+                                                                    onClick={() => handleViewProof(payment.paymentProofUrl)}
+                                                                    disabled={!payment.paymentProofUrl}
+                                                                    >
+                                                                        <Eye className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
+                            ) : (
+                                <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>
+                            )}
                         </CardContent>
                       </Card>
                     </div>
@@ -2817,4 +2834,6 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+
 
