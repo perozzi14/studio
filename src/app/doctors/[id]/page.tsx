@@ -177,10 +177,10 @@ export default function DoctorProfilePage() {
 
     if (!user) {
       toast({
-        variant: "destructive",
         title: "Debes iniciar sesión",
-        description: "Para reservar una cita, por favor inicia sesión o crea una cuenta.",
+        description: "Redirigiendo a la página de inicio de sesión...",
       });
+      router.push(`/auth/login?redirect=/doctors/${id}`);
       return;
     }
     

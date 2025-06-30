@@ -27,61 +27,63 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' }): User => {
   const { role } = userData;
 
+  // Base user structure that satisfies the Patient interface requirements
+  const baseUser: Omit<Patient, 'id' | 'name' | 'email' | 'password' | 'profileImage'> = {
+    age: null,
+    gender: null,
+    phone: null,
+    cedula: null,
+    favoriteDoctorIds: [],
+  };
+
   if (role === 'patient') {
     const patientData = userData as Patient;
     return {
-        id: patientData.id,
-        name: patientData.name,
-        email: patientData.email,
-        password: patientData.password,
-        role: 'patient',
-        profileImage: patientData.profileImage || undefined,
-        age: patientData.age || null,
-        cedula: patientData.cedula || null,
-        favoriteDoctorIds: patientData.favoriteDoctorIds || [],
-        gender: patientData.gender || null,
-        phone: patientData.phone || null,
+      ...baseUser,
+      id: patientData.id,
+      name: patientData.name,
+      email: patientData.email,
+      password: patientData.password,
+      role: 'patient',
+      profileImage: patientData.profileImage || undefined,
+      age: patientData.age || null,
+      cedula: patientData.cedula || null,
+      favoriteDoctorIds: patientData.favoriteDoctorIds || [],
+      gender: patientData.gender || null,
+      phone: patientData.phone || null,
     };
   }
 
   if (role === 'doctor') {
     const doctorData = userData as Doctor;
     return {
-        id: doctorData.id,
-        name: doctorData.name,
-        email: doctorData.email,
-        password: doctorData.password,
-        role: 'doctor',
-        profileImage: doctorData.profileImage,
-        // Patient fields with defaults
-        age: null,
-        cedula: doctorData.cedula,
-        favoriteDoctorIds: [],
-        gender: null,
-        phone: doctorData.whatsapp,
+      ...baseUser,
+      id: doctorData.id,
+      name: doctorData.name,
+      email: doctorData.email,
+      password: doctorData.password,
+      role: 'doctor',
+      profileImage: doctorData.profileImage,
+      cedula: doctorData.cedula,
+      phone: doctorData.whatsapp,
     };
   }
 
   if (role === 'seller') {
     const sellerData = userData as Seller;
     return {
-        id: sellerData.id,
-        name: sellerData.name,
-        email: sellerData.email,
-        password: sellerData.password,
-        role: 'seller',
-        profileImage: sellerData.profileImage,
-        referralCode: sellerData.referralCode,
-        // Patient fields with defaults
-        age: null,
-        cedula: null,
-        favoriteDoctorIds: [],
-        gender: null,
-        phone: sellerData.phone,
+      ...baseUser,
+      id: sellerData.id,
+      name: sellerData.name,
+      email: sellerData.email,
+      password: sellerData.password,
+      role: 'seller',
+      profileImage: sellerData.profileImage,
+      phone: sellerData.phone,
+      referralCode: sellerData.referralCode,
     };
   }
-  
-  // Fallback, should not be reached
+
   throw new Error(`Invalid user role: ${role}`);
 };
 
