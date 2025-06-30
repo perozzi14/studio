@@ -328,6 +328,7 @@ export default function DoctorDashboardPage() {
       
       if (updatedApptFromList) {
         const { patient, ...currentApptDataInState } = selectedAppointment;
+        // Simple string comparison to avoid deep object comparison on every render
         if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
           setSelectedAppointment(prev => {
             if (!prev) return null;
@@ -1771,9 +1772,9 @@ export default function DoctorDashboardPage() {
                                 <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
                                 <p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p>
                                 <p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p>
-                                <p className="flex items-center gap-2"><strong>Confirmación Paciente:</strong> 
+                                <div className="flex items-center gap-2"><p><strong>Confirmación Paciente:</strong></p>
                                      <Badge variant={
-                                        selectedAppointment.patientConfirmationStatus === 'Confirmada' ? 'default' :
+                                        selectedAppointment.patientConfirmationStatus === 'Confirmada' ? 'default' : 
                                         selectedAppointment.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
                                     } className={cn(
                                         {'bg-green-600 text-white': selectedAppointment.patientConfirmationStatus === 'Confirmada'},
@@ -1781,7 +1782,7 @@ export default function DoctorDashboardPage() {
                                     )}>
                                         {selectedAppointment.patientConfirmationStatus}
                                     </Badge>
-                                </p>
+                                </div>
                                 <p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p>
                             </div>
                         </div>
@@ -1934,4 +1935,3 @@ export default function DoctorDashboardPage() {
 }
 
     
-
