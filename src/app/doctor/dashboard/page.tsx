@@ -307,7 +307,6 @@ export default function DoctorDashboardPage() {
         if (docData) {
             setDoctorData(docData);
             setProfileForm(docData);
-            setPublicProfileUrl(`${window.location.origin}/doctors/${docData.id}`);
             setAppointments(docAppointments);
             setPatients(allPatients);
             setDoctorPayments(docPayments.filter(p => p.doctorId === docData.id));
@@ -328,6 +327,12 @@ export default function DoctorDashboardPage() {
         return () => clearInterval(intervalId); // Cleanup on unmount
     }
   }, [user, fetchData]);
+
+  useEffect(() => {
+    if (doctorData?.id) {
+        setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+    }
+  }, [doctorData]);
 
 
   useEffect(() => {
