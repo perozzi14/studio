@@ -600,7 +600,7 @@ export default function SellerDashboardPage() {
                             <CardHeader>
                                 <CardTitle>Desglose de Comisiones Pendientes</CardTitle>
                                 <CardDescription>
-                                    Comisiones estimadas a pagar en el próximo ciclo, basadas en tus médicos activos.
+                                    Comisiones estimadas a pagar el próximo <span className="font-semibold text-primary">{financeStats.nextPaymentDate}</span>, basadas en tus médicos activos.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
