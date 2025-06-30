@@ -5,6 +5,7 @@
 
 
 
+
 export type ChatMessage = {
     id: string;
     sender: 'user' | 'admin' | 'patient' | 'doctor';
@@ -200,6 +201,18 @@ export type AdminNotification = {
     description: string;
     date: string; // ISO string
     read: boolean;
+    link: string;
+};
+
+export type PatientNotification = {
+    id: string;
+    type: 'reminder' | 'payment_approved' | 'new_message' | 'record_added';
+    appointmentId: string;
+    title: string;
+    description: string;
+    relativeTime: string;
+    read: boolean;
+    createdAt: string; // ISO string to sort and manage notifications
     link: string;
 };
 

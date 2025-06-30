@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag, CheckCircle, XCircle } from "lucide-react";
+import { Stethoscope, LogIn, UserPlus, Menu, LogOut, LayoutDashboard, User, Tag, LifeBuoy, Heart, Search, Bell, BellRing, Check, Settings, DollarSign, Ticket, MessageSquare, CreditCard, ShoppingBag, CheckCircle, XCircle, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -33,7 +33,7 @@ import { useDoctorNotifications } from "@/lib/doctor-notifications";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import * as firestoreService from '@/lib/firestoreService';
-import { type AdminNotification, type DoctorNotification } from "@/lib/types";
+import { type AdminNotification, type DoctorNotification, type PatientNotification } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -54,6 +54,16 @@ export function Header() {
         case 'new_doctor': return <UserPlus className="h-4 w-4 text-blue-500" />;
         case 'support_ticket': return <Ticket className="h-4 w-4 text-orange-500" />;
         default: return <BellRing className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  const getPatientNotificationIcon = (type: PatientNotification['type']) => {
+    switch(type) {
+        case 'reminder': return <BellRing className="h-4 w-4 text-primary" />;
+        case 'payment_approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
+        case 'new_message': return <MessageSquare className="h-4 w-4 text-blue-500" />;
+        case 'record_added': return <ClipboardList className="h-4 w-4 text-purple-500" />;
+        default: return <Bell className="h-4 w-4 text-primary" />;
     }
   };
 
@@ -354,16 +364,16 @@ export function Header() {
                 {notifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
                     {notifications.map(n => (
-                      <div key={n.id} className="p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50">
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-primary/10")}>
                         <div className="mt-1">
-                          {n.read ? <Check className="h-4 w-4 text-green-500"/> : <BellRing className="h-4 w-4 text-primary"/>}
+                          {getPatientNotificationIcon(n.type)}
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
                           <p className="text-xs text-muted-foreground/80 mt-1">{n.relativeTime}</p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
@@ -549,16 +559,16 @@ export function Header() {
                 {notifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
                     {notifications.map(n => (
-                      <div key={n.id} className="p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50">
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-primary/10")}>
                         <div className="mt-1">
-                          {n.read ? <Check className="h-4 w-4 text-green-500" /> : <BellRing className="h-4 w-4 text-primary" />}
+                          {getPatientNotificationIcon(n.type)}
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
                           <p className="text-xs text-muted-foreground/80 mt-1">{n.relativeTime}</p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (

@@ -182,10 +182,10 @@ export default function DashboardPage() {
   }, [user, appointments]);
   
   useEffect(() => {
-    if (upcomingAppointments.length > 0) {
-      checkAndSetNotifications(upcomingAppointments);
+    if (user?.role === 'patient' && appointments.length > 0) {
+      checkAndSetNotifications(appointments);
     }
-  }, [upcomingAppointments, checkAndSetNotifications]);
+  }, [user, appointments, checkAndSetNotifications]);
 
   const handleOpenChat = (appointment: Appointment) => {
     setSelectedChatAppointment(appointment);
