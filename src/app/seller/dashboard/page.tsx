@@ -63,15 +63,36 @@ const ExpenseFormSchema = z.object({
   date: z.string().min(1, "La fecha es requerida."),
 });
 
+const passwordSchema = z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula.")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número.");
+
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres."),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
   consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
+}).superRefine(({ password, confirmPassword }, ctx) => {
+    if (password) {
+        const passResult = passwordSchema.safeParse(password);
+        if (!passResult.success) {
+            passResult.error.errors.forEach(err => ctx.addIssue({ ...err, path: ['password'] }));
+        }
+        if (password !== confirmPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden.",
+                path: ["confirmPassword"],
+            });
+        }
+    }
 });
 
 
@@ -468,6 +489,7 @@ export default function SellerDashboardPage() {
       name: formData.get('doc-name') as string,
       email: formData.get('doc-email') as string,
       password: formData.get('doc-password') as string,
+      confirmPassword: formData.get('doc-confirm-password') as string,
       specialty: formData.get('doc-specialty') as string,
       city: formData.get('doc-city') as string,
       address: formData.get('doc-address') as string,
@@ -483,6 +505,11 @@ export default function SellerDashboardPage() {
       return;
     }
     
+    if (!result.data.password) {
+      toast({ variant: 'destructive', title: 'Contraseña Requerida', description: 'Debe establecer una contraseña para los nuevos médicos.' });
+      return;
+    }
+
     const existingUser = await firestoreService.findUserByEmail(result.data.email);
     if (existingUser) {
         toast({ variant: 'destructive', title: 'Correo ya registrado', description: 'Este correo electrónico ya está en uso por otro usuario.' });
@@ -491,9 +518,13 @@ export default function SellerDashboardPage() {
 
     const { name, email, specialty, city, address, password, slotDuration, consultationFee } = result.data;
     
-    const now = new Date();
-    const nextMonth = new Date(now);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const joinDate = new Date();
+    const paymentDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
+    if (joinDate.getDate() < 15) {
+        paymentDate.setMonth(paymentDate.getMonth() + 1);
+    } else {
+        paymentDate.setMonth(paymentDate.getMonth() + 2);
+    }
 
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address,
@@ -521,19 +552,19 @@ export default function SellerDashboardPage() {
             sunday: { active: false, slots: [] },
         },
         status: 'active',
-        lastPaymentDate: now.toISOString().split('T')[0],
+        lastPaymentDate: joinDate.toISOString().split('T')[0],
         whatsapp: '',
         lat: 0, lng: 0,
-        joinDate: now.toISOString().split('T')[0],
+        joinDate: joinDate.toISOString().split('T')[0],
         subscriptionStatus: 'active',
-        nextPaymentDate: nextMonth.toISOString().split('T')[0],
+        nextPaymentDate: paymentDate.toISOString().split('T')[0],
         coupons: [],
         expenses: [],
     };
     
     try {
         await firestoreService.addDoctor(newDoctorData);
-        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido como tu referido con un mes de prueba gratis.` });
+        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido como tu referido.` });
         fetchData();
         setIsDoctorDialogOpen(false);
     } catch (error) {
@@ -1075,6 +1106,11 @@ export default function SellerDashboardPage() {
                             <Label htmlFor="doc-password" className="text-right">Contraseña</Label>
                             <Input id="doc-password" name="doc-password" type="password" className="col-span-3" required />
                         </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc-confirm-password" className="text-right">Confirmar</Label>
+                            <Input id="doc-confirm-password" name="doc-confirm-password" type="password" className="col-span-3" required />
+                        </div>
+                        <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>
                             <Select name="doc-specialty">

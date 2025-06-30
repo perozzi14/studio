@@ -18,6 +18,8 @@ interface SettingsContextType {
   companyBankDetails: BankDetail[];
   companyExpenses: CompanyExpense[];
   coupons: Coupon[];
+  billingCycleStartDay: number;
+  billingCycleEndDay: number;
 
   updateSetting: (key: keyof Omit<AppSettings, 'cities' | 'specialties' | 'companyBankDetails'>, value: any) => Promise<void>;
   
@@ -52,6 +54,8 @@ const skeletonContextValue: SettingsContextType = {
   companyBankDetails: [],
   companyExpenses: [],
   coupons: [],
+  billingCycleStartDay: 1,
+  billingCycleEndDay: 6,
   updateSetting: async () => {},
   addListItem: async () => {},
   updateListItem: async () => {},
@@ -218,6 +222,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     companyBankDetails: settings?.companyBankDetails || [],
     companyExpenses,
     coupons,
+    billingCycleStartDay: settings?.billingCycleStartDay ?? 1,
+    billingCycleEndDay: settings?.billingCycleEndDay ?? 6,
     updateSetting,
     addListItem,
     updateListItem,
@@ -255,4 +261,3 @@ export function useSettings() {
   }
   return context;
 }
-

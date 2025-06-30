@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -247,6 +247,8 @@ export default function AdminDashboardPage() {
       currency,
       companyBankDetails,
       companyExpenses,
+      billingCycleStartDay,
+      billingCycleEndDay,
       updateSetting,
       addListItem,
       updateListItem,
@@ -276,7 +278,9 @@ export default function AdminDashboardPage() {
   const [editingCompanyBankDetail, setEditingCompanyBankDetail] = useState<BankDetail | null>(null);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<CompanyExpense | null>(null);
-  
+  const [tempBillingStartDay, setTempBillingStartDay] = useState(billingCycleStartDay);
+  const [tempBillingEndDay, setTempBillingEndDay] = useState(billingCycleEndDay);
+
   // State for DB Seeding & Maintenance
   const [isSeeding, setIsSeeding] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -322,6 +326,33 @@ export default function AdminDashboardPage() {
       fetchData();
     }
   }, [user, fetchData]);
+
+  // Check subscriptions on load
+  useEffect(() => {
+    if (user?.role === 'admin' && doctors.length > 0) {
+      const today = new Date();
+      if (today.getDate() > billingCycleEndDay) {
+        const doctorsToDeactivate = doctors.filter(doc =>
+          doc.status === 'active' &&
+          doc.subscriptionStatus !== 'active' && // They haven't paid for the current cycle
+          new Date(doc.nextPaymentDate) < today
+        );
+        if (doctorsToDeactivate.length > 0) {
+          console.log(`Deactivating ${doctorsToDeactivate.length} doctors...`);
+          const updates = doctorsToDeactivate.map(doc =>
+            firestoreService.updateDoctor(doc.id, { status: 'inactive' })
+          );
+          Promise.all(updates).then(() => {
+            toast({
+              title: "Suscripciones Actualizadas",
+              description: `${doctorsToDeactivate.length} médicos han sido pasados a inactivos por falta de pago.`,
+            });
+            fetchData();
+          });
+        }
+      }
+    }
+  }, [user, doctors, billingCycleEndDay, fetchData, toast]);
 
   const handleSeedDatabase = async () => {
     setIsSeeding(true);
@@ -374,6 +405,21 @@ export default function AdminDashboardPage() {
     setLogoFile(null);
     setHeroImageFile(null);
   };
+
+  const handleSaveBillingSettings = async () => {
+    const startDay = Number(tempBillingStartDay);
+    const endDay = Number(tempBillingEndDay);
+    if (isNaN(startDay) || isNaN(endDay) || startDay < 1 || endDay > 28 || startDay >= endDay) {
+        toast({ variant: 'destructive', title: 'Fechas inválidas', description: 'Por favor, ingresa números válidos entre 1 y 28, y asegúrate que el inicio sea menor que el fin.' });
+        return;
+    }
+    await Promise.all([
+        updateSetting('billingCycleStartDay', startDay),
+        updateSetting('billingCycleEndDay', endDay)
+    ]);
+    toast({ title: 'Configuración de facturación guardada.' });
+  };
+
   
   useEffect(() => {
     if (user === undefined) return;
@@ -434,9 +480,13 @@ export default function AdminDashboardPage() {
             await firestoreService.updateDoctor(editingDoctor.id, updatedDoctorData);
             toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
         } else {
-            const now = new Date();
-            const nextMonth = new Date(now);
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            const joinDate = new Date();
+            const paymentDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
+            if (joinDate.getDate() < 15) {
+                paymentDate.setMonth(paymentDate.getMonth() + 1);
+            } else {
+                paymentDate.setMonth(paymentDate.getMonth() + 2);
+            }
 
             const newDoctorData: Omit<Doctor, 'id'> = {
                 name, email, specialty, city, address,
@@ -464,17 +514,17 @@ export default function AdminDashboardPage() {
                     sunday: { active: false, slots: [] },
                 },
                 status: 'active',
-                lastPaymentDate: now.toISOString().split('T')[0],
+                lastPaymentDate: joinDate.toISOString().split('T')[0],
                 whatsapp: '',
                 lat: 0, lng: 0,
-                joinDate: now.toISOString().split('T')[0],
+                joinDate: joinDate.toISOString().split('T')[0],
                 subscriptionStatus: 'active',
-                nextPaymentDate: nextMonth.toISOString().split('T')[0],
+                nextPaymentDate: paymentDate.toISOString().split('T')[0],
                 coupons: [],
                 expenses: [],
             };
             await firestoreService.addDoctor(newDoctorData);
-            toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema con un mes de prueba gratis.` });
+            toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
         }
         fetchData();
         setIsDoctorDialogOpen(false);
@@ -720,17 +770,13 @@ export default function AdminDashboardPage() {
         toast({ variant: "destructive", title: "Error", description: "No se encontró al médico asociado a este pago." });
         return;
     }
-
-    const now = new Date();
-    const currentNextPaymentDate = new Date(doctorToUpdate.nextPaymentDate + 'T00:00:00Z'); 
-    const baseDate = currentNextPaymentDate > now ? currentNextPaymentDate : now;
     
-    const newNextPaymentDate = new Date(baseDate);
-    newNextPaymentDate.setMonth(newNextPaymentDate.getMonth() + 1);
+    const currentCycleDate = new Date(doctorToUpdate.nextPaymentDate + 'T00:00:00Z');
+    const newNextPaymentDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, 1);
 
     await firestoreService.updateDoctorPaymentStatus(paymentId, 'Paid');
     await firestoreService.updateDoctor(payment.doctorId, { 
-      lastPaymentDate: payment.date || new Date().toISOString().split('T')[0],
+      lastPaymentDate: payment.date,
       subscriptionStatus: 'active',
       status: 'active',
       nextPaymentDate: newNextPaymentDate.toISOString().split('T')[0],
@@ -738,7 +784,7 @@ export default function AdminDashboardPage() {
     
     toast({
       title: "Pago Aprobado",
-      description: `La suscripción del Dr. ${doctorToUpdate.name} es válida hasta el ${format(newNextPaymentDate, 'dd/MM/yyyy')}.`,
+      description: `La suscripción del Dr. ${doctorToUpdate.name} ha sido renovada.`,
     });
     fetchData();
   };
@@ -2088,6 +2134,36 @@ export default function AdminDashboardPage() {
                             </CardContent>
                         </Card>
                       </div>
+
+                      <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CalendarDays /> Ciclo de Facturación</CardTitle>
+                            <CardDescription>Define el ciclo de pago mensual para las suscripciones de los médicos.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <Label htmlFor="billing-start">Día de Inicio del Ciclo</Label>
+                                <Input 
+                                    id="billing-start" 
+                                    type="number" 
+                                    value={tempBillingStartDay}
+                                    onChange={(e) => setTempBillingStartDay(Number(e.target.value))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="billing-end">Día de Fin (Periodo de Gracia)</Label>
+                                <Input 
+                                    id="billing-end" 
+                                    type="number" 
+                                    value={tempBillingEndDay}
+                                    onChange={(e) => setTempBillingEndDay(Number(e.target.value))}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button onClick={handleSaveBillingSettings}>Guardar Ciclo de Facturación</Button>
+                        </CardFooter>
+                    </Card>
 
                       <Card>
                           <CardHeader>

@@ -158,7 +158,7 @@ export const doctors: Doctor[] = [
     lng: -66.8528,
     joinDate: '2024-02-01',
     subscriptionStatus: 'active',
-    nextPaymentDate: '2024-06-28',
+    nextPaymentDate: '2024-03-01',
   },
   { 
     id: '2', 
@@ -194,7 +194,7 @@ export const doctors: Doctor[] = [
     lng: -71.6125,
     joinDate: '2024-02-15',
     subscriptionStatus: 'active',
-    nextPaymentDate: '2024-06-25',
+    nextPaymentDate: '2024-04-01',
   },
   { 
     id: '3', 
@@ -227,7 +227,7 @@ export const doctors: Doctor[] = [
     lng: -68.0019,
     joinDate: '2024-03-05',
     subscriptionStatus: 'inactive',
-    nextPaymentDate: '2024-04-15',
+    nextPaymentDate: '2024-04-01',
   },
 ];
 
@@ -349,5 +349,6 @@ export const mockSettings: AppSettings = {
     heroImageUrl: 'https://placehold.co/1200x600.png',
     currency: 'USD',
     beautySpecialties: ["Medicina Estética"],
+    billingCycleStartDay: 1,
+    billingCycleEndDay: 6,
 };
-

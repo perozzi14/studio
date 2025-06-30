@@ -219,9 +219,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
     }
     
-    const now = new Date();
-    const nextMonth = new Date(now);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const joinDate = new Date();
+    const paymentDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
+    if (joinDate.getDate() < 15) {
+      paymentDate.setMonth(paymentDate.getMonth() + 1);
+    } else {
+      paymentDate.setMonth(paymentDate.getMonth() + 2);
+    }
 
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address, password,
@@ -248,12 +252,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sunday: { active: false, slots: [] },
         },
         status: 'active',
-        lastPaymentDate: now.toISOString().split('T')[0],
+        lastPaymentDate: joinDate.toISOString().split('T')[0],
         whatsapp: '',
         lat: 0, lng: 0,
-        joinDate: now.toISOString().split('T')[0],
+        joinDate: joinDate.toISOString().split('T')[0],
         subscriptionStatus: 'active',
-        nextPaymentDate: nextMonth.toISOString().split('T')[0],
+        nextPaymentDate: paymentDate.toISOString().split('T')[0],
         coupons: [],
         expenses: [],
     };
