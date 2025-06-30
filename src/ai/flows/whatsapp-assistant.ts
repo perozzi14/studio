@@ -12,7 +12,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { doctors } from '@/lib/data';
-import type { MessageData } from 'genkit';
 
 // Tool to find doctors
 const findDoctorsTool = ai.defineTool(
@@ -95,20 +94,16 @@ const whatsappAssistantFlow = ai.defineFlow(
   },
   async ({ query, history }) => {
     
-    const genkitHistory: MessageData[] = (history || []).map(message => ({
-        role: message.sender === 'user' ? 'user' : 'model',
-        content: [{ text: message.text }]
-    }));
+    let fullPrompt = systemPrompt + "\n\n---\n\nConversation History:\n";
 
-    // Add the current user query to the end of the history
-    genkitHistory.push({
-        role: 'user',
-        content: [{ text: query }]
+    (history || []).forEach(message => {
+        fullPrompt += `${message.sender === 'user' ? 'Patient' : 'Assistant'}: ${message.text}\n`;
     });
 
+    fullPrompt += `Patient: ${query}\nAssistant:`;
+
     const response = await ai.generate({
-      history: genkitHistory, // Pass the full conversation history
-      system: systemPrompt,
+      prompt: fullPrompt,
       tools: [findDoctorsTool],
       config: {
         safetySettings: [
