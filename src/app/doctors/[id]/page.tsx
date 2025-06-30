@@ -503,26 +503,30 @@ export default function DoctorProfilePage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                      {doctor.bankDetails.length > 0 ? (
-                        <RadioGroup 
-                          value={selectedBankDetail?.id || ''}
-                          onValueChange={(value) => {
-                            const bankId = value;
-                            setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
-                          }}
-                          className="space-y-2"
+                        <RadioGroup
+                            value={selectedBankDetail?.id || ''}
+                            onValueChange={(value) => {
+                                const bankId = value;
+                                setSelectedBankDetail(doctor.bankDetails.find(bd => bd.id === bankId) || null);
+                            }}
+                            className="space-y-2"
                         >
-                          {doctor.bankDetails.map((bd) => (
-                            <div key={bd.id} className="flex items-center space-x-3 p-3 border rounded-md has-[input:checked]:bg-primary/10 has-[input:checked]:border-primary">
-                                <RadioGroupItem value={bd.id} id={`bank-${bd.id}`} />
-                                <Label htmlFor={`bank-${bd.id}`} className="flex items-center gap-2 w-full cursor-pointer">
-                                  <Landmark className="h-5 w-5 text-muted-foreground" />
-                                  <div>
-                                    <span className="font-semibold">{bd.bank}</span>
-                                    <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
-                                  </div>
+                            {doctor.bankDetails.map((bd) => (
+                                <Label
+                                    key={bd.id}
+                                    htmlFor={`bank-${bd.id}`}
+                                    className="flex cursor-pointer items-center space-x-3 rounded-md border p-3 has-[input:checked]:border-primary has-[input:checked]:bg-primary/10"
+                                >
+                                    <RadioGroupItem value={bd.id} id={`bank-${bd.id}`} />
+                                    <div className="flex items-center gap-2">
+                                        <Landmark className="h-5 w-5 text-muted-foreground" />
+                                        <div>
+                                            <span className="font-semibold">{bd.bank}</span>
+                                            <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                                        </div>
+                                    </div>
                                 </Label>
-                            </div>
-                          ))}
+                            ))}
                         </RadioGroup>
                       ) : (
                         <p className="text-sm text-center text-muted-foreground p-4 bg-background rounded-md">
