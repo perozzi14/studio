@@ -27,59 +27,54 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' }): User => {
   const { role } = userData;
 
-  // Base user structure that satisfies the Patient interface requirements
-  const baseUser: Omit<Patient, 'id' | 'name' | 'email' | 'password' | 'profileImage'> = {
-    age: null,
-    gender: null,
-    phone: null,
-    cedula: null,
-    favoriteDoctorIds: [],
-  };
-
   if (role === 'patient') {
     const patientData = userData as Patient;
     return {
-      ...baseUser,
       id: patientData.id,
       name: patientData.name,
       email: patientData.email,
       password: patientData.password,
       role: 'patient',
-      profileImage: patientData.profileImage || undefined,
       age: patientData.age || null,
-      cedula: patientData.cedula || null,
-      favoriteDoctorIds: patientData.favoriteDoctorIds || [],
       gender: patientData.gender || null,
       phone: patientData.phone || null,
+      cedula: patientData.cedula || null,
+      favoriteDoctorIds: patientData.favoriteDoctorIds || [],
+      profileImage: patientData.profileImage || undefined,
     };
   }
 
   if (role === 'doctor') {
     const doctorData = userData as Doctor;
     return {
-      ...baseUser,
       id: doctorData.id,
       name: doctorData.name,
       email: doctorData.email,
       password: doctorData.password,
-      role: 'doctor',
+      phone: doctorData.whatsapp || null,
+      cedula: doctorData.cedula || null,
       profileImage: doctorData.profileImage,
-      cedula: doctorData.cedula,
-      phone: doctorData.whatsapp,
+      age: null,
+      gender: null,
+      favoriteDoctorIds: [],
+      role: 'doctor',
     };
   }
 
   if (role === 'seller') {
     const sellerData = userData as Seller;
     return {
-      ...baseUser,
       id: sellerData.id,
       name: sellerData.name,
       email: sellerData.email,
       password: sellerData.password,
-      role: 'seller',
+      phone: sellerData.phone || null,
       profileImage: sellerData.profileImage,
-      phone: sellerData.phone,
+      age: null,
+      gender: null,
+      cedula: null,
+      favoriteDoctorIds: [],
+      role: 'seller',
       referralCode: sellerData.referralCode,
     };
   }
