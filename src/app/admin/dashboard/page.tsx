@@ -715,26 +715,47 @@ export default function AdminDashboardPage() {
     const payment = doctorPayments.find(p => p.id === paymentId);
     if (!payment) return;
 
+    const doctorToUpdate = await firestoreService.getDoctor(payment.doctorId);
+    if (!doctorToUpdate) {
+        toast({ variant: "destructive", title: "Error", description: "No se encontró al médico asociado a este pago." });
+        return;
+    }
+
+    const now = new Date();
+    const currentNextPaymentDate = new Date(doctorToUpdate.nextPaymentDate + 'T00:00:00Z'); 
+    const baseDate = currentNextPaymentDate > now ? currentNextPaymentDate : now;
+    
+    const newNextPaymentDate = new Date(baseDate);
+    newNextPaymentDate.setMonth(newNextPaymentDate.getMonth() + 1);
+
     await firestoreService.updateDoctorPaymentStatus(paymentId, 'Paid');
-    await firestoreService.updateDoctorStatus(payment.doctorId, 'active');
     await firestoreService.updateDoctor(payment.doctorId, { 
       lastPaymentDate: payment.date || new Date().toISOString().split('T')[0],
       subscriptionStatus: 'active',
+      status: 'active',
+      nextPaymentDate: newNextPaymentDate.toISOString().split('T')[0],
      });
     
     toast({
       title: "Pago Aprobado",
-      description: "El pago ha sido marcado como 'Pagado' y el estado del médico ha sido actualizado.",
+      description: `La suscripción del Dr. ${doctorToUpdate.name} es válida hasta el ${format(newNextPaymentDate, 'dd/MM/yyyy')}.`,
     });
     fetchData();
   };
 
   const handleRejectPayment = async (paymentId: string) => {
+    const payment = doctorPayments.find(p => p.id === paymentId);
+    if (!payment) return;
+
     await firestoreService.updateDoctorPaymentStatus(paymentId, 'Rejected');
+    await firestoreService.updateDoctor(payment.doctorId, {
+        subscriptionStatus: 'inactive'
+    });
+    
     toast({
       variant: "destructive",
       title: "Pago Rechazado",
-      description: "El pago ha sido marcado como 'Rechazado'.",
+      description: "El pago ha sido marcado como 'Rechazado' y la suscripción del médico permanece inactiva.",
     });
     fetchData();
   };
