@@ -167,10 +167,11 @@ export default function DashboardPage() {
 
     appointments.forEach(appt => {
         const apptDate = new Date(appt.date + 'T00:00:00');
-        if (apptDate >= today) {
-            upcoming.push(appt);
-        } else {
+        // An appointment moves to past if the date has passed OR if attendance has been marked.
+        if (apptDate < today || appt.attendance !== 'Pendiente') {
             past.push(appt);
+        } else {
+            upcoming.push(appt);
         }
     });
 
@@ -362,7 +363,7 @@ export default function DashboardPage() {
                Chat con {selectedChatDoctor?.name}
             </DialogTitle>
             <DialogDescription>
-              Conversación sobre la cita del {selectedChatAppointment && format(new Date(selectedChatAppointment.date + 'T00:00:00'), 'dd/MM/yyyy')}.
+              Conversación sobre la cita del {selectedChatAppointment && format(new Date(selectedChatAppointment.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}.
             </DialogDescription>
           </DialogHeader>
           <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
