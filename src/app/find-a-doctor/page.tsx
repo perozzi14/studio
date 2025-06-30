@@ -76,8 +76,9 @@ export default function FindDoctorPage() {
       const fetchDocs = async () => {
         setIsLoading(true);
         const docs = await firestoreService.getDoctors();
-        setAllDoctors(docs);
-        setFilteredDoctors(docs);
+        const activeDocs = docs.filter(d => d.status === 'active');
+        setAllDoctors(activeDocs);
+        setFilteredDoctors(activeDocs);
         setIsLoading(false);
       }
       fetchDocs();

@@ -348,6 +348,10 @@ export default function AdminDashboardPage() {
             await firestoreService.updateDoctor(editingDoctor.id, updatedDoctorData);
             toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
         } else {
+            const now = new Date();
+            const nextMonth = new Date(now);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
             const newDoctorData: Omit<Doctor, 'id'> = {
                 name, email, specialty, city, address,
                 password: result.data.password!,
@@ -372,18 +376,18 @@ export default function AdminDashboardPage() {
                     saturday: { active: false, slots: [] },
                     sunday: { active: false, slots: [] },
                 },
-                status: 'inactive',
-                lastPaymentDate: new Date().toISOString().split('T')[0],
+                status: 'active',
+                lastPaymentDate: now.toISOString().split('T')[0],
                 whatsapp: '',
                 lat: 0, lng: 0,
-                joinDate: new Date().toISOString().split('T')[0],
-                subscriptionStatus: 'inactive',
-                nextPaymentDate: new Date().toISOString().split('T')[0],
+                joinDate: now.toISOString().split('T')[0],
+                subscriptionStatus: 'active',
+                nextPaymentDate: nextMonth.toISOString().split('T')[0],
                 coupons: [],
                 expenses: [],
             };
             await firestoreService.addDoctor(newDoctorData);
-            toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema.` });
+            toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido al sistema con un mes de prueba gratis.` });
         }
         fetchData();
         setIsDoctorDialogOpen(false);

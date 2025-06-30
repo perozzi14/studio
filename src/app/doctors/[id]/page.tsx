@@ -14,13 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2 } from "lucide-react";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2, XCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppointments } from "@/lib/appointments";
 import { useAuth } from "@/lib/auth";
 import { useSettings } from "@/lib/settings";
+import Link from "next/link";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
@@ -244,6 +245,57 @@ export default function DoctorProfilePage() {
           <p>Médico no encontrado.</p>
         </main>
       </div>
+    );
+  }
+
+  if (doctor.status !== 'active') {
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <Header />
+            <main className="flex-1 py-8 md:py-12 bg-muted/40 pb-20 md:pb-0">
+                <div className="container max-w-4xl mx-auto">
+                     <Card className="mb-8 overflow-hidden">
+                        <div className="relative">
+                            <Image
+                                src={doctor.bannerImage}
+                                alt={`Consultorio de ${doctor.name}`}
+                                width={1200}
+                                height={400}
+                                className="w-full h-48 object-cover filter grayscale"
+                                data-ai-hint="medical office"
+                            />
+                            <div className="absolute -bottom-16 left-8">
+                                <Avatar className="h-32 w-32 border-4 border-background bg-muted">
+                                    <AvatarImage src={doctor.profileImage} alt={doctor.name} className="filter grayscale" />
+                                    <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            </div>
+                        </div>
+                        <div className="pt-20 px-8 pb-6">
+                            <h2 className="text-3xl font-bold font-headline">{doctor.name}</h2>
+                            <p className="text-muted-foreground font-medium text-xl">{doctor.specialty}</p>
+                        </div>
+                    </Card>
+                    <Card>
+                        <CardHeader className="items-center text-center">
+                          <XCircle className="h-16 w-16 text-destructive mb-4" />
+                          <CardTitle className="text-2xl">Médico no disponible</CardTitle>
+                          <CardDescription>
+                            Este especialista no se encuentra disponible para agendar citas en este momento.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex justify-center">
+                            <Button asChild>
+                                <Link href="/find-a-doctor">
+                                    Buscar otros especialistas
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </main>
+            <BottomNav />
+        </div>
     );
   }
 

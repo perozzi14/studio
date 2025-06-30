@@ -477,6 +477,10 @@ export default function SellerDashboardPage() {
 
     const { name, email, specialty, city, address, password } = result.data;
     
+    const now = new Date();
+    const nextMonth = new Date(now);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address,
         password: password,
@@ -501,20 +505,20 @@ export default function SellerDashboardPage() {
             saturday: { active: false, slots: [] },
             sunday: { active: false, slots: [] },
         },
-        status: 'inactive',
-        lastPaymentDate: new Date().toISOString().split('T')[0],
+        status: 'active',
+        lastPaymentDate: now.toISOString().split('T')[0],
         whatsapp: '',
         lat: 0, lng: 0,
-        joinDate: new Date().toISOString().split('T')[0],
-        subscriptionStatus: 'inactive',
-        nextPaymentDate: new Date().toISOString().split('T')[0],
+        joinDate: now.toISOString().split('T')[0],
+        subscriptionStatus: 'active',
+        nextPaymentDate: nextMonth.toISOString().split('T')[0],
         coupons: [],
         expenses: [],
     };
     
     try {
         await firestoreService.addDoctor(newDoctorData);
-        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido como tu referido.` });
+        toast({ title: 'Médico Registrado', description: `El Dr. ${name} ha sido añadido como tu referido con un mes de prueba gratis.` });
         fetchData();
         setIsDoctorDialogOpen(false);
     } catch (error) {
