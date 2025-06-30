@@ -25,51 +25,64 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' }): User => {
-  const { role, ...data } = userData;
+  const { role } = userData;
 
   if (role === 'patient') {
-    const patientData = data as Patient;
+    const patientData = userData as Patient;
     return {
-        ...patientData,
-        role: 'patient'
+        id: patientData.id,
+        name: patientData.name,
+        email: patientData.email,
+        password: patientData.password,
+        role: 'patient',
+        profileImage: patientData.profileImage || undefined,
+        age: patientData.age || null,
+        cedula: patientData.cedula || null,
+        favoriteDoctorIds: patientData.favoriteDoctorIds || [],
+        gender: patientData.gender || null,
+        phone: patientData.phone || null,
     };
   }
 
   if (role === 'doctor') {
-    const doctorData = data as Doctor;
+    const doctorData = userData as Doctor;
     return {
         id: doctorData.id,
         name: doctorData.name,
         email: doctorData.email,
+        password: doctorData.password,
         role: 'doctor',
         profileImage: doctorData.profileImage,
+        // Patient fields with defaults
         age: null,
         cedula: doctorData.cedula,
         favoriteDoctorIds: [],
         gender: null,
-        phone: doctorData.whatsapp
+        phone: doctorData.whatsapp,
     };
   }
 
   if (role === 'seller') {
-    const sellerData = data as Seller;
+    const sellerData = userData as Seller;
     return {
         id: sellerData.id,
         name: sellerData.name,
         email: sellerData.email,
+        password: sellerData.password,
         role: 'seller',
         profileImage: sellerData.profileImage,
+        referralCode: sellerData.referralCode,
+        // Patient fields with defaults
         age: null,
         cedula: null,
         favoriteDoctorIds: [],
         gender: null,
         phone: sellerData.phone,
-        referralCode: sellerData.referralCode
     };
   }
   
   // Fallback, should not be reached
-  return data as User;
+  throw new Error(`Invalid user role: ${role}`);
 };
 
 
@@ -154,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: undefined, cedula: null, phone: null, favoriteDoctorIds: [] };
     const newPatientId = await firestoreService.addPatient(newPatientData);
     
     const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
