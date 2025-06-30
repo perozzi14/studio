@@ -2084,7 +2084,7 @@ export default function DoctorDashboardPage() {
             <DialogContent>
                 <DialogHeader><DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle><DialogDescription>Registra un nuevo gasto para llevar un control financiero.</DialogDescription></DialogHeader>
                 <form onSubmit={handleSaveExpense}><div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input id="expenseDate" name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Gasto</Button></DialogFooter></form>
