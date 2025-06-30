@@ -323,20 +323,13 @@ export default function DoctorDashboardPage() {
 
 
   useEffect(() => {
-    // This effect synchronizes the detailed appointment view with the main appointment list.
     if (selectedAppointment) {
       const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
       
       if (updatedApptFromList) {
-        // To prevent an infinite loop, we need to check if an update is actually necessary.
-        // We do this by comparing the core appointment data, ignoring the `patient` field
-        // which is only present in our detailed state object.
         const { patient, ...currentApptDataInState } = selectedAppointment;
-        
-        // Using JSON.stringify is a simple way to deep-compare the objects.
         if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
           setSelectedAppointment(prev => {
-            // We use the functional update to safely carry over the patient data.
             if (!prev) return null;
             return { ...updatedApptFromList, patient: prev.patient };
           });
@@ -1196,7 +1189,7 @@ export default function DoctorDashboardPage() {
                                         <div className="text-sm space-y-1">
                                           <p><span className="font-semibold">Servicios: </span> 
                                           {appt.services.map(s => s.name).join(', ')}</p>
-                                           <p><span className="font-semibold">Confirmación Paciente: </span> 
+                                           <div className="flex items-center gap-1.5"><span className="font-semibold">Confirmación Paciente:</span> 
                                             <Badge variant={
                                                 appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
                                                 appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
@@ -1206,7 +1199,7 @@ export default function DoctorDashboardPage() {
                                             )}>
                                                 {appt.patientConfirmationStatus}
                                             </Badge>
-                                          </p>
+                                          </div>
                                         </div>
                                         <Separator/>
                                         <div className="flex justify-between items-center">
@@ -1941,3 +1934,4 @@ export default function DoctorDashboardPage() {
 }
 
     
+
