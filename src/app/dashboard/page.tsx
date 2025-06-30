@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
-import { type Appointment, type Doctor } from '@/lib/types';
+import { type Appointment, type Doctor, type ChatMessage } from '@/lib/types';
 import * as firestoreService from '@/lib/firestoreService';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 
 function AppointmentCard({ 
@@ -35,13 +39,13 @@ function AppointmentCard({
   doctor,
   isPast = false,
   onUpdateConfirmation,
-  onContactDoctor,
+  onOpenChat,
 }: { 
   appointment: Appointment, 
   doctor: Doctor | undefined,
   isPast?: boolean,
   onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void,
-  onContactDoctor: (doctor: Doctor) => void,
+  onOpenChat: (appointment: Appointment) => void,
 }) {
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -94,7 +98,7 @@ function AppointmentCard({
            </Badge>
         )}
         <div className="flex-1 flex justify-end">
-           {doctor && <Button size="sm" variant="ghost" onClick={() => onContactDoctor(doctor)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar al Médico</Button>}
+           {doctor && <Button size="sm" variant="ghost" onClick={() => onOpenChat(appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar al Médico</Button>}
         </div>
       </CardFooter>
     </Card>
@@ -104,14 +108,18 @@ function AppointmentCard({
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { appointments, updateAppointmentConfirmation } = useAppointments();
+  const { appointments, updateAppointmentConfirmation, refreshAppointments } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [isDoctorsLoading, setIsDoctorsLoading] = useState(true);
+  
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
-  const [selectedChatDoctor, setSelectedChatDoctor] = useState<Doctor | null>(null);
+  const [selectedChatAppointment, setSelectedChatAppointment] = useState<Appointment | null>(null);
+  const [chatMessage, setChatMessage] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -166,10 +174,42 @@ export default function DashboardPage() {
     }
   }, [upcomingAppointments, checkAndSetNotifications]);
 
-  const handleContactDoctor = (doctor: Doctor) => {
-    setSelectedChatDoctor(doctor);
+  const handleOpenChat = (appointment: Appointment) => {
+    setSelectedChatAppointment(appointment);
     setIsChatDialogOpen(true);
   };
+  
+  const handleSendMessage = async () => {
+    if (!chatMessage.trim() || !selectedChatAppointment || !user) return;
+    setIsSendingMessage(true);
+
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        sender: 'patient',
+        text: chatMessage.trim(),
+    };
+
+    try {
+        await firestoreService.addMessageToAppointment(selectedChatAppointment.id, newMessage);
+        
+        // Optimistically update UI
+        const fullMessage: ChatMessage = { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() };
+        const updatedAppointment = {
+            ...selectedChatAppointment,
+            messages: [...(selectedChatAppointment.messages || []), fullMessage]
+        };
+        setSelectedChatAppointment(updatedAppointment);
+        
+        await refreshAppointments();
+        setChatMessage("");
+
+    } catch (error) {
+        console.error("Error sending message:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el mensaje.' });
+    } finally {
+        setIsSendingMessage(false);
+    }
+  };
+
 
   if (!user || user.role !== 'patient' || isDoctorsLoading) {
     return (
@@ -181,6 +221,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  const selectedChatDoctor = allDoctors.find(d => d.id === selectedChatAppointment?.doctorId);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -208,7 +250,7 @@ export default function DashboardPage() {
                           appointment={appt} 
                           doctor={allDoctors.find(d => d.id === appt.doctorId)}
                           onUpdateConfirmation={updateAppointmentConfirmation}
-                          onContactDoctor={handleContactDoctor}
+                          onOpenChat={handleOpenChat}
                         />
                       ))}
                     </div>
@@ -238,7 +280,7 @@ export default function DashboardPage() {
                           appointment={appt} 
                           doctor={allDoctors.find(d => d.id === appt.doctorId)}
                           isPast 
-                          onContactDoctor={handleContactDoctor}
+                          onOpenChat={handleOpenChat}
                         />
                       ))}
                     </div>
@@ -302,35 +344,44 @@ export default function DashboardPage() {
                Chat con {selectedChatDoctor?.name}
             </DialogTitle>
             <DialogDescription>
-              Este es un canal de comunicación directo con tu médico.
+              Conversación sobre la cita del {selectedChatAppointment && format(new Date(selectedChatAppointment.date + 'T00:00:00'), 'dd/MM/yyyy')}.
             </DialogDescription>
           </DialogHeader>
           <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
             <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-              {/* Mock messages */}
-              <div className="flex items-end gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={selectedChatDoctor?.profileImage} />
-                  <AvatarFallback>{selectedChatDoctor?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="p-3 rounded-lg rounded-bl-none bg-background shadow-sm max-w-xs">
-                  <p className="text-sm">Hola {user.name}, ¿cómo te has sentido después de la última consulta?</p>
+              {(selectedChatAppointment?.messages || []).map((msg) => (
+                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'patient' && 'justify-end')}>
+                    {msg.sender === 'doctor' && (
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={selectedChatDoctor?.profileImage} />
+                            <AvatarFallback>{selectedChatDoctor?.name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    )}
+                    <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'patient' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
+                        <p className="text-sm">{msg.text}</p>
+                        <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                    </div>
+                    {msg.sender === 'patient' && (
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.profileImage ?? undefined} />
+                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    )}
                 </div>
-              </div>
-              <div className="flex items-end gap-2 justify-end">
-                <div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground shadow-sm max-w-xs">
-                  <p className="text-sm">¡Hola, doctor! Mucho mejor, gracias. Solo una pequeña duda sobre el medicamento.</p>
-                </div>
-                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.profileImage ?? undefined} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <Input placeholder="Escribe tu mensaje..." className="flex-1" />
-              <Button><Send className="h-4 w-4" /></Button>
-            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+              <Input 
+                placeholder="Escribe tu mensaje..." 
+                className="flex-1"
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                disabled={isSendingMessage}
+              />
+              <Button type="submit" disabled={isSendingMessage || !chatMessage.trim()}>
+                {isSendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </form>
           </div>
            <DialogFooter>
             <DialogClose asChild>

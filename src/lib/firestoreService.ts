@@ -200,6 +200,18 @@ export const deletePatient = async (id: string) => deleteDoc(doc(db, 'patients',
 // Appointment
 export const addAppointment = async (appointmentData: Omit<Appointment, 'id'>) => addDoc(collection(db, 'appointments'), appointmentData);
 export const updateAppointment = async (id: string, data: Partial<Appointment>) => updateDoc(doc(db, 'appointments', id), data);
+export const addMessageToAppointment = async (appointmentId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    const appointmentRef = doc(db, "appointments", appointmentId);
+    const newMessage: ChatMessage = {
+        ...message,
+        id: `msg-${Date.now()}`,
+        timestamp: new Date().toISOString()
+    };
+    
+    await updateDoc(appointmentRef, {
+        messages: arrayUnion(newMessage)
+    });
+};
 
 // Company Expense
 export const addCompanyExpense = async (expenseData: Omit<CompanyExpense, 'id'>) => addDoc(collection(db, 'companyExpenses'), expenseData);

@@ -236,6 +236,8 @@ export default function DoctorDashboardPage() {
   const [publicProfileUrl, setPublicProfileUrl] = useState('');
 
   const [editingClinicalNotes, setEditingClinicalNotes] = useState('');
+  const [doctorChatMessage, setDoctorChatMessage] = useState("");
+  const [isSendingDoctorMessage, setIsSendingDoctorMessage] = useState(false);
   
   const weekDays = [
     { key: 'monday', label: 'Lunes' },
@@ -302,6 +304,16 @@ export default function DoctorDashboardPage() {
         fetchData();
     }
   }, [user, fetchData]);
+
+
+  useEffect(() => {
+    if (selectedAppointment) {
+        const updatedAppt = appointments.find(a => a.id === selectedAppointment.id);
+        if (updatedAppt) {
+            setSelectedAppointment(prev => ({...updatedAppt, patient: prev?.patient}));
+        }
+    }
+  }, [appointments, selectedAppointment]);
 
 
   const uniquePatients = useMemo(() => {
@@ -924,6 +936,27 @@ export default function DoctorDashboardPage() {
 
     setReplyMessage("");
     fetchData();
+  };
+
+  const handleSendDoctorMessage = async () => {
+    if (!doctorChatMessage.trim() || !selectedAppointment || !user) return;
+    setIsSendingDoctorMessage(true);
+    
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        sender: 'doctor',
+        text: doctorChatMessage.trim(),
+    };
+
+    try {
+        await firestoreService.addMessageToAppointment(selectedAppointment.id, newMessage);
+        setDoctorChatMessage("");
+        await fetchData(); 
+    } catch (error) {
+        console.error("Error sending message:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el mensaje.' });
+    } finally {
+        setIsSendingDoctorMessage(false);
+    }
   };
 
 
@@ -1762,6 +1795,45 @@ export default function DoctorDashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div><h3 className="font-semibold text-lg mb-2">Información del Paciente</h3><p><strong>Nombre:</strong> {selectedAppointment.patientName}</p><p><strong>Email:</strong> {selectedAppointment.patient?.email}</p><p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p><p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p></div>
                             <div><h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3><p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p><p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p><p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p><p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p></div>
+                        </div>
+                        <Separator />
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Chat con Paciente</h3>
+                            <div className="border bg-muted/50 rounded-lg p-4 h-64 overflow-y-auto space-y-4">
+                                {(selectedAppointment.messages || []).map(msg => (
+                                    <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'doctor' && 'justify-end')}>
+                                        {msg.sender === 'patient' && (
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={selectedAppointment.patient?.profileImage || undefined} />
+                                                <AvatarFallback>{selectedAppointment.patient?.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                        )}
+                                        <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'doctor' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
+                                            <p className="text-sm">{msg.text}</p>
+                                        </div>
+                                         {msg.sender === 'doctor' && (
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={doctorData?.profileImage} />
+                                                <AvatarFallback>{doctorData?.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                        )}
+                                    </div>
+                                ))}
+                                {(selectedAppointment.messages || []).length === 0 && (
+                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Aún no hay mensajes.</div>
+                                )}
+                            </div>
+                            <form onSubmit={(e) => { e.preventDefault(); handleSendDoctorMessage(); }} className="mt-2 flex gap-2">
+                                <Input 
+                                value={doctorChatMessage} 
+                                onChange={(e) => setDoctorChatMessage(e.target.value)} 
+                                placeholder="Escribe un mensaje..."
+                                disabled={isSendingDoctorMessage}
+                                />
+                                <Button type="submit" disabled={isSendingDoctorMessage || !doctorChatMessage.trim()}>
+                                {isSendingDoctorMessage ? <Loader2 className="animate-spin" /> : <Send />}
+                                </Button>
+                            </form>
                         </div>
                         <Separator />
                         <div><h3 className="font-semibold text-lg mb-2">Historia Clínica / Notas</h3><Textarea placeholder="Añade tus notas sobre la consulta aquí..." rows={6} value={editingClinicalNotes} onChange={(e) => setEditingClinicalNotes(e.target.value)} disabled={selectedAppointment.attendance !== 'Atendido'} /><div className="flex justify-end mt-2"><Button onClick={handleSaveClinicalNotes} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Notas</Button></div></div>

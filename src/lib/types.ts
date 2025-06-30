@@ -1,7 +1,8 @@
 
+
 export type ChatMessage = {
     id: string;
-    sender: 'user' | 'admin';
+    sender: 'user' | 'admin' | 'patient' | 'doctor';
     text: string;
     timestamp: string; // ISO string
 };
@@ -136,6 +137,7 @@ export type Appointment = {
   patientConfirmationStatus: 'Pendiente' | 'Confirmada' | 'Cancelada';
   clinicalNotes?: string;
   prescription?: string;
+  messages?: ChatMessage[];
 };
 
 export type SellerPayment = {
