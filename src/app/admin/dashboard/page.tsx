@@ -110,8 +110,8 @@ const MarketingMaterialSchema = z.object({
   title: z.string().min(3, "El título es requerido."),
   description: z.string().min(10, "La descripción es requerida."),
   type: z.enum(['image', 'video', 'file', 'url']),
-  url: z.string().url("La URL no es válida."),
-  thumbnailUrl: z.string().url("La URL de la miniatura no es válida."),
+  url: z.string().min(1, "Se requiere una URL o un archivo."),
+  thumbnailUrl: z.string().min(1, "Se requiere una URL de miniatura o un archivo."),
 });
 
 
@@ -163,6 +163,8 @@ export default function AdminDashboardPage() {
   // States for Marketing
   const [isMarketingDialogOpen, setIsMarketingDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MarketingMaterial | null>(null);
+  const [materialFile, setMaterialFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   
   // States for Support
   const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
@@ -339,7 +341,7 @@ export default function AdminDashboardPage() {
         } else {
             const newDoctorData: Omit<Doctor, 'id'> = {
                 name, email, specialty, city, address,
-                password: result.data.password,
+                password: result.data.password!,
                 sellerId: sellerIdValue,
                 cedula: '',
                 sector: '',
@@ -428,7 +430,7 @@ export default function AdminDashboardPage() {
             const newSellerData: Omit<Seller, 'id'> = {
                 name,
                 email,
-                password: result.data.password,
+                password: result.data.password!,
                 commissionRate,
                 phone: '',
                 profileImage: 'https://placehold.co/400x400.png',
@@ -812,12 +814,20 @@ export default function AdminDashboardPage() {
   const handleSaveMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
+
+      const urlFromInput = formData.get('url') as string;
+      const thumbnailUrlFromInput = formData.get('thumbnailUrl') as string;
+
+      // In a real app, you would upload to storage. Here, we prioritize file upload and use a placeholder URL.
+      const finalUrl = materialFile ? 'https://placehold.co/1200x600.png' : urlFromInput;
+      const finalThumbnailUrl = thumbnailFile ? 'https://placehold.co/600x400.png' : thumbnailUrlFromInput;
+      
       const dataToValidate = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         type: formData.get('type') as MarketingMaterial['type'],
-        url: formData.get('url') as string,
-        thumbnailUrl: formData.get('thumbnailUrl') as string,
+        url: finalUrl,
+        thumbnailUrl: finalThumbnailUrl,
       };
 
       const result = MarketingMaterialSchema.safeParse(dataToValidate);
@@ -836,7 +846,6 @@ export default function AdminDashboardPage() {
       
       fetchData();
       setIsMarketingDialogOpen(false);
-      setEditingMaterial(null);
   };
 
 
@@ -1905,8 +1914,15 @@ export default function AdminDashboardPage() {
       </main>
 
       {/* Marketing Dialog */}
-      <Dialog open={isMarketingDialogOpen} onOpenChange={setIsMarketingDialogOpen}>
-        <DialogContent>
+      <Dialog open={isMarketingDialogOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+            setEditingMaterial(null);
+            setMaterialFile(null);
+            setThumbnailFile(null);
+        }
+        setIsMarketingDialogOpen(isOpen);
+      }}>
+        <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>{editingMaterial ? "Editar Material" : "Añadir Nuevo Material"}</DialogTitle>
             <DialogDescription>Completa la información del recurso de marketing.</DialogDescription>
@@ -1914,7 +1930,7 @@ export default function AdminDashboardPage() {
           <form onSubmit={handleSaveMaterial}>
             <div className="grid gap-4 py-4">
               <div><Label htmlFor="title">Título</Label><Input id="title" name="title" defaultValue={editingMaterial?.title} /></div>
-              <div><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" defaultValue={editingMaterial?.description} /></div>
+              <div><Label htmlFor="description">Descripción Detallada</Label><Textarea id="description" name="description" defaultValue={editingMaterial?.description} rows={4} /></div>
               <div><Label htmlFor="type">Tipo de Material</Label>
                 <Select name="type" defaultValue={editingMaterial?.type || 'image'}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
@@ -1926,8 +1942,20 @@ export default function AdminDashboardPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label htmlFor="url">URL del Recurso</Label><Input id="url" name="url" defaultValue={editingMaterial?.url} placeholder="https://..."/></div>
-              <div><Label htmlFor="thumbnailUrl">URL de la Miniatura</Label><Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={editingMaterial?.thumbnailUrl} placeholder="https://..."/></div>
+              <div className="space-y-2">
+                <Label htmlFor="url">URL del Recurso</Label>
+                <Input id="url" name="url" defaultValue={editingMaterial?.url} placeholder="https://..."/>
+                <p className="text-xs text-center text-muted-foreground">O</p>
+                <Label htmlFor="materialFile" className="text-sm">Subir Archivo de Recurso</Label>
+                <Input id="materialFile" type="file" onChange={(e) => setMaterialFile(e.target.files?.[0] || null)}/>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="thumbnailUrl">URL de la Miniatura</Label>
+                <Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={editingMaterial?.thumbnailUrl} placeholder="https://..."/>
+                 <p className="text-xs text-center text-muted-foreground">O</p>
+                <Label htmlFor="thumbnailFile" className="text-sm">Subir Archivo de Miniatura</Label>
+                <Input id="thumbnailFile" type="file" onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}/>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
