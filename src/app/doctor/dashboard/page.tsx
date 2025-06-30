@@ -201,6 +201,20 @@ function UpcomingAppointmentCard({ appointment, onConfirmPayment, onViewDetails 
                     </div>
                 </div>
             </CardContent>
+             <CardFooter className="p-4 pt-0 border-t mt-4 flex items-center justify-between">
+                 <div className="flex items-center gap-2 text-sm">
+                    <p className="text-muted-foreground">Confirmación del Paciente:</p>
+                    <Badge variant={
+                        appointment.patientConfirmationStatus === 'Confirmada' ? 'default' : 
+                        appointment.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
+                    } className={cn(
+                        {'bg-green-600 text-white': appointment.patientConfirmationStatus === 'Confirmada'},
+                        {'bg-amber-500 text-white': appointment.patientConfirmationStatus === 'Pendiente'},
+                    )}>
+                        {appointment.patientConfirmationStatus}
+                    </Badge>
+                </div>
+            </CardFooter>
         </Card>
     );
 }
@@ -302,6 +316,8 @@ export default function DoctorDashboardPage() {
   useEffect(() => {
     if (user?.id) {
         fetchData();
+        const intervalId = setInterval(fetchData, 30000); // Poll every 30 seconds
+        return () => clearInterval(intervalId); // Cleanup on unmount
     }
   }, [user, fetchData]);
 
@@ -1100,6 +1116,7 @@ export default function DoctorDashboardPage() {
                                         <TableHead>Fecha</TableHead>
                                         <TableHead>Servicios</TableHead>
                                         <TableHead>Pago</TableHead>
+                                        <TableHead className="text-center">Conf. Paciente</TableHead>
                                         <TableHead className="text-center">Asistencia</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
@@ -1113,6 +1130,17 @@ export default function DoctorDashboardPage() {
                                             <TableCell>
                                                 <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
                                                     {appt.paymentStatus}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant={
+                                                    appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
+                                                    appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
+                                                } className={cn(
+                                                    {'bg-green-600 text-white': appt.patientConfirmationStatus === 'Confirmada'},
+                                                    {'bg-amber-500 text-white': appt.patientConfirmationStatus === 'Pendiente'},
+                                                )}>
+                                                    {appt.patientConfirmationStatus}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
@@ -1146,7 +1174,7 @@ export default function DoctorDashboardPage() {
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24">No hay citas en el historial.</TableCell>
+                                            <TableCell colSpan={7} className="text-center h-24">No hay citas en el historial.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
@@ -1165,9 +1193,20 @@ export default function DoctorDashboardPage() {
                                                 <span className="sr-only">Ver Detalles</span>
                                             </Button>
                                         </div>
-                                        <div className="text-sm">
-                                          <span className="font-semibold">Servicios: </span> 
-                                          {appt.services.map(s => s.name).join(', ')}
+                                        <div className="text-sm space-y-1">
+                                          <p><span className="font-semibold">Servicios: </span> 
+                                          {appt.services.map(s => s.name).join(', ')}</p>
+                                           <p><span className="font-semibold">Confirmación Paciente: </span> 
+                                            <Badge variant={
+                                                appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
+                                                appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
+                                            } className={cn(
+                                                {'bg-green-600 text-white': appt.patientConfirmationStatus === 'Confirmada'},
+                                                {'bg-amber-500 text-white': appt.patientConfirmationStatus === 'Pendiente'},
+                                            )}>
+                                                {appt.patientConfirmationStatus}
+                                            </Badge>
+                                          </p>
                                         </div>
                                         <Separator/>
                                         <div className="flex justify-between items-center">
@@ -1734,7 +1773,24 @@ export default function DoctorDashboardPage() {
                     <div className="py-4 space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div><h3 className="font-semibold text-lg mb-2">Información del Paciente</h3><p><strong>Nombre:</strong> {selectedAppointment.patientName}</p><p><strong>Email:</strong> {selectedAppointment.patient?.email}</p><p><strong>Cédula:</strong> {selectedAppointment.patient?.cedula}</p><p><strong>Teléfono:</strong> {selectedAppointment.patient?.phone}</p></div>
-                            <div><h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3><p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p><p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p><p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p><p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p></div>
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2">Detalles de la Cita</h3>
+                                <p><strong>Fecha y Hora:</strong> {new Date(selectedAppointment.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {selectedAppointment.time}</p>
+                                <p><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</p>
+                                <p><strong>Total:</strong> ${selectedAppointment.totalPrice.toFixed(2)}</p>
+                                <p className="flex items-center gap-2"><strong>Confirmación Paciente:</strong> 
+                                     <Badge variant={
+                                        selectedAppointment.patientConfirmationStatus === 'Confirmada' ? 'default' :
+                                        selectedAppointment.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
+                                    } className={cn(
+                                        {'bg-green-600 text-white': selectedAppointment.patientConfirmationStatus === 'Confirmada'},
+                                        {'bg-amber-500 text-white': selectedAppointment.patientConfirmationStatus === 'Pendiente'},
+                                    )}>
+                                        {selectedAppointment.patientConfirmationStatus}
+                                    </Badge>
+                                </p>
+                                <p><strong>Asistencia:</strong> {selectedAppointment.attendance}</p>
+                            </div>
                         </div>
                         <Separator />
                         <div>
