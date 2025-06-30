@@ -54,6 +54,7 @@ import { z } from 'zod';
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
@@ -63,6 +64,7 @@ const DoctorFormSchema = z.object({
 const SellerFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   email: z.string().email("Por favor, ingresa un correo electrónico válido."),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres.").optional().or(z.literal('')),
   commission: z.number().min(0, "La comisión no puede ser negativa.").max(100, "La comisión no puede ser mayor a 100."),
 });
 
@@ -295,9 +297,17 @@ export default function AdminDashboardPage() {
     const handleSaveDoctor = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        const password = formData.get('doc-password') as string;
+        
+        if (!editingDoctor && !password) {
+            toast({ variant: 'destructive', title: 'Contraseña Requerida', description: 'Debe establecer una contraseña para los nuevos médicos.' });
+            return;
+        }
+        
         const dataToValidate = {
             name: formData.get('doc-name') as string,
             email: formData.get('doc-email') as string,
+            password: password,
             specialty: formData.get('doc-specialty') as string,
             city: formData.get('doc-city') as string,
             address: formData.get('doc-address') as string,
@@ -316,15 +326,19 @@ export default function AdminDashboardPage() {
         const sellerIdValue = sellerId === 'null' || !sellerId ? null : sellerId;
 
         if (editingDoctor) {
-            const updatedDoctorData = {
+            const updatedDoctorData: Partial<Doctor> = {
                 name, email, specialty, city, address,
                 sellerId: sellerIdValue,
             };
+            if (result.data.password) {
+              updatedDoctorData.password = result.data.password;
+            }
             await firestoreService.updateDoctor(editingDoctor.id, updatedDoctorData);
             toast({ title: "Médico Actualizado", description: `El perfil de ${name} ha sido guardado.` });
         } else {
             const newDoctorData: Omit<Doctor, 'id'> = {
                 name, email, specialty, city, address,
+                password: result.data.password,
                 sellerId: sellerIdValue,
                 cedula: '',
                 sector: '',
@@ -377,9 +391,17 @@ export default function AdminDashboardPage() {
     const handleSaveSeller = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        const password = formData.get('password') as string;
+
+        if (!editingSeller && !password) {
+            toast({ variant: 'destructive', title: 'Contraseña Requerida', description: 'Debe establecer una contraseña para las nuevas vendedoras.' });
+            return;
+        }
+
         const dataToValidate = {
             name: formData.get('name') as string,
             email: formData.get('email') as string,
+            password: password,
             commission: parseFloat(formData.get('commission') as string),
         };
 
@@ -395,13 +417,17 @@ export default function AdminDashboardPage() {
         const commissionRate = commission / 100;
 
         if (editingSeller) {
-            const updatedSellerData = { name, email, commissionRate };
+            const updatedSellerData: Partial<Seller> = { name, email, commissionRate };
+            if (result.data.password) {
+                updatedSellerData.password = result.data.password;
+            }
             await firestoreService.updateSeller(editingSeller.id, updatedSellerData);
             toast({ title: "Vendedora Actualizada", description: `El perfil de ${name} ha sido guardado.` });
         } else {
             const newSellerData: Omit<Seller, 'id'> = {
                 name,
                 email,
+                password: result.data.password,
                 commissionRate,
                 phone: '',
                 profileImage: 'https://placehold.co/400x400.png',
@@ -1980,6 +2006,10 @@ export default function AdminDashboardPage() {
                         <Input id="email" name="email" type="email" defaultValue={editingSeller?.email || ''} className="col-span-3" required />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="password" className="text-right">Contraseña</Label>
+                        <Input id="password" name="password" type="password" placeholder={editingSeller ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="commission" className="text-right">Comisión (%)</Label>
                         <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} className="col-span-3" required />
                     </div>
@@ -2122,6 +2152,10 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="doc-email" className="text-right">Email</Label>
                         <Input id="doc-email" name="doc-email" type="email" defaultValue={editingDoctor?.email || ''} className="col-span-3" required />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="doc-password" className="text-right">Contraseña</Label>
+                        <Input id="doc-password" name="doc-password" type="password" placeholder={editingDoctor ? "Dejar en blanco para no cambiar" : ""} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="doc-specialty" className="text-right">Especialidad</Label>

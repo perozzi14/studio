@@ -149,6 +149,32 @@ export const getMarketingMaterials = () => getCollectionData<MarketingMaterial>(
 export const getSupportTickets = () => getCollectionData<AdminSupportTicket>('supportTickets');
 export const getSettings = () => getDocumentData<AppSettings>('settings', 'main');
 
+export const findUserByEmail = async (email: string): Promise<(Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' } | null> => {
+    const lowerEmail = email.toLowerCase();
+    
+    const collections: { name: 'doctors' | 'sellers' | 'patients'; role: 'doctor' | 'seller' | 'patient' }[] = [
+        { name: 'doctors', role: 'doctor' },
+        { name: 'sellers', role: 'seller' },
+        { name: 'patients', role: 'patient' },
+    ];
+
+    for (const { name, role } of collections) {
+        const q = query(collection(db, name), where("email", "==", lowerEmail));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const docData = snapshot.docs[0].data();
+            return {
+                ...docData,
+                id: snapshot.docs[0].id,
+                role,
+            } as (Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' };
+        }
+    }
+    
+    return null;
+};
+
+
 // --- Data Mutation Functions ---
 
 // Doctor
@@ -217,6 +243,10 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
 
     if (message.sender === 'user') {
         updateData.readByAdmin = false;
+        updateData.status = 'abierto';
+    }
+     if (message.sender === 'admin') {
+        updateData.status = 'abierto';
     }
     
     await updateDoc(ticketRef, updateData);

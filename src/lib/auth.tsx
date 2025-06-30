@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
+import { useToast } from '@/hooks/use-toast';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -14,7 +15,8 @@ interface User extends Patient {
 
 interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
-  login: (email: string, name?: string) => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<Patient>) => void;
   toggleFavoriteDoctor: (doctorId: string) => void;
@@ -22,126 +24,143 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doctor' | 'seller' | 'patient' }): User => {
+  const { role, ...data } = userData;
+
+  if (role === 'patient') {
+    const patientData = data as Patient;
+    return {
+        ...patientData,
+        role: 'patient'
+    };
+  }
+
+  if (role === 'doctor') {
+    const doctorData = data as Doctor;
+    return {
+        id: doctorData.id,
+        name: doctorData.name,
+        email: doctorData.email,
+        role: 'doctor',
+        profileImage: doctorData.profileImage,
+        age: null,
+        cedula: doctorData.cedula,
+        favoriteDoctorIds: [],
+        gender: null,
+        phone: doctorData.whatsapp
+    };
+  }
+
+  if (role === 'seller') {
+    const sellerData = data as Seller;
+    return {
+        id: sellerData.id,
+        name: sellerData.name,
+        email: sellerData.email,
+        role: 'seller',
+        profileImage: sellerData.profileImage,
+        age: null,
+        cedula: null,
+        favoriteDoctorIds: [],
+        gender: null,
+        phone: sellerData.phone,
+        referralCode: sellerData.referralCode
+    };
+  }
+  
+  // Fallback, should not be reached
+  return data as User;
+};
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const router = useRouter();
+  const { toast } = useToast();
   
-  const fetchUserByEmail = useCallback(async (email: string): Promise<User | null> => {
-    const lowerEmail = email.toLowerCase();
-    
-    // Check if it's an admin
-    if (lowerEmail === 'admin@admin.com') {
-      return { 
-        id: 'admin@admin.com',
-        email, 
-        name: 'Administrador', 
-        role: 'admin', 
-        age: null, 
-        gender: null,
-        cedula: null,
-        phone: null,
-        profileImage: 'https://placehold.co/100x100.png',
-        favoriteDoctorIds: []
-      };
+  const fetchUserFromStorage = useCallback(async () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        const freshUser = await firestoreService.findUserByEmail(parsedUser.email);
+        if (freshUser) {
+          setUser(buildUserFromData(freshUser));
+        } else {
+           setUser(null);
+           localStorage.removeItem('user');
+        }
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
     }
-    
-    const [doctors, sellers, patients] = await Promise.all([
-        firestoreService.getDoctors(),
-        firestoreService.getSellers(),
-        firestoreService.getPatients(),
-    ]);
-
-    const doctor = doctors.find(d => d.email.toLowerCase() === lowerEmail);
-    if (doctor) {
-      const userPayload: User = {
-        id: String(doctor.id),
-        name: doctor.name,
-        email: doctor.email,
-        role: 'doctor',
-        // Patient fields for type compatibility
-        age: null,
-        gender: null,
-        phone: doctor.whatsapp,
-        cedula: doctor.cedula,
-        favoriteDoctorIds: [],
-        profileImage: doctor.profileImage
-      };
-      return userPayload;
-    }
-
-    const seller = sellers.find(s => s.email.toLowerCase() === lowerEmail);
-    if (seller) {
-      const userPayload: User = {
-        id: String(seller.id),
-        name: seller.name,
-        email: seller.email,
-        role: 'seller',
-        // Patient fields for type compatibility
-        age: null,
-        gender: null,
-        phone: seller.phone,
-        cedula: null,
-        favoriteDoctorIds: [],
-        profileImage: seller.profileImage,
-        // Seller specific
-        referralCode: seller.referralCode,
-      };
-      return userPayload;
-    }
-    
-    const patient = patients.find(p => p.email.toLowerCase() === lowerEmail);
-    if (patient) {
-       const userPayload: User = {
-        ...patient,
-        id: String(patient.id),
-        role: 'patient',
-      };
-      return userPayload;
-    }
-
-    return null;
   }, []);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          // Re-fetch user data to ensure it's up to date
-          const freshUser = await fetchUserByEmail(parsedUser.email);
-          setUser(freshUser);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      }
-    };
-    initializeAuth();
-  }, [fetchUserByEmail]);
+    fetchUserFromStorage();
+  }, [fetchUserFromStorage]);
 
-  const login = async (email: string, name: string = 'Nuevo Usuario') => {
-    let loggedInUser = await fetchUserByEmail(email);
-
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      switch(loggedInUser.role) {
-        case 'admin': router.push('/admin/dashboard'); break;
-        case 'doctor': router.push('/doctor/dashboard'); break;
-        case 'seller': router.push('/seller/dashboard'); break;
-        case 'patient': router.push('/dashboard'); break;
+  const login = async (email: string, password: string) => {
+    const lowerEmail = email.toLowerCase();
+    
+    // Handle admin login
+    if (lowerEmail === 'admin@admin.com') {
+      if (password === '1234') { // Using a simple, non-secure password for this mock.
+        const adminUser: User = { 
+          id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
+          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: []
+        };
+        setUser(adminUser);
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        router.push('/admin/dashboard');
+        return;
+      } else {
+        toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
+        return;
       }
-    } else {
-      // Register new patient
-      const newPatientData: Omit<Patient, 'id'> = { email, name, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
-      const newPatientId = await firestoreService.addPatient(newPatientData);
-      const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      router.push('/dashboard');
     }
+
+    // Handle other user roles
+    const userToAuth = await firestoreService.findUserByEmail(lowerEmail);
+
+    if (!userToAuth) {
+      toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'El usuario no existe.' });
+      return;
+    }
+
+    if (userToAuth.password !== password) {
+      toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
+      return;
+    }
+
+    const loggedInUser = buildUserFromData(userToAuth);
+    setUser(loggedInUser);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+
+    switch(loggedInUser.role) {
+      case 'admin': router.push('/admin/dashboard'); break;
+      case 'doctor': router.push('/doctor/dashboard'); break;
+      case 'seller': router.push('/seller/dashboard'); break;
+      case 'patient': router.push('/dashboard'); break;
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    const existingUser = await firestoreService.findUserByEmail(email);
+    if (existingUser) {
+      toast({ variant: "destructive", title: "Error de Registro", description: "Este correo electrónico ya está en uso." });
+      return;
+    }
+
+    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, favoriteDoctorIds: [] };
+    const newPatientId = await firestoreService.addPatient(newPatientData);
+    
+    const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    router.push('/dashboard');
   };
 
   const logout = () => {
@@ -173,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, toggleFavoriteDoctor }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, toggleFavoriteDoctor }}>
       {children}
     </AuthContext.Provider>
   );

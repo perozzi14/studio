@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,24 +27,33 @@ const RegisterSchema = z.object({
 
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { register } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     const result = RegisterSchema.safeParse({ fullName, email, password });
     
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');
       toast({ variant: 'destructive', title: 'Error de Registro', description: errorMessage });
+      setIsLoading(false);
       return;
     }
     
-    login(email, fullName);
+    try {
+      await register(fullName, email, password);
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado durante el registro." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -72,6 +81,7 @@ export default function RegisterPage() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -83,6 +93,7 @@ export default function RegisterPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -93,9 +104,11 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Crear una cuenta
               </Button>
             </div>

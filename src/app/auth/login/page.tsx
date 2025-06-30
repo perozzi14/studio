@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Stethoscope } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const LoginSchema = z.object({
   email: z.string().email("Correo electrónico inválido."),
@@ -28,20 +29,28 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     const result = LoginSchema.safeParse({ email, password });
     
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');
       toast({ variant: 'destructive', title: 'Error de Validación', description: errorMessage });
+      setIsLoading(false);
       return;
     }
     
-    const name = email.split('@')[0].replace(/\./g, ' ').replace(/(^\w|\s\w)/g, m => m.toUpperCase());
-    login(email, name);
+    try {
+      await login(email, password);
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -53,15 +62,9 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
-            Ingresa tu correo para iniciar sesión.
+            Ingresa tus credenciales para iniciar sesión.
             <br />
-            <span className="text-xs">(Admin, usa: admin@admin.com / 1234)</span>
-            <br />
-            <span className="text-xs">(Médico, usa: doctor@admin.com / 1234)</span>
-            <br />
-            <span className="text-xs">(Vendedora, usa: vendedora@venta.com / 1234)</span>
-            <br />
-            <span className="text-xs">(Paciente, usa: paciente@example.com / 1234)</span>
+            <span className="text-xs">(Admin: admin@admin.com / 1234)</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,6 +79,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -94,10 +98,11 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="1234"
+                  disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
             </div>

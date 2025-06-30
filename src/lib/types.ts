@@ -83,6 +83,7 @@ export type Doctor = {
   status: 'active' | 'inactive';
   lastPaymentDate: string;
   email: string;
+  password?: string;
   whatsapp: string;
   lat: number;
   lng: number;
@@ -95,6 +96,7 @@ export type Seller = {
   id: string;
   name: string;
   email: string;
+  password?: string;
   phone: string;
   profileImage: string;
   referralCode: string;
@@ -106,6 +108,7 @@ export type Patient = {
     id: string;
     name: string;
     email: string;
+    password?: string;
     age: number | null;
     gender: 'masculino' | 'femenino' | 'otro' | null;
     phone: string | null;
