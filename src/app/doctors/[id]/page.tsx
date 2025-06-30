@@ -476,7 +476,7 @@ export default function DoctorProfilePage() {
               <RadioGroup value={paymentMethod || ''} onValueChange={(value) => setPaymentMethod(value as 'efectivo' | 'transferencia')}>
                 <div className="flex items-center space-x-3 p-4 border rounded-md">
                   <RadioGroupItem value="efectivo" id="efectivo" />
-                  <Label htmlFor="efectivo" className="flex items-center space-x-3 cursor-pointer">
+                  <Label htmlFor="efectivo" className="flex items-center space-x-3 cursor-pointer w-full">
                     <Banknote className="h-6 w-6 text-green-600" />
                     <div>
                       <span className="font-semibold">Efectivo</span>
@@ -486,7 +486,7 @@ export default function DoctorProfilePage() {
                 </div>
                 <div className="flex items-center space-x-3 p-4 border rounded-md">
                   <RadioGroupItem value="transferencia" id="transferencia" />
-                  <Label htmlFor="transferencia" className="flex items-center space-x-3 cursor-pointer">
+                  <Label htmlFor="transferencia" className="flex items-center space-x-3 cursor-pointer w-full">
                     <Landmark className="h-6 w-6 text-blue-600" />
                     <div>
                       <span className="font-semibold">Transferencia Bancaria</span>
@@ -512,20 +512,19 @@ export default function DoctorProfilePage() {
                             className="space-y-2"
                         >
                             {doctor.bankDetails.map((bd) => (
-                                <Label
-                                    key={bd.id}
-                                    htmlFor={`bank-${bd.id}`}
-                                    className="flex cursor-pointer items-center space-x-3 rounded-md border p-3 has-[input:checked]:border-primary has-[input:checked]:bg-primary/10"
-                                >
+                                <div key={bd.id} className="flex items-center space-x-3 rounded-md border bg-background p-3">
                                     <RadioGroupItem value={bd.id} id={`bank-${bd.id}`} />
-                                    <div className="flex items-center gap-2">
+                                    <Label
+                                        htmlFor={`bank-${bd.id}`}
+                                        className="flex w-full cursor-pointer items-center gap-2 font-normal"
+                                    >
                                         <Landmark className="h-5 w-5 text-muted-foreground" />
                                         <div>
                                             <span className="font-semibold">{bd.bank}</span>
                                             <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
                                         </div>
-                                    </div>
-                                </Label>
+                                    </Label>
+                                </div>
                             ))}
                         </RadioGroup>
                       ) : (
@@ -551,9 +550,11 @@ export default function DoctorProfilePage() {
                 </Card>
               )}
 
-              <div className="flex justify-between items-center text-xl font-bold p-4 bg-muted/50 rounded-lg">
-                <span>Total a Pagar:</span>
-                <span className="text-primary">${finalPrice.toFixed(2)}</span>
+              <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg">
+                <div className="w-full flex justify-between items-center text-xl font-bold">
+                    <span>Total a Pagar:</span>
+                    <span className="text-primary">${finalPrice.toFixed(2)}</span>
+                </div>
               </div>
               <div className="flex gap-4">
                  <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full">
