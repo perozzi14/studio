@@ -323,19 +323,15 @@ export default function DoctorDashboardPage() {
 
 
   useEffect(() => {
-    if (selectedAppointment) {
-      const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
-      
-      if (updatedApptFromList) {
+    if (!selectedAppointment) return;
+    
+    const updatedApptFromList = appointments.find(a => a.id === selectedAppointment.id);
+    
+    if (updatedApptFromList) {
         const { patient, ...currentApptDataInState } = selectedAppointment;
-        // Simple string comparison to avoid deep object comparison on every render
         if (JSON.stringify(updatedApptFromList) !== JSON.stringify(currentApptDataInState)) {
-          setSelectedAppointment(prev => {
-            if (!prev) return null;
-            return { ...updatedApptFromList, patient: prev.patient };
-          });
+            setSelectedAppointment(prev => prev ? { ...updatedApptFromList, patient: prev.patient } : null);
         }
-      }
     }
   }, [appointments, selectedAppointment]);
 
@@ -786,6 +782,29 @@ export default function DoctorDashboardPage() {
     fetchData();
     toast({ title: "Notas guardadas", description: "La historia clínica ha sido actualizada."});
   };
+  
+  const handleSavePrescription = async () => {
+    if (!selectedAppointment) return;
+
+    const result = PrescriptionSchema.safeParse(selectedAppointment.prescription);
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Récipé Inválido',
+        description: result.error.errors[0].message,
+      });
+      return;
+    }
+
+    await firestoreService.updateAppointment(selectedAppointment.id, {
+      prescription: result.data,
+    });
+    fetchData(); // Refresh data
+    toast({
+      title: 'Récipé Guardado',
+      description: 'La prescripción del paciente ha sido actualizada.',
+    });
+  };
 
   const handleGeneratePrescription = () => {
     if (!selectedAppointment || !selectedAppointment.patient || !doctorData) {
@@ -846,51 +865,6 @@ export default function DoctorDashboardPage() {
     doc.save(
       `Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`
     );
-  };
-  
-  const handleGenerateFinanceReport = () => {
-    if (!financialStats || !doctorData) return;
-  
-    const incomeData = financialStats.paidAppointments.map(a => [
-        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
-        a.patientName,
-        a.services.map(s => s.name).join(', '),
-        `$${a.totalPrice.toFixed(2)}`
-    ]);
-  
-    const expenseData = (doctorData.expenses || []).map(e => [
-        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
-        e.description,
-        `$${e.amount.toFixed(2)}`
-    ]);
-  
-    generatePdfReport({
-      title: `Reporte Financiero - ${doctorData.name}`,
-      subtitle: `Período: ${timeRangeLabels[timeRange]} (${format(new Date(), 'dd/MM/yyyy')})`,
-      sections: [
-        {
-          title: 'Resumen',
-          columns: ['Concepto', 'Monto'],
-          data: [
-            ['Ingresos Totales:', `$${financialStats.totalRevenue.toFixed(2)}`],
-            ['Gastos Totales:', `$${financialStats.totalExpenses.toFixed(2)}`],
-            ['Ganancia Neta:', `$${financialStats.netProfit.toFixed(2)}`],
-            ['Citas Pagadas:', `${financialStats.paidAppointmentsCount}`]
-          ]
-        },
-        {
-          title: 'Detalle de Ingresos',
-          columns: ['Fecha', 'Paciente', 'Servicios', 'Monto'],
-          data: incomeData,
-        },
-        {
-          title: 'Detalle de Gastos',
-          columns: ['Fecha', 'Descripción', 'Monto'],
-          data: expenseData,
-        }
-      ],
-      fileName: `Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`
-    });
   };
   
   const handleReportPayment = async (e: React.FormEvent) => {
@@ -1015,21 +989,46 @@ export default function DoctorDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 {todayAppointments.length > 0 ? (
-                                    <ul className="space-y-3">
+                                    <ul className="space-y-4">
                                         {todayAppointments.map(appt => (
-                                            <li key={appt.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9">
-                                                        <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-semibold">{appt.patientName}</p>
-                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                            <li key={appt.id} className="p-3 rounded-md border bg-card">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <Avatar className="h-9 w-9">
+                                                            <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-semibold">{appt.patientName}</p>
+                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant={appt.attendance === 'Pendiente' ? 'secondary' : 'default'} size="sm" className={cn('h-9',
+                                                                    {'bg-green-600 hover:bg-green-700': appt.attendance === 'Atendido'},
+                                                                    {'bg-red-600 hover:bg-red-700': appt.attendance === 'No Asistió'}
+                                                                )}>
+                                                                    {appt.attendance === 'Pendiente' ? 'Marcar' : appt.attendance}
+                                                                    {appt.attendance === 'Pendiente' && <MoreVertical className="ml-2 h-4 w-4" />}
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent>
+                                                                <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'Atendido')}><UserCheck className="mr-2 h-4 w-4 text-green-600" /> Atendido</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleUpdateAttendance(appt.id, 'No Asistió')}><UserX className="mr-2 h-4 w-4 text-red-600" /> No Asistió</DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleViewDetails(appt)}><Eye className="h-4 w-4" /></Button>
                                                     </div>
                                                 </div>
-                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
+                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
+                                                        <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
+                                                    </Badge>
+                                                    {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
+                                                        <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -1045,21 +1044,29 @@ export default function DoctorDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 {tomorrowAppointments.length > 0 ? (
-                                    <ul className="space-y-3">
+                                    <ul className="space-y-4">
                                         {tomorrowAppointments.map(appt => (
-                                            <li key={appt.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9">
-                                                        <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-semibold">{appt.patientName}</p>
-                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                             <li key={appt.id} className="p-3 rounded-md border bg-card">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <Avatar className="h-9 w-9">
+                                                            <AvatarFallback>{appt.patientName.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-semibold">{appt.patientName}</p>
+                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {appt.time}</p>
+                                                        </div>
                                                     </div>
+                                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleViewDetails(appt)}><Eye className="h-4 w-4" /></Button>
                                                 </div>
-                                                <Button variant="outline" size="icon" onClick={() => handleViewDetails(appt)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
+                                                    <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
+                                                        <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
+                                                    </Badge>
+                                                    {appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente' && (
+                                                        <Button size="sm" variant="outline" className="h-auto py-1 px-2 text-xs" onClick={() => handleViewDetails(appt)}>Revisar Pago</Button>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -1190,7 +1197,7 @@ export default function DoctorDashboardPage() {
                                         <div className="text-sm space-y-1">
                                           <div><span className="font-semibold">Servicios: </span> 
                                           {appt.services.map(s => s.name).join(', ')}</div>
-                                           <div className="flex items-center gap-1.5"><span className="font-semibold">Confirmación Paciente:</span> 
+                                          <div className="flex items-center gap-1.5"><span className="font-semibold">Confirmación Paciente:</span> 
                                             <Badge variant={
                                                 appt.patientConfirmationStatus === 'Confirmada' ? 'default' :
                                                 appt.patientConfirmationStatus === 'Cancelada' ? 'destructive' : 'secondary'
@@ -1881,7 +1888,13 @@ export default function DoctorDashboardPage() {
                                         {selectedAppointment.patientConfirmationStatus}
                                     </Badge>
                                 </div>
-                                <div><strong>Asistencia:</strong> {selectedAppointment.attendance}</div>
+                                <div className="flex items-center gap-2"><strong>Asistencia:</strong>
+                                  <Badge variant={selectedAppointment.attendance === 'Atendido' ? 'default' : selectedAppointment.attendance === 'No Asistió' ? 'destructive' : 'secondary'} className={cn(
+                                      {'bg-green-600 text-white': selectedAppointment.attendance === 'Atendido'}
+                                  )}>
+                                      {selectedAppointment.attendance}
+                                  </Badge>
+                                </div>
                             </div>
                         </div>
                         <Separator />
@@ -1926,7 +1939,24 @@ export default function DoctorDashboardPage() {
                         <Separator />
                         <div><h3 className="font-semibold text-lg mb-2">Historia Clínica / Notas</h3><Textarea placeholder="Añade tus notas sobre la consulta aquí..." rows={6} value={editingClinicalNotes} onChange={(e) => setEditingClinicalNotes(e.target.value)} disabled={selectedAppointment.attendance !== 'Atendido'} /><div className="flex justify-end mt-2"><Button onClick={handleSaveClinicalNotes} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Notas</Button></div></div>
                         <Separator />
-                         <div><h3 className="font-semibold text-lg mb-2">Récipé / Indicaciones</h3><Textarea placeholder="Escribe la prescripción o indicaciones para el paciente." rows={6} value={selectedAppointment.prescription || ''} onChange={(e) => setSelectedAppointment({...selectedAppointment, prescription: e.target.value})} disabled={selectedAppointment.attendance !== 'Atendido'} /><div className="flex justify-end mt-2"><Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}><FileText className="mr-2"/> Generar Récipé PDF</Button></div></div>
+                        <div><h3 className="font-semibold text-lg mb-2">Récipé / Indicaciones</h3>
+                           <Textarea
+                              placeholder="Escribe la prescripción o indicaciones para el paciente."
+                              rows={6}
+                              value={selectedAppointment.prescription || ''}
+                              onChange={(e) =>
+                                  setSelectedAppointment({
+                                      ...selectedAppointment,
+                                      prescription: e.target.value,
+                                  })
+                              }
+                              disabled={selectedAppointment.attendance !== 'Atendido'}
+                            />
+                            <div className="flex justify-end mt-2 gap-2">
+                              <Button onClick={handleSavePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Récipé</Button>
+                              <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}><FileText className="mr-2"/> Generar Récipé PDF</Button>
+                            </div>
+                        </div>
                     </div>
                 )}
                 <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
@@ -2031,7 +2061,3 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
-
-    
-
-    

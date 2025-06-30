@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText } from 'lucide-react';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
 import { type Appointment, type Doctor, type ChatMessage } from '@/lib/types';
@@ -40,12 +40,14 @@ function AppointmentCard({
   isPast = false,
   onUpdateConfirmation,
   onOpenChat,
+  onOpenRecord,
 }: { 
   appointment: Appointment, 
   doctor: Doctor | undefined,
   isPast?: boolean,
   onUpdateConfirmation?: (id: string, status: 'Confirmada' | 'Cancelada') => void,
   onOpenChat: (appointment: Appointment) => void,
+  onOpenRecord?: (appointment: Appointment) => void,
 }) {
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -73,32 +75,39 @@ function AppointmentCard({
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 border-t mt-4 flex-col sm:flex-row items-center gap-4">
-        {onUpdateConfirmation && appointment.patientConfirmationStatus === 'Pendiente' && (
-          <>
-            <p className="text-sm text-muted-foreground text-center sm:text-left flex-1">¿Asistirás a esta cita?</p>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
-                <CalendarX className="mr-2 h-4 w-4" /> Cancelar
-              </Button>
-              <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
-                <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
-              </Button>
-            </div>
-          </>
-        )}
-        {appointment.patientConfirmationStatus === 'Confirmada' && (
-           <Badge variant="default" className="bg-green-600 text-white w-full sm:w-auto justify-center py-1.5 px-3">
-              <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
-           </Badge>
-        )}
-        {appointment.patientConfirmationStatus === 'Cancelada' && (
-           <Badge variant="destructive" className="w-full sm:w-auto justify-center py-1.5 px-3">
-              <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
-           </Badge>
-        )}
-        <div className="flex-1 flex justify-end">
-           {doctor && <Button size="sm" variant="ghost" onClick={() => onOpenChat(appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar al Médico</Button>}
+      <CardFooter className="p-4 pt-0 border-t mt-4 flex-col items-center justify-between gap-2 sm:flex-row">
+        <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start w-full">
+            {onUpdateConfirmation && appointment.patientConfirmationStatus === 'Pendiente' && (
+            <>
+                <p className="text-sm text-muted-foreground text-center sm:text-left flex-1 basis-full sm:basis-auto">¿Asistirás a esta cita?</p>
+                <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
+                    <CalendarX className="mr-2 h-4 w-4" /> Cancelar
+                </Button>
+                <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
+                    <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
+                </Button>
+                </div>
+            </>
+            )}
+            {appointment.patientConfirmationStatus === 'Confirmada' && !isPast && (
+            <Badge variant="default" className="bg-green-600 text-white justify-center py-1.5 px-3">
+                <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
+            </Badge>
+            )}
+            {appointment.patientConfirmationStatus === 'Cancelada' && (
+            <Badge variant="destructive" className="justify-center py-1.5 px-3">
+                <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
+            </Badge>
+            )}
+            {isPast && appointment.attendance === 'Atendido' && onOpenRecord && (
+                <Button variant="secondary" onClick={() => onOpenRecord(appointment)}>
+                    <ClipboardList className="mr-2 h-4 w-4" /> Ver Resumen
+                </Button>
+            )}
+        </div>
+        <div className="flex justify-end w-full sm:w-auto mt-2 sm:mt-0">
+           {doctor && <Button size="sm" variant="ghost" onClick={() => onOpenChat(appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar</Button>}
         </div>
       </CardFooter>
     </Card>
@@ -120,6 +129,9 @@ export default function DashboardPage() {
   const [selectedChatAppointment, setSelectedChatAppointment] = useState<Appointment | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [selectedRecordAppointment, setSelectedRecordAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -179,6 +191,11 @@ export default function DashboardPage() {
     setIsChatDialogOpen(true);
   };
   
+  const handleOpenRecord = (appointment: Appointment) => {
+    setSelectedRecordAppointment(appointment);
+    setIsRecordDialogOpen(true);
+  };
+
   const handleSendMessage = async () => {
     if (!chatMessage.trim() || !selectedChatAppointment || !user) return;
     setIsSendingMessage(true);
@@ -281,6 +298,7 @@ export default function DashboardPage() {
                           doctor={allDoctors.find(d => d.id === appt.doctorId)}
                           isPast 
                           onOpenChat={handleOpenChat}
+                          onOpenRecord={handleOpenRecord}
                         />
                       ))}
                     </div>
@@ -392,6 +410,39 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Clinical Record Dialog */}
+      <Dialog open={isRecordDialogOpen} onOpenChange={setIsRecordDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Resumen de Cita</DialogTitle>
+                <DialogDescription>
+                    Resumen de tu cita con {selectedRecordAppointment?.doctorName} el {selectedRecordAppointment && format(new Date(selectedRecordAppointment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}.
+                </DialogDescription>
+            </DialogHeader>
+            {selectedRecordAppointment && (
+                <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-lg flex items-center gap-2"><ClipboardList /> Historia Clínica</h4>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-md whitespace-pre-wrap">
+                            {selectedRecordAppointment.clinicalNotes || "El médico no ha añadido notas para esta consulta."}
+                        </p>
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-lg flex items-center gap-2"><FileText /> Récipé e Indicaciones</h4>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-md whitespace-pre-wrap">
+                            {selectedRecordAppointment.prescription || "El médico no ha añadido un récipe para esta consulta."}
+                        </p>
+                    </div>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
