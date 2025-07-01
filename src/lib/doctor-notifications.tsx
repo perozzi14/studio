@@ -37,13 +37,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     const newNotificationsMap = new Map<string, DoctorNotification>();
     const now = new Date();
     
-    let storedNotifications: DoctorNotification[] = [];
-    try {
-        storedNotifications = JSON.parse(localStorage.getItem(NOTIFICATION_STORAGE_KEY) || '[]') as DoctorNotification[];
-    } catch {
-        storedNotifications = [];
-    }
-    const existingIds = new Set(storedNotifications.map(n => n.id));
+    const existingIds = new Set(doctorNotifications.map(n => n.id));
 
     // --- Generate Notifications ---
 
@@ -126,14 +120,14 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
 
     if (newNotificationsMap.size > 0) {
       const uniqueNewNotifications = Array.from(newNotificationsMap.values());
-      const updatedNotifications = [...uniqueNewNotifications, ...storedNotifications]
+      const updatedNotifications = [...uniqueNewNotifications, ...doctorNotifications]
         .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
       localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updatedNotifications));
       setDoctorNotifications(updatedNotifications);
       setDoctorUnreadCount(prev => prev + uniqueNewNotifications.length);
     }
-  }, []);
+  }, [doctorNotifications]);
 
   const markDoctorNotificationsAsRead = useCallback(() => {
     const updated = doctorNotifications.map(n => ({ ...n, read: true }));

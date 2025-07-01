@@ -74,6 +74,7 @@ export function Header() {
         case 'patient_cancelled': return <XCircle className="h-4 w-4 text-red-500" />;
         case 'new_message': return <MessageSquare className="h-4 w-4 text-blue-500" />;
         case 'support_reply': return <LifeBuoy className="h-4 w-4 text-orange-500" />;
+        case 'subscription_update': return <CreditCard className="h-4 w-4 text-indigo-500" />;
         default: return <BellRing className="h-4 w-4 text-primary" />;
     }
   };

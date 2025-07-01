@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { 
     Users, DollarSign, Wallet, CalendarClock, MessageSquarePlus, Ticket, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send, TrendingDown, TrendingUp, ChevronLeft, ChevronRight,
-    UserCircle, Edit, Link as LinkIcon, Download, Eye, Upload, Video, FileText, Image as ImageIcon, ClipboardList, CalendarDays, Clock, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare, FileDown, Briefcase, Calendar, Lock, Shield, X, AlertCircle
+    UserCircle, Edit, Link as LinkIcon, Download, Eye, Upload, Video, FileText, Image as ImageIcon, ClipboardList, CalendarDays, Clock, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare, FileDown, Briefcase, Calendar, Lock, Shield, X, AlertCircle, HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, parseISO, formatDistanceToNow, addHours } from 'date-fns';
@@ -641,6 +641,59 @@ export default function DoctorDashboardPage() {
                 onOpenChat={handleOpenDialog}
             />
 
+            <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                    <DialogTitle>Chat con {selectedAppointment?.patientName}</DialogTitle>
+                    <DialogDescription>
+                        Conversación sobre la cita del {selectedAppointment && format(addHours(parseISO(selectedAppointment.date), 5), 'dd MMM yyyy', { locale: es })}.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
+                    <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+                        {(selectedAppointment?.messages || []).map((msg) => (
+                        <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'doctor' && 'justify-end')}>
+                            {msg.sender === 'patient' && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{selectedAppointment?.patientName?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'doctor' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
+                                <p className="text-sm">{msg.text}</p>
+                                <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(parseISO(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                            </div>
+                            {msg.sender === 'doctor' && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={doctorData.profileImage} />
+                                    <AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            )}
+                        </div>
+                        ))}
+                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+                        <Input 
+                        placeholder="Escribe tu mensaje..." 
+                        className="flex-1"
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        disabled={isSendingMessage}
+                        />
+                        <Button type="submit" disabled={isSendingMessage || !chatMessage.trim()}>
+                        {isSendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                    </form>
+                    </div>
+                    <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline">
+                        Cerrar
+                        </Button>
+                    </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogContent>
                     <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
@@ -743,17 +796,39 @@ function AppointmentCard({ appointment, onOpenDialog, isPast = false }: { appoin
                     <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
                 </div>
             </div>
-            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
               <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
-                {isPast ? (
-                    <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': appointment.attendance === 'Atendido'})}>
-                        {appointment.attendance}
-                    </Badge>
-                ) : (
-                    <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>
-                        {appointment.paymentStatus}
-                    </Badge>
-                )}
+                <div className="flex flex-col gap-2 items-end">
+                    {isPast ? (
+                        <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': appointment.attendance === 'Atendido'})}>
+                            {appointment.attendance}
+                        </Badge>
+                    ) : (
+                    <>
+                        <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>
+                            {appointment.paymentStatus}
+                        </Badge>
+                        {appointment.patientConfirmationStatus === 'Pendiente' && (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">
+                            <HelpCircle className="mr-1 h-3 w-3" />
+                            Por confirmar
+                        </Badge>
+                        )}
+                        {appointment.patientConfirmationStatus === 'Confirmada' && (
+                        <Badge variant="outline" className="border-green-500 text-green-600">
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                            Confirmada
+                        </Badge>
+                        )}
+                        {appointment.patientConfirmationStatus === 'Cancelada' && (
+                        <Badge variant="destructive">
+                            <XCircle className="mr-1 h-3 w-3" />
+                            Cancelada
+                        </Badge>
+                        )}
+                    </>
+                    )}
+                </div>
             </div>
           </CardContent>
           <CardFooter className="p-4 pt-0 border-t mt-4 flex justify-end gap-2">
@@ -781,6 +856,13 @@ function AppointmentDetailDialog({
     
     const [clinicalNotes, setClinicalNotes] = useState(appointment.clinicalNotes || "");
     const [prescription, setPrescription] = useState(appointment.prescription || "");
+
+    useEffect(() => {
+        if (appointment) {
+            setClinicalNotes(appointment.clinicalNotes || "");
+            setPrescription(appointment.prescription || "");
+        }
+    }, [appointment]);
 
     const handleSaveRecord = () => {
         onUpdateAppointment(appointment.id, { clinicalNotes, prescription });
