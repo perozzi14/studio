@@ -246,9 +246,12 @@ export default function DoctorDashboardPage() {
 
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
         await firestoreService.updateAppointment(id, data);
-        fetchData();
+        await fetchData();
+        // Optimistically update the selected appointment in the dialog
+        if (selectedAppointment && selectedAppointment.id === id) {
+            setSelectedAppointment(prev => prev ? { ...prev, ...data } : null);
+        }
         toast({ title: 'Cita actualizada' });
-        setIsAppointmentDetailOpen(false);
     };
 
     const handleOpenDialog = (type: 'appointment' | 'chat', appointment: Appointment) => {
@@ -639,6 +642,7 @@ export default function DoctorDashboardPage() {
                 isOpen={isAppointmentDetailOpen} 
                 onOpenChange={setIsAppointmentDetailOpen} 
                 appointment={selectedAppointment}
+                doctorServices={doctorData.services || []}
                 onUpdateAppointment={handleUpdateAppointment}
                 onOpenChat={handleOpenDialog}
             />
