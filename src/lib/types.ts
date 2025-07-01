@@ -14,7 +14,7 @@ export type BankDetail = {
   accountNumber: string;
   accountHolder: string;
   idNumber: string;
-  description?: string;
+  description?: string | null;
 };
 
 export type Service = {
@@ -240,3 +240,5 @@ export type AppSettings = {
     billingCycleStartDay?: number;
     billingCycleEndDay?: number;
 }
+
+    

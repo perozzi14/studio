@@ -49,7 +49,7 @@ const BankDetailFormSchema = z.object({
   accountHolder: z.string().min(3, "El nombre del titular es requerido."),
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
 });
 
 const SupportTicketSchema = z.object({
@@ -169,7 +169,7 @@ export default function SellerDashboardPage() {
   
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
   const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
-  const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket | null>(null);
+  const [selectedSupportTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
@@ -370,7 +370,7 @@ export default function SellerDashboardPage() {
 
     const result = SupportTicketSchema.safeParse(dataToValidate);
     if (!result.success) {
-      toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(e => e.message).join(' ') });
+      toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
       setIsSubmittingTicket(false);
       return;
     }
@@ -846,7 +846,7 @@ export default function SellerDashboardPage() {
                         </Card>
 
                          <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
+                            <CardHeader className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardHeader><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
                             <CardContent>
                                 <Table className="hidden md:table">
                                     <TableHeader><TableRow><TableHead>Fecha de Pago</TableHead><TableHead>Período de Comisión</TableHead><TableHead>Médicos Pagados</TableHead><TableHead className="text-right">Monto Recibido</TableHead><TableHead className="text-center">Acciones</TableHead></TableRow></TableHeader>
@@ -1093,7 +1093,7 @@ export default function SellerDashboardPage() {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
+        <Dialog open={isSupportDetailOpen} onOpenChange={setIsSupportDetailOpen}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Ticket de Soporte: {selectedSupportTicket?.subject}</DialogTitle>
@@ -1292,3 +1292,5 @@ export default function SellerDashboardPage() {
     </div>
   );
 }
+
+    

@@ -31,9 +31,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogClose,
   DialogFooter,
@@ -41,7 +41,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
+import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -164,7 +164,7 @@ const BankDetailFormSchema = z.object({
   accountHolder: z.string().min(3, "El nombre del titular es requerido."),
   idNumber: z.string().min(5, "El C.I./R.I.F. es requerido."),
   accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
 });
 
 const MarketingMaterialSchema = z.object({
@@ -2788,7 +2788,7 @@ export default function AdminDashboardPage() {
        <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
         <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
-                <DialogTitle>{editingDoctor ? 'Editar Médico' : 'Registrar Nuevo Médico'}</DialogTitle>
+                <DialogTitle>Registrar Nuevo Médico</DialogTitle>
                 <DialogDescription>
                     Completa la información del perfil del médico.
                 </DialogDescription>
@@ -3155,3 +3155,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
