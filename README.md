@@ -6,61 +6,84 @@ To get started, take a look at src/app/page.tsx.
 
 ## Despliegue a Producción
 
-Aquí tienes el paso a paso para desplegar tu aplicación SUMA en Firebase Hosting y, opcionalmente, conectarla a tu propio dominio.
+¡Excelente! Llegaste al punto de querer lanzar tu aplicación. Esta guía te llevará paso a paso, desde cero, para poner tu proyecto SUMA en línea con tu propio dominio.
 
-### **Paso 1: Configurar tu Proyecto en Firebase**
+> **Nota Importante:** Si ya creaste tu proyecto en Firebase para conectar la base de datos, puedes saltar directamente al **Paso 2**. ¡No necesitas crear un proyecto nuevo!
 
-> **Nota:** Si ya creaste tu proyecto de Firebase y configuraste la base de datos y la autenticación, puedes saltar directamente al **Paso 2**.
+### **Fase 1: Obtener el Código del Proyecto**
 
-1.  **Crea un Proyecto en Firebase:** Si aún no tienes uno, ve a la [Consola de Firebase](https://console.firebase.google.com/) y crea un nuevo proyecto.
-2.  **Activa Firestore:** En tu nuevo proyecto, ve a la sección "Firestore Database" y crea una nueva base de datos. **Inicia en modo de producción**, que proporciona reglas de seguridad seguras por defecto.
-3.  **Activa la Autenticación:** Ve a la sección de "Authentication", haz clic en "Comenzar" y activa el método de inicio de sesión **Email/Contraseña**.
+Primero, necesitas tener el código de la aplicación en tu computadora.
 
-### **Paso 2: Configurar tu Entorno Local**
+1.  **Descarga el Código:** En la interfaz de Firebase Studio, busca un botón de **"Descargar Código"** o "Exportar Proyecto".
+2.  **Descomprime el Archivo:** Se descargará un archivo `.zip`. Descomprímelo en un lugar fácil de recordar (como el Escritorio o tu carpeta de Documentos). Esto creará la carpeta de tu proyecto.
 
-1.  **Instala la Firebase CLI:** Si no la tienes, instala la Interfaz de Línea de Comandos de Firebase de forma global:
+### **Fase 2: Preparar tu Computadora**
+
+Estas herramientas son necesarias para que tu computadora pueda "hablar" con Firebase. Solo se instalan una vez.
+
+1.  **Instala Node.js:** Si no lo tienes, ve a [nodejs.org](https://nodejs.org/) y descarga la versión que dice **"LTS"**. Esto es como el "motor" para tu aplicación.
+2.  **Abre una Terminal:**
+    *   En **Windows**, busca y abre el "Símbolo del sistema" o "PowerShell".
+    *   En **Mac** o **Linux**, busca y abre la "Terminal".
+3.  **Instala las Herramientas de Firebase:** En la terminal que abriste, escribe este comando y presiona Enter:
     ```bash
     npm install -g firebase-tools
     ```
-2.  **Inicia Sesión en Firebase:**
+4.  **Navega a la Carpeta de tu Proyecto:** En la misma terminal, usa el comando `cd` para entrar a la carpeta que descomprimiste. Ejemplo:
+    ```bash
+    cd Desktop/nombre-de-la-carpeta-del-proyecto
+    ```
+5.  **Instala las "Piezas" del Proyecto:** Una vez dentro de la carpeta, ejecuta este comando. Descargará todas las librerías que tu app necesita.
+    ```bash
+    npm install
+    ```
+
+### **Fase 3: Conectar y Desplegar en Firebase**
+
+Ahora vamos a conectar tu código con tu proyecto en la nube y a subirlo.
+
+1.  **Inicia Sesión:** En la terminal (dentro de la carpeta de tu proyecto), ejecuta:
     ```bash
     firebase login
     ```
-3.  **Inicializa Firebase en tu Proyecto:** Conecta tu código local con tu proyecto de Firebase.
+    Se abrirá una ventana de tu navegador para que inicies sesión con Google.
+
+2.  **Inicializa Firebase:** Ahora, ejecuta:
     ```bash
     firebase init
     ```
-    *   Selecciona **Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action deploys**.
-    *   Elige **Use an existing project** y selecciona el proyecto que creaste.
-    *   Cuando te pregunten por tu directorio público, ingresa **`.`** (un solo punto) y presiona Enter. Esto es crucial porque Next.js gestiona la carpeta de build.
-    *   Cuando te pregunten si quieres configurarlo como una single-page app, responde **No (n)**.
-    *   Cuando te pregunten sobre compilaciones y despliegues automáticos con GitHub, puedes decir **No (n)** por ahora.
-4.  **Rellena las Variables de Entorno:** Abre el archivo `.env` en tu proyecto. Ve a la configuración de tu proyecto en la Consola de Firebase (haz clic en el ícono de engranaje > Configuración del proyecto), baja hasta "Tus apps", selecciona la app web y copia los valores de configuración en el archivo `.env` donde corresponda.
+    Sigue los pasos con atención:
+    *   Usa las flechas del teclado para moverte hasta **Hosting**, presiona la **barra espaciadora** para marcarlo y luego presiona **Enter**.
+    *   Elige **Use an existing project** y selecciona el proyecto que ya habías creado en Firebase.
+    *   **¡Paso Clave!** Cuando pregunte `What do you want to use as your public directory?`, escribe un solo punto: **`.`** y presiona Enter.
+    *   **¡Paso Clave!** Cuando pregunte `Configure as a single-page app?`, responde que no, escribiendo: **`n`** y presiona Enter.
+    *   Si te pregunta por builds automáticos con GitHub, responde que no por ahora (`n`).
 
-### **Paso 3: Desplegar tu Aplicación**
+3.  **Rellena las Variables de Entorno:**
+    *   Abre el archivo `.env` en tu proyecto.
+    *   Ve a la [Consola de Firebase](https://console.firebase.google.com/), haz clic en el **engranaje (⚙️)** > **Configuración del proyecto**.
+    *   En la sección "Tus apps", busca tu app web (suele tener un ícono `</>`) y copia los valores de `apiKey`, `authDomain`, `projectId`, etc., en el archivo `.env`.
 
-1.  **Despliega:** Ejecuta el siguiente comando desde la raíz de tu proyecto:
+4.  **¡El Gran Momento! Despliega la Aplicación:**
     ```bash
     firebase deploy
     ```
-Este comando compilará tu aplicación Next.js, la desplegará en Firebase Hosting y aplicará las reglas de seguridad de Firestore ubicadas en `firestore.rules`.
+    Este comando compilará tu aplicación y la subirá a los servidores de Google. Al final, te dará una URL como `tu-proyecto.web.app`. ¡Tu aplicación ya está en internet!
 
-Al finalizar, la terminal te proporcionará la URL de tu aplicación en vivo (algo como `tu-proyecto.web.app`).
+### **Fase 4: Conectar tu Dominio Personalizado**
 
-### **Paso 4: Conectar tu Dominio Personalizado**
+Finalmente, hagamos que tu aplicación se vea profesional con tu propio dominio.
 
-¡Sí, puedes usar tu propio dominio! Una vez que la aplicación esté desplegada, sigue estos pasos:
-
-1.  **Ve a Hosting:** En la Consola de Firebase, ve a la sección de "Hosting".
-2.  **Añade un Dominio Personalizado:** Haz clic en el botón **"Añadir dominio personalizado"**.
-3.  **Sigue el Asistente:**
-    *   Ingresa el dominio que quieres conectar (ej., `www.misuma.com`).
-    *   Firebase te pedirá que **verifiques la propiedad** del dominio. Generalmente, esto implica añadir un registro TXT a la configuración DNS de tu dominio. Firebase te dará el valor exacto que necesitas copiar.
-    *   Ve al panel de control de tu proveedor de dominio (GoDaddy, Namecheap, etc.), busca la configuración de DNS y añade ese registro TXT.
+1.  **Ve a Hosting en Firebase:** En la consola de tu proyecto, ve a la sección de "Hosting".
+2.  **Añade un Dominio:** Haz clic en el botón **"Añadir dominio personalizado"**.
+3.  **Verifica tu Dominio:**
+    *   Escribe el dominio que quieres usar (ej. `www.misuma.com`).
+    *   Firebase te dirá: "Para demostrar que eres el dueño, añade este **registro TXT** en la configuración de tu dominio". Te dará un valor de texto largo. Cópialo.
+    *   Ve a donde compraste tu dominio (GoDaddy, Namecheap, etc.), busca la sección de "Administración de DNS" y crea un nuevo registro de tipo "TXT" con el valor que te dio Firebase.
 4.  **Apunta tu Dominio a Firebase:**
-    *   Una vez verificado, Firebase te proporcionará uno o más **registros A**. Estas son las direcciones IP de los servidores de Firebase.
-    *   Vuelve a la configuración de DNS de tu proveedor de dominio y **crea o actualiza los registros A** para que apunten a las IPs que Firebase te dio.
-5.  **Espera la Propagación:** Los cambios de DNS pueden tardar un tiempo en propagarse por todo el internet (desde unos minutos hasta 24 horas). Una vez que se complete, Firebase lo detectará automáticamente.
-6.  **Certificado SSL Automático:** En cuanto Firebase confirme que tu dominio apunta correctamente a sus servidores, **aprovisionará e instalará automáticamente un certificado SSL gratuito** para tu dominio, dándote seguridad con `https://`.
+    *   Una vez que Firebase verifique el registro TXT (puede tardar unos minutos), te mostrará una o más **direcciones IP**. Estas son las direcciones de los servidores de Firebase.
+    *   Vuelve a la "Administración de DNS" de tu dominio.
+    *   Busca los **registros de tipo "A"**. Borra los que existan y crea nuevos apuntando a cada una de las IPs que te dio Firebase.
+5.  **Espera y Celebra:** Los cambios de DNS pueden tardar un poco en propagarse por internet (desde minutos hasta 24 horas). Una vez que se complete, Firebase lo detectará, **instalará un certificado de seguridad SSL gratuito** (para que tu web sea `https://`) y tu dominio estará funcionando.
 
-¡Y listo! Con estos pasos, tu aplicación SUMA estará en línea, segura y funcionando en tu propio dominio.
+¡Y eso es todo! Con estos pasos, tu aplicación SUMA estará en línea, segura y funcionando en tu propio dominio.
