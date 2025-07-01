@@ -1,3 +1,4 @@
+
 # Firebase Studio
 
 This is a NextJS starter in Firebase Studio.
@@ -14,7 +15,7 @@ To get started, take a look at src/app/page.tsx.
 
 Primero, necesitas tener el código de la aplicación en tu computadora.
 
-1.  **Descarga el Código:** En la interfaz de Firebase Studio, busca un botón de **"Descargar Código"** o "Exportar Proyecto".
+1.  **Descarga el Código:** En la interfaz de Firebase Studio, busca un botón de **"Descargar Código"** o "Exportar Proyecto". Normalmente está en la parte superior de la pantalla y puede tener un ícono de una flecha apuntando hacia abajo (↓).
 2.  **Descomprime el Archivo:** Se descargará un archivo `.zip`. Descomprímelo en un lugar fácil de recordar (como el Escritorio o tu carpeta de Documentos). Esto creará la carpeta de tu proyecto.
 
 ### **Fase 2: Preparar tu Computadora**
