@@ -10,7 +10,7 @@ import { type Appointment, type Doctor, type ChatMessage, type Service, type Ban
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -426,7 +426,7 @@ export default function DoctorDashboardPage() {
         const data = { subject: formData.get('subject') as string, description: formData.get('description') as string };
         const result = SupportTicketSchema.safeParse(data);
         if(!result.success){
-            toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+            toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(e => e.message).join(' ') });
             return;
         }
         await firestoreService.addSupportTicket({ ...result.data, userId: user.email, userName: user.name, userRole: 'doctor', status: 'abierto', date: new Date().toISOString().split('T')[0] });
@@ -747,5 +747,3 @@ function AppointmentCard({ appointment, onOpenDialog }: { appointment: Appointme
         </Card>
     )
 }
-
-    
