@@ -310,26 +310,44 @@ export default function AdminDashboardPage() {
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    const [docs, sells, pats, apps, docPays, sellPays, materials, tickets] = await Promise.all([
-        firestoreService.getDoctors(),
-        firestoreService.getSellers(),
-        firestoreService.getPatients(),
-        firestoreService.getAppointments(),
-        firestoreService.getDoctorPayments(),
-        firestoreService.getSellerPayments(),
-        firestoreService.getMarketingMaterials(),
-        firestoreService.getSupportTickets(),
-    ]);
-    setDoctors(docs);
-    setSellers(sells);
-    setPatients(pats);
-    setAppointments(apps);
-    setDoctorPayments(docPays);
-    setSellerPayments(sellPays);
-    setMarketingMaterials(materials);
-    setSupportTickets(tickets.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    setIsLoading(false);
-  }, []);
+    try {
+        const [docs, sells, pats, apps, docPays, sellPays, materials, tickets] = await Promise.all([
+            firestoreService.getDoctors(),
+            firestoreService.getSellers(),
+            firestoreService.getPatients(),
+            firestoreService.getAppointments(),
+            firestoreService.getDoctorPayments(),
+            firestoreService.getSellerPayments(),
+            firestoreService.getMarketingMaterials(),
+            firestoreService.getSupportTickets(),
+        ]);
+        setDoctors(docs);
+        setSellers(sells);
+        setPatients(pats);
+        setAppointments(apps);
+        setDoctorPayments(docPays);
+        setSellerPayments(sellPays);
+        setMarketingMaterials(materials);
+        setSupportTickets(tickets.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (error) {
+        console.error("Failed to fetch admin data, possibly offline.", error);
+        toast({
+            variant: "destructive",
+            title: "Error de Red",
+            description: "No se pudieron cargar los datos del panel. Por favor, revisa tu conexión a internet.",
+        });
+        setDoctors([]);
+        setSellers([]);
+        setPatients([]);
+        setAppointments([]);
+        setDoctorPayments([]);
+        setSellerPayments([]);
+        setMarketingMaterials([]);
+        setSupportTickets([]);
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -3227,4 +3245,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

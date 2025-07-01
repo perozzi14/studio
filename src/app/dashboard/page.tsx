@@ -136,12 +136,22 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDoctors = async () => {
         setIsDoctorsLoading(true);
-        const doctorsData = await firestoreService.getDoctors();
-        setAllDoctors(doctorsData);
-        setIsDoctorsLoading(false);
+        try {
+            const doctorsData = await firestoreService.getDoctors();
+            setAllDoctors(doctorsData);
+        } catch (error) {
+            console.error("Failed to fetch doctors for dashboard, possibly offline.", error);
+            toast({
+                variant: "destructive",
+                title: "Error de red",
+                description: "No se pudieron cargar los datos de los médicos.",
+            });
+        } finally {
+            setIsDoctorsLoading(false);
+        }
     }
     fetchDoctors();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (user === undefined) return; 

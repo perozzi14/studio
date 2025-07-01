@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/carousel";
 import { useSettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -65,6 +66,7 @@ const specialtyIcons: Record<string, React.ElementType> = {
 export default function FindDoctorPage() {
   const { cities, specialties, beautySpecialties } = useSettings();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -79,14 +81,24 @@ export default function FindDoctorPage() {
   useEffect(() => {
       const fetchDocs = async () => {
         setIsLoading(true);
-        const docs = await firestoreService.getDoctors();
-        const activeDocs = docs.filter(d => d.status === 'active');
-        setAllDoctors(activeDocs);
-        setFilteredDoctors(activeDocs);
-        setIsLoading(false);
+        try {
+          const docs = await firestoreService.getDoctors();
+          const activeDocs = docs.filter(d => d.status === 'active');
+          setAllDoctors(activeDocs);
+          setFilteredDoctors(activeDocs);
+        } catch (error) {
+          console.error("Failed to fetch doctors, possibly offline.", error);
+          toast({
+            variant: "destructive",
+            title: "Error de red",
+            description: "No se pudieron cargar los médicos. Revisa tu conexión a internet.",
+          });
+        } finally {
+          setIsLoading(false);
+        }
       }
       fetchDocs();
-  }, []);
+  }, [toast]);
   
   useEffect(() => {
     if (user && !initialLocationSet && user.city) {

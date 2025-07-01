@@ -19,9 +19,14 @@ export default function FavoritesPage() {
   useEffect(() => {
     const fetchDocs = async () => {
         setIsLoading(true);
-        const docs = await firestoreService.getDoctors();
-        setAllDoctors(docs);
-        setIsLoading(false);
+        try {
+            const docs = await firestoreService.getDoctors();
+            setAllDoctors(docs);
+        } catch (error) {
+            console.error("Failed to fetch doctors for favorites, possibly offline.", error);
+        } finally {
+            setIsLoading(false);
+        }
     }
     fetchDocs();
   }, []);
