@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import type { Appointment, DoctorNotification, AdminSupportTicket } from './types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from './auth';
 
 interface DoctorNotificationContextType {
   doctorNotifications: DoctorNotification[];
@@ -14,26 +15,41 @@ interface DoctorNotificationContextType {
 }
 
 const DoctorNotificationContext = createContext<DoctorNotificationContextType | undefined>(undefined);
-const NOTIFICATION_STORAGE_KEY = 'suma-doctor-notifications';
+const getNotificationStorageKey = (userId: string) => `suma-doctor-notifications-${userId}`;
 
 export function DoctorNotificationProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [doctorNotifications, setDoctorNotifications] = useState<DoctorNotification[]>([]);
   const [doctorUnreadCount, setDoctorUnreadCount] = useState(0);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as DoctorNotification[];
-        setDoctorNotifications(parsed);
-        setDoctorUnreadCount(parsed.filter(n => !n.read).length);
+    if (user?.id && user.role === 'doctor') {
+      try {
+        const storageKey = getNotificationStorageKey(user.id);
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored) as DoctorNotification[];
+          setDoctorNotifications(parsed);
+          setDoctorUnreadCount(parsed.filter(n => !n.read).length);
+        } else {
+          setDoctorNotifications([]);
+          setDoctorUnreadCount(0);
+        }
+      } catch (e) {
+        console.error("Failed to load doctor notifications from localStorage", e);
+        setDoctorNotifications([]);
+        setDoctorUnreadCount(0);
       }
-    } catch (e) {
-      console.error("Failed to load doctor notifications from localStorage", e);
+    } else {
+      setDoctorNotifications([]);
+      setDoctorUnreadCount(0);
     }
-  }, []);
+  }, [user]);
 
   const checkAndSetDoctorNotifications = useCallback((appointments: Appointment[], supportTickets: AdminSupportTicket[]) => {
+    if (!user?.id || user.role !== 'doctor') return;
+
+    const storageKey = getNotificationStorageKey(user.id);
     const newNotificationsMap = new Map<string, DoctorNotification>();
     const now = new Date();
     
@@ -123,18 +139,20 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
       const updatedNotifications = [...uniqueNewNotifications, ...doctorNotifications]
         .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updatedNotifications));
+      localStorage.setItem(storageKey, JSON.stringify(updatedNotifications));
       setDoctorNotifications(updatedNotifications);
       setDoctorUnreadCount(prev => prev + uniqueNewNotifications.length);
     }
-  }, [doctorNotifications]);
+  }, [doctorNotifications, user]);
 
   const markDoctorNotificationsAsRead = useCallback(() => {
+    if (!user?.id || user.role !== 'doctor') return;
+    const storageKey = getNotificationStorageKey(user.id);
     const updated = doctorNotifications.map(n => ({ ...n, read: true }));
-    localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(storageKey, JSON.stringify(updated));
     setDoctorNotifications(updated);
     setDoctorUnreadCount(0);
-  }, [doctorNotifications]);
+  }, [doctorNotifications, user]);
   
   const value = { doctorNotifications, doctorUnreadCount, checkAndSetDoctorNotifications, markDoctorNotificationsAsRead };
 
