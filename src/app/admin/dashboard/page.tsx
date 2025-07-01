@@ -1202,6 +1202,20 @@ export default function AdminDashboardPage() {
     return doctorPayments.filter(p => p.status === 'Pending');
   }, [doctorPayments]);
 
+  const pendingToPayThisMonth = useMemo(() => {
+    const now = new Date();
+    const endOfThisMonth = endOfMonth(now);
+
+    return doctors.filter(doc => {
+      if (doc.subscriptionStatus === 'pending_payment') {
+        return false; // They already reported a payment, so they are not "pending to pay"
+      }
+      const nextPayment = new Date(doc.nextPaymentDate + 'T00:00:00');
+      // Doctors whose payment date is on or before the end of this month are included.
+      return nextPayment <= endOfThisMonth;
+    }).sort((a,b) => new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime());
+  }, [doctors]);
+
   const paymentsByMonth = useMemo(() => {
     const grouped: { [month: string]: DoctorPayment[] } = {};
     const sortedPayments = [...doctorPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1827,6 +1841,82 @@ export default function AdminDashboardPage() {
                                   )}
                               </div>
                           </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                            <CardTitle>Suscripciones por Vencer este Mes</CardTitle>
+                            <CardDescription>Lista de médicos cuya suscripción vence o ha vencido en el mes actual y no han reportado un pago.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Médico</TableHead>
+                                            <TableHead>Ciudad</TableHead>
+                                            <TableHead>Monto a Pagar</TableHead>
+                                            <TableHead>Fecha de Vencimiento</TableHead>
+                                            <TableHead className="text-right">Suscripción</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {pendingToPayThisMonth.length > 0 ? (
+                                            pendingToPayThisMonth.map((doctor) => (
+                                                <TableRow key={doctor.id}>
+                                                    <TableCell className="font-medium">{doctor.name}</TableCell>
+                                                    <TableCell>{doctor.city}</TableCell>
+                                                    <TableCell className="font-mono">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</TableCell>
+                                                    <TableCell>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
+                                                            {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center h-24">
+                                                    No hay médicos con pagos por vencer para este mes.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="space-y-4 md:hidden">
+                                {pendingToPayThisMonth.length > 0 ? (
+                                    pendingToPayThisMonth.map((doctor) => (
+                                        <div key={doctor.id} className="p-4 border rounded-lg space-y-3">
+                                            <div>
+                                                <p className="font-semibold">{doctor.name}</p>
+                                                <p className="text-sm text-muted-foreground">{doctor.city}</p>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex justify-between items-center text-sm">
+                                                <p className="text-muted-foreground">Vence:</p>
+                                                <p>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <p className="text-muted-foreground">Monto:</p>
+                                                <p className="font-mono font-semibold">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</p>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <p className="text-muted-foreground">Estado:</p>
+                                                <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
+                                                    {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">
+                                        No hay médicos con pagos por vencer para este mes.
+                                    </p>
+                                )}
+                            </div>
+                        </CardContent>
                       </Card>
                       
                        <Card>
@@ -3155,5 +3245,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
