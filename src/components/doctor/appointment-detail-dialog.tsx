@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -89,6 +89,8 @@ export function AppointmentDetailDialog({
     return null;
   }
 
+  const isAttended = appointment.attendance === 'Atendido';
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-3xl">
@@ -109,15 +111,18 @@ export function AppointmentDetailDialog({
                             <p><strong>Total:</strong> <span className="font-mono font-semibold">${editableTotalPrice.toFixed(2)}</span></p>
                             <p><strong>Método:</strong> <span className="capitalize">{appointment.paymentMethod}</span></p>
                             <div className="flex items-center gap-2"><strong>Estado:</strong><Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>{appointment.paymentStatus}</Badge></div>
+                            
                             {appointment.paymentMethod === 'transferencia' && (
-                                <a href={appointment.paymentProof || '#'} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), 'w-full mt-2')}>
-                                    <Eye className="mr-2 h-4 w-4"/> Ver Comprobante
-                                </a>
-                            )}
-                            {appointment.paymentStatus === 'Pendiente' && appointment.paymentMethod === 'transferencia' && (
-                                <Button size="sm" className="w-full mt-2" onClick={() => onUpdateAppointment(appointment.id, { paymentStatus: 'Pagado' })}>
-                                    <CheckCircle className="mr-2 h-4 w-4"/> Aprobar Pago
-                                </Button>
+                                <>
+                                    <a href={appointment.paymentProof || '#'} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), 'w-full mt-2')}>
+                                        <Eye className="mr-2 h-4 w-4"/> Ver Comprobante
+                                    </a>
+                                    {appointment.paymentStatus === 'Pendiente' && (
+                                        <Button size="sm" className="w-full mt-2" onClick={() => onUpdateAppointment(appointment.id, { paymentStatus: 'Pagado' })}>
+                                            <CheckCircle className="mr-2 h-4 w-4"/> Aprobar Pago
+                                        </Button>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
@@ -182,20 +187,45 @@ export function AppointmentDetailDialog({
                         </CardContent>
                     </Card>
 
-                    {appointment.attendance === 'Atendido' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base flex justify-between items-center">
-                                    <span>Registro Clínico</span>
-                                    <Button size="sm" variant="secondary" onClick={handleSaveRecord}><Save className="mr-2 h-4 w-4"/> Guardar Registro</Button>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div><Label htmlFor="clinicalNotes">Historia Clínica / Notas</Label><Textarea id="clinicalNotes" value={clinicalNotes} onChange={(e) => setClinicalNotes(e.target.value)} rows={5} placeholder="Añade notas sobre la consulta..." /></div>
-                                <div><Label htmlFor="prescription">Récipé e Indicaciones</Label><Textarea id="prescription" value={prescription} onChange={(e) => setPrescription(e.target.value)} rows={5} placeholder="Añade el récipe y las indicaciones médicas..." /></div>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base flex justify-between items-center">
+                                <span>Registro Clínico</span>
+                                <Button size="sm" variant="secondary" onClick={handleSaveRecord} disabled={!isAttended}>
+                                    <Save className="mr-2 h-4 w-4"/> Guardar Registro
+                                </Button>
+                            </CardTitle>
+                             {!isAttended && (
+                                <CardDescription className="text-xs pt-1">
+                                    Marca la cita como "Atendido" para poder añadir notas.
+                                </CardDescription>
+                            )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="clinicalNotes">Historia Clínica / Notas</Label>
+                                <Textarea 
+                                    id="clinicalNotes" 
+                                    value={clinicalNotes} 
+                                    onChange={(e) => setClinicalNotes(e.target.value)} 
+                                    rows={5} 
+                                    placeholder="Añade notas sobre la consulta..." 
+                                    disabled={!isAttended}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="prescription">Récipé e Indicaciones</Label>
+                                <Textarea 
+                                    id="prescription" 
+                                    value={prescription} 
+                                    onChange={(e) => setPrescription(e.target.value)} 
+                                    rows={5} 
+                                    placeholder="Añade el récipe y las indicaciones médicas..." 
+                                    disabled={!isAttended}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
             </div>
