@@ -7,14 +7,22 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City, ChartConfig } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Stethoscope, UserCheck, BarChart, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart as BarChartIcon, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -1183,6 +1191,21 @@ export default function AdminDashboardPage() {
     }
   }, [doctors, sellers, patients, filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
 
+  const chartData = useMemo(() => ([
+    {
+      label: timeRangeLabels[timeRange],
+      Ingresos: stats.totalRevenue,
+      Comisiones: stats.commissionsPaid,
+      Gastos: stats.totalExpenses,
+    }
+  ]), [timeRange, stats, timeRangeLabels]);
+
+  const chartConfig = {
+    Ingresos: { label: "Ingresos", color: "hsl(var(--chart-2))" },
+    Comisiones: { label: "Comisiones", color: "hsl(var(--chart-4))" },
+    Gastos: { label: "Gastos", color: "hsl(var(--destructive))" },
+  } satisfies ChartConfig;
+
   const paginatedCompanyExpenses = useMemo(() => {
     if (expenseItemsPerPage === -1) return filteredCompanyExpenses;
     const startIndex = (expenseCurrentPage - 1) * expenseItemsPerPage;
@@ -1380,7 +1403,7 @@ export default function AdminDashboardPage() {
                            <Card>
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                   <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
-                                  <BarChart className="h-4 w-4 text-muted-foreground" />
+                                  <BarChartIcon className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
                                   <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${stats.netProfit.toFixed(2)}</div>
@@ -1389,7 +1412,7 @@ export default function AdminDashboardPage() {
                           </Card>
                       </div>
                       <div className="mt-6 text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                          <BarChart className="h-12 w-12" />
+                          <BarChartIcon className="h-12 w-12" />
                           <h3 className="text-xl font-semibold">Gráficos y Analíticas</h3>
                           <p>Más analíticas detalladas sobre el crecimiento y uso de la plataforma estarán disponibles aquí.</p>
                       </div>
@@ -1761,14 +1784,36 @@ export default function AdminDashboardPage() {
 
                       <Card>
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                           <div>
-                              <CardTitle>Visión General Financiera</CardTitle>
-                              <CardDescription>Revisa el estado financiero de SUMA.</CardDescription>
-                           </div>
-                           <Button onClick={handleGenerateAdminFinanceReport}>
-                               <FileDown className="mr-2"/> Descargar Reporte PDF
-                           </Button>
+                            <div>
+                                <CardTitle>Visión General Financiera</CardTitle>
+                                <CardDescription>Revisa el estado financiero de SUMA para {timeRangeLabels[timeRange]}.</CardDescription>
+                            </div>
+                            <Button onClick={handleGenerateAdminFinanceReport}>
+                                <FileDown className="mr-2"/> Descargar Reporte PDF
+                            </Button>
                         </CardHeader>
+                        <CardContent>
+                          <ChartContainer config={chartConfig} className="h-72 w-full">
+                            <BarChart data={chartData} accessibilityLayer>
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                dataKey="label"
+                                tickLine={false}
+                                tickMargin={10}
+                                axisLine={false}
+                                />
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" />}
+                                />
+                                <ChartLegend content={<ChartLegendContent />} />
+                                <Bar dataKey="Ingresos" fill="var(--color-Ingresos)" radius={4} />
+                                <Bar dataKey="Comisiones" fill="var(--color-Comisiones)" radius={4} />
+                                <Bar dataKey="Gastos" fill="var(--color-Gastos)" radius={4} />
+                            </BarChart>
+                           </ChartContainer>
+                        </CardContent>
                       </Card>
 
                       <Card>
@@ -3245,3 +3290,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
