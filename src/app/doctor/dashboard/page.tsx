@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Expense, Patient, Coupon, AdminSupportTicket, DoctorPayment, ChatMessage } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileDown, FileText, Upload, FileUp, Loader2, Landmark, Banknote, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Clock, Eye, User, BriefcaseMedical, CalendarClock, PlusCircle, Trash2, Pencil, X, DollarSign, CheckCircle, Coins, TrendingUp, TrendingDown, Wallet, CalendarCheck, History, UserCheck, UserX, MoreVertical, Mail, Cake, VenetianMask, FileImage, Tag, LifeBuoy, Link as LinkIcon, Copy, MessageSquarePlus, MessageSquare, CreditCard, Send, FileText, Upload, FileUp, Loader2, Landmark, Banknote, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -325,10 +325,11 @@ export default function DoctorDashboardPage() {
   }, [user, fetchData]);
 
   useEffect(() => {
-    if (doctorData?.id) {
-      setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
-    }
+      if (doctorData?.id) {
+          setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+      }
   }, [doctorData]);
+
 
   useEffect(() => {
     if (!selectedAppointment) return;
@@ -1083,7 +1084,7 @@ export default function DoctorDashboardPage() {
                                                 </div>
                                                 <div className="flex items-center justify-between text-xs border-t pt-2 mt-2">
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600' : 'bg-amber-500', "text-white")}>
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : 'bg-amber-500 text-white')}>
                                                             <DollarSign className="mr-1 h-3 w-3" /> {appt.paymentStatus}
                                                         </Badge>
                                                         <Badge variant="outline" className="capitalize flex items-center gap-1">
