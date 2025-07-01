@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import { type Appointment, type Doctor, type ChatMessage, type Service, type BankDetail, type Coupon, type Expense, type Schedule, DaySchedule, DoctorPayment } from '@/lib/types';
+import { type Appointment, type Doctor, type ChatMessage, type Service, type BankDetail, type Coupon, type Expense, type Schedule, DaySchedule, DoctorPayment, AdminSupportTicket } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -18,10 +18,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { 
     Users, DollarSign, Wallet, CalendarClock, MessageSquarePlus, Ticket, Coins, PlusCircle, Pencil, Trash2, Loader2, Search, Send, TrendingDown, TrendingUp, ChevronLeft, ChevronRight,
-    UserCircle, Edit, Link as LinkIcon, Download, Eye, Upload, Video, FileText, Image as ImageIcon, ClipboardList, CalendarDays, Clock, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare, FileDown, Briefcase, Calendar, Lock, Shield
+    UserCircle, Edit, Link as LinkIcon, Download, Eye, Upload, Video, FileText, Image as ImageIcon, ClipboardList, CalendarDays, Clock, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare, FileDown, Briefcase, Calendar, Lock, Shield, X, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, parseISO, formatDistanceToNow, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -38,10 +38,8 @@ import { z } from 'zod';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-const timeRangeLabels: Record<string, string> = {
-  today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Global',
-};
+import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -53,19 +51,19 @@ const BankDetailFormSchema = z.object({
 
 const ServiceFormSchema = z.object({
   name: z.string().min(3, "El nombre del servicio es requerido."),
-  price: z.number().min(0, "El precio no puede ser negativo."),
+  price: z.preprocess((val) => Number(val), z.number().min(0, "El precio no puede ser negativo.")),
 });
 
 const CouponFormSchema = z.object({
   code: z.string().min(3, "El código debe tener al menos 3 caracteres.").toUpperCase(),
   discountType: z.enum(['percentage', 'fixed']),
-  value: z.number().positive("El valor debe ser positivo."),
+  value: z.preprocess((val) => Number(val), z.number().positive("El valor debe ser positivo.")),
 });
 
 const ExpenseFormSchema = z.object({
   date: z.string().min(1, "La fecha es requerida."),
   description: z.string().min(3, "La descripción es requerida."),
-  amount: z.number().positive("El monto debe ser un número positivo."),
+  amount: z.preprocess((val) => Number(val), z.number().positive("El monto debe ser un número positivo.")),
 });
 
 const SupportTicketSchema = z.object({
@@ -80,16 +78,13 @@ const ClinicalRecordSchema = z.object({
 
 const DoctorProfileSchema = z.object({
   name: z.string().min(3, "El nombre es requerido."),
-  cedula: z.string().min(6, "La cédula es requerida."),
-  whatsapp: z.string().min(10, "El WhatsApp es requerido."),
+  cedula: z.string().min(6, "La cédula es requerida.").optional().or(z.literal('')),
+  whatsapp: z.string().min(10, "El WhatsApp es requerido.").optional().or(z.literal('')),
   address: z.string().min(5, "La dirección es requerida."),
   sector: z.string().min(3, "El sector es requerido."),
-  consultationFee: z.number().min(0, "La tarifa no puede ser negativa."),
-  slotDuration: z.number().min(5, "La duración debe ser al menos 5 minutos."),
+  consultationFee: z.preprocess((val) => Number(val), z.number().min(0, "La tarifa no puede ser negativa.")),
+  slotDuration: z.preprocess((val) => Number(val), z.number().min(5, "La duración debe ser al menos 5 minutos.")),
   description: z.string().min(20, "La descripción debe tener al menos 20 caracteres."),
-  profileImage: z.string().optional(),
-  bannerImage: z.string().optional(),
-  aiHint: z.string().optional(),
 });
 
 const PasswordChangeSchema = z.object({
@@ -101,6 +96,9 @@ const PasswordChangeSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const timeRangeLabels: Record<string, string> = {
+  today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Global',
+};
 
 export default function DoctorDashboardPage() {
     const { user, updateUser, changePassword } = useAuth();
@@ -131,6 +129,7 @@ export default function DoctorDashboardPage() {
     const [isPaymentReportOpen, setIsPaymentReportOpen] = useState(false);
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isScheduleSaved, setIsScheduleSaved] = useState(true);
     
     // Entity states for dialogs
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -145,6 +144,9 @@ export default function DoctorDashboardPage() {
     const [chatMessage, setChatMessage] = useState("");
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+    const [tempSchedule, setTempSchedule] = useState<Schedule | null>(null);
+    const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+    const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
 
     const fetchData = useCallback(async () => {
         if (!user || user.role !== 'doctor' || !user.id) return;
@@ -157,6 +159,7 @@ export default function DoctorDashboardPage() {
                 firestoreService.getDoctorPayments(),
             ]);
             setDoctorData(doc);
+            setTempSchedule(doc?.schedule || null);
             setAppointments(apps);
             setSupportTickets(tickets.filter(t => t.userId === user.email));
             setDoctorPayments(payments.filter(p => p.doctorId === user.id));
@@ -168,16 +171,12 @@ export default function DoctorDashboardPage() {
     }, [user, toast]);
 
     useEffect(() => {
-        if (user?.id) {
-            fetchData();
-        }
+        if (user?.id) { fetchData(); }
     }, [user, fetchData]);
     
     useEffect(() => {
       if (user === undefined) return;
-      if (user === null || user.role !== 'doctor') {
-        router.push('/auth/login');
-      }
+      if (user === null || user.role !== 'doctor') { router.push('/auth/login'); }
     }, [user, router]);
     
     const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
@@ -211,18 +210,8 @@ export default function DoctorDashboardPage() {
         const totalRevenue = filteredAppointments.filter(a => a.paymentStatus === 'Pagado').reduce((sum, a) => sum + a.totalPrice, 0);
         const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-        return {
-            totalRevenue,
-            totalExpenses,
-            netProfit: totalRevenue - totalExpenses
-        };
-    }, [appointments, doctorData, timeRange]);
-
-    const paginatedExpenses = useMemo(() => {
-      const expenses = doctorData?.expenses || [];
-      return [...expenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [doctorData]);
-
+        return { totalRevenue, totalExpenses, netProfit: totalRevenue - totalExpenses };
+    }, [doctorData, appointments, timeRange]);
 
     const { todayAppointments, tomorrowAppointments, upcomingAppointments, pastAppointments } = useMemo(() => {
         const today = new Date();
@@ -232,31 +221,24 @@ export default function DoctorDashboardPage() {
         const todayStr = format(today, 'yyyy-MM-dd');
         const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
 
-        const tA: Appointment[] = [];
-        const tmA: Appointment[] = [];
-        const uA: Appointment[] = [];
-        const pA: Appointment[] = [];
+        const tA: Appointment[] = []; const tmA: Appointment[] = []; const uA: Appointment[] = []; const pA: Appointment[] = [];
 
         [...appointments].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)).forEach(appt => {
-            if (appt.date === todayStr) tA.push(appt);
-            else if (appt.date === tomorrowStr) tmA.push(appt);
-            else if (new Date(appt.date) > tomorrow) uA.push(appt);
+            const apptDate = addHours(parseISO(appt.date), 5); // Adjust for timezone issues if any
+            if (format(apptDate, 'yyyy-MM-dd') === todayStr) tA.push(appt);
+            else if (format(apptDate, 'yyyy-MM-dd') === tomorrowStr) tmA.push(appt);
+            else if (apptDate > tomorrow) uA.push(appt);
             else pA.push(appt);
         });
 
-        return {
-            todayAppointments: tA,
-            tomorrowAppointments: tmA,
-            upcomingAppointments: uA,
-            pastAppointments: pA.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-        };
+        return { todayAppointments: tA, tomorrowAppointments: tmA, upcomingAppointments: uA, pastAppointments: pA.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
     }, [appointments]);
-
 
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
         await firestoreService.updateAppointment(id, data);
         fetchData();
         toast({ title: 'Cita actualizada' });
+        setIsAppointmentDetailOpen(false);
     };
 
     const handleOpenDialog = (type: 'appointment' | 'chat' | 'record', appointment: Appointment) => {
@@ -272,7 +254,7 @@ export default function DoctorDashboardPage() {
         try {
             await firestoreService.addMessageToAppointment(selectedAppointment.id, { sender: 'doctor', text: chatMessage.trim() });
             setChatMessage("");
-            await fetchData(); // Refresh data to show new message
+            await fetchData();
             const updatedAppointment = appointments.find(a => a.id === selectedAppointment.id);
             if (updatedAppointment) setSelectedAppointment(updatedAppointment);
         } catch (error) {
@@ -281,11 +263,11 @@ export default function DoctorDashboardPage() {
             setIsSendingMessage(false);
         }
     };
-    
-    // All CRUD operations for doctor's sub-collections (expenses, services, etc.)
+
     const handleSaveEntity = async (type: 'expense' | 'service' | 'bank' | 'coupon', data: any) => {
         if (!doctorData) return;
-        const list = (doctorData[type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services'] || []) as any[];
+        const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
+        const list = (doctorData[listKey] || []) as any[];
         const editingEntity = type === 'expense' ? editingExpense : type === 'service' ? editingService : type === 'bank' ? editingBankDetail : editingCoupon;
         
         let newList;
@@ -295,25 +277,115 @@ export default function DoctorDashboardPage() {
             newList = [...list, { ...data, id: `${type}-${Date.now()}` }];
         }
         
-        const updateKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        await firestoreService.updateDoctor(doctorData.id, { [updateKey]: newList });
+        await firestoreService.updateDoctor(doctorData.id, { [listKey]: newList });
         await fetchData();
         toast({ title: `${type.charAt(0).toUpperCase() + type.slice(1)} guardado.` });
         
-        // Close respective dialog
         if (type === 'expense') setIsExpenseDialogOpen(false);
         if (type === 'service') setIsServiceDialogOpen(false);
         if (type === 'bank') setIsBankDetailDialogOpen(false);
         if (type === 'coupon') setIsCouponDialogOpen(false);
     };
+    
+    const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!doctorData) return;
+        const formData = new FormData(e.currentTarget);
+        const dataToValidate = {
+          name: formData.get('name') as string,
+          cedula: formData.get('cedula') as string,
+          whatsapp: formData.get('whatsapp') as string,
+          address: formData.get('address') as string,
+          sector: formData.get('sector') as string,
+          consultationFee: formData.get('consultationFee') as string,
+          slotDuration: formData.get('slotDuration') as string,
+          description: formData.get('description') as string,
+        };
+
+        const result = DoctorProfileSchema.safeParse(dataToValidate);
+        if (!result.success) {
+            toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+            return;
+        }
+        
+        let profileImageUrl = doctorData.profileImage;
+        if (profileImageFile) { profileImageUrl = 'https://placehold.co/400x400.png'; }
+        
+        let bannerImageUrl = doctorData.bannerImage;
+        if (bannerImageFile) { bannerImageUrl = 'https://placehold.co/1200x400.png'; }
+
+        await firestoreService.updateDoctor(doctorData.id, {...result.data, profileImage: profileImageUrl, bannerImage: bannerImageUrl});
+        toast({ title: 'Perfil Actualizado' });
+        fetchData();
+    }
+    
+    const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const data = {
+            currentPassword: formData.get('currentPassword') as string,
+            newPassword: formData.get('newPassword') as string,
+            confirmPassword: formData.get('confirmPassword') as string
+        };
+        const result = PasswordChangeSchema.safeParse(data);
+        if(!result.success){
+            toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+            return;
+        }
+        const {success, message} = await changePassword(result.data.currentPassword, result.data.newPassword);
+        if(success){
+            toast({title: 'Éxito', description: message});
+            setIsPasswordDialogOpen(false);
+        } else {
+            toast({variant: 'destructive', title: 'Error', description: message});
+        }
+    }
+
+    const handleScheduleChange = (day: keyof Schedule, field: 'active' | 'slot', value: any, slotIndex?: number) => {
+        if (!tempSchedule) return;
+        const newSchedule = { ...tempSchedule };
+        if (field === 'active') {
+            newSchedule[day].active = value;
+        } else if (field === 'slot' && slotIndex !== undefined) {
+            newSchedule[day].slots[slotIndex] = value;
+        }
+        setTempSchedule(newSchedule);
+        setIsScheduleSaved(false);
+    };
+
+    const handleAddSlot = (day: keyof Schedule) => {
+        if (!tempSchedule) return;
+        const newSchedule = { ...tempSchedule };
+        newSchedule[day].slots.push({ start: '09:00', end: '10:00' });
+        setTempSchedule(newSchedule);
+        setIsScheduleSaved(false);
+    };
+
+    const handleRemoveSlot = (day: keyof Schedule, slotIndex: number) => {
+        if (!tempSchedule) return;
+        const newSchedule = { ...tempSchedule };
+        newSchedule[day].slots.splice(slotIndex, 1);
+        setTempSchedule(newSchedule);
+        setIsScheduleSaved(false);
+    };
+    
+    const handleSaveSchedule = async () => {
+        if(!doctorData || !tempSchedule) return;
+        await firestoreService.updateDoctor(doctorData.id, { schedule: tempSchedule });
+        toast({ title: 'Horario Guardado', description: 'Tu disponibilidad ha sido actualizada.' });
+        setIsScheduleSaved(true);
+        fetchData();
+    }
+
 
     const handleDeleteItem = async () => {
         if (!itemToDelete || !doctorData) return;
         const { type, id } = itemToDelete;
-        const list = (doctorData[type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services'] || []) as any[];
+        const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
+        const list = (doctorData[listKey] || []) as any[];
         const newList = list.filter(item => item.id !== id);
-        const updateKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        await firestoreService.updateDoctor(doctorData.id, { [updateKey]: newList });
+        
+        await firestoreService.updateDoctor(doctorData.id, { [listKey]: newList });
         
         await fetchData();
         setIsDeleteDialogOpen(false);
@@ -331,7 +403,6 @@ export default function DoctorDashboardPage() {
         const transactionId = formData.get('transactionId') as string;
         const amount = parseFloat(formData.get('amount') as string);
         
-        // In a real app, upload proofFile and get URL. Here we use a placeholder.
         await firestoreService.addDoctorPayment({
             doctorId: doctorData.id,
             doctorName: doctorData.name,
@@ -348,19 +419,31 @@ export default function DoctorDashboardPage() {
         toast({ title: 'Pago Reportado', description: 'Tu pago está en revisión por el equipo de SUMA.' });
     };
 
+    const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!user || user.role !== 'doctor') return;
+        const formData = new FormData(e.currentTarget);
+        const data = { subject: formData.get('subject') as string, description: formData.get('description') as string };
+        const result = SupportTicketSchema.safeParse(data);
+        if(!result.success){
+            toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+            return;
+        }
+        await firestoreService.addSupportTicket({ ...result.data, userId: user.email, userName: user.name, userRole: 'doctor', status: 'abierto', date: new Date().toISOString().split('T')[0] });
+        fetchData();
+        setIsSupportDialogOpen(false);
+        toast({ title: 'Ticket Enviado' });
+    }
+
     if (isLoading || !user || !doctorData) {
         return (
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-1 container py-12 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </main>
-          </div>
+          <div className="flex flex-col min-h-screen"> <Header /> <main className="flex-1 container py-12 flex items-center justify-center"> <Loader2 className="h-8 w-8 animate-spin text-primary" /> </main> </div>
         );
     }
     
-    // Safe to access doctorData and user from here
     const subscriptionFee = cityFeesMap.get(doctorData.city) || 0;
+    const daysOfWeek: (keyof Schedule)[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels: Record<keyof Schedule, string> = { monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles', thursday: 'Jueves', friday: 'Viernes', saturday: 'Sábado', sunday: 'Domingo' };
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
@@ -370,11 +453,44 @@ export default function DoctorDashboardPage() {
                     <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
                     <p className="text-muted-foreground mb-8">Bienvenido de nuevo, {user.name}.</p>
                     
-                     {currentTab === 'appointments' && (
-                        <div>Appointments content here...</div>
-                     )}
+                    {currentTab === 'appointments' && (
+                        <div className="space-y-8">
+                            <Card>
+                                <CardHeader><CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle></CardHeader>
+                                <CardContent>
+                                    {todayAppointments.length > 0 ? (
+                                        <div className="space-y-4">{todayAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                    ) : <p className="text-muted-foreground text-center py-4">No tienes citas para hoy.</p>}
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle></CardHeader>
+                                <CardContent>
+                                    {tomorrowAppointments.length > 0 ? (
+                                        <div className="space-y-4">{tomorrowAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                    ) : <p className="text-muted-foreground text-center py-4">No tienes citas para mañana.</p>}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>Próximas Citas ({upcomingAppointments.length})</CardTitle></CardHeader>
+                                <CardContent>
+                                    {upcomingAppointments.length > 0 ? (
+                                        <div className="space-y-4">{upcomingAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                    ) : <p className="text-muted-foreground text-center py-4">No tienes más citas agendadas.</p>}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>Historial de Citas ({pastAppointments.length})</CardTitle></CardHeader>
+                                <CardContent>
+                                    {pastAppointments.length > 0 ? (
+                                        <div className="space-y-4">{pastAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                    ) : <p className="text-muted-foreground text-center py-4">No tienes citas en tu historial.</p>}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
-                     {currentTab === 'finances' && (
+                    {currentTab === 'finances' && (
                         <div className="space-y-6">
                             <div className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2">
                                 <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
@@ -383,146 +499,253 @@ export default function DoctorDashboardPage() {
                                 <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Año</Button>
                                 <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Global</Button>
                             </div>
-
                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financialStats.totalRevenue.toFixed(2)}</div><p className="text-xs text-muted-foreground">{timeRangeLabels[timeRange]}</p></CardContent></Card>
                                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financialStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">{timeRangeLabels[timeRange]}</p></CardContent></Card>
                                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financialStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financialStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">{timeRangeLabels[timeRange]}</p></CardContent></Card>
                             </div>
-                            
                             <Card>
-                                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <div>
-                                        <CardTitle>Registro de Gastos</CardTitle>
-                                        <CardDescription>Administra tus gastos operativos y de consultorio.</CardDescription>
-                                    </div>
-                                    <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
-                                </CardHeader>
+                                <CardHeader><CardTitle>Gráfico de Finanzas</CardTitle></CardHeader>
                                 <CardContent>
-                                    <div className="hidden md:block">
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {paginatedExpenses.length > 0 ? paginatedExpenses.map(expense => (
-                                                    <TableRow key={expense.id}>
-                                                        <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
-                                                        <TableCell className="font-medium">{expense.description}</TableCell>
-                                                        <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <Button variant="outline" size="icon" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                                <Button variant="destructive" size="icon" onClick={() => { setItemToDelete({type: 'expense', id: expense.id}); setIsDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>)}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                    <div className="space-y-4 md:hidden">
-                                        {paginatedExpenses.map(expense => (
-                                          <div key={expense.id} className="p-4 border rounded-lg space-y-3">
-                                            <div className="flex justify-between items-start">
-                                              <div>
-                                                <p className="font-semibold">{expense.description}</p>
-                                                <p className="text-xs text-muted-foreground">{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
-                                              </div>
-                                              <p className="text-lg font-mono">${expense.amount.toFixed(2)}</p>
-                                            </div>
-                                            <Separator />
-                                            <div className="flex justify-end gap-2">
-                                              <Button variant="outline" size="sm" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                              <Button variant="destructive" size="sm" onClick={() => { setItemToDelete({type: 'expense', id: expense.id}); setIsDeleteDialogOpen(true); }}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                        {paginatedExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados.</p>}
+                                    <div className="h-64 flex items-center justify-center bg-muted/50 rounded-md">
+                                        <p className="text-muted-foreground">Gráficos estarán disponibles próximamente.</p>
                                     </div>
                                 </CardContent>
                             </Card>
-
+                            <Card>
+                                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div><CardTitle>Registro de Gastos</CardTitle><CardDescription>Administra tus gastos operativos y de consultorio.</CardDescription></div>
+                                    <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
+                                </CardHeader>
+                                <CardContent><Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader><TableBody>{(doctorData?.expenses || []).length > 0 ? doctorData.expenses.map(expense => ( <TableRow key={expense.id}><TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell><TableCell className="font-medium">{expense.description}</TableCell><TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell><TableCell className="text-center"><div className="flex items-center justify-center gap-2"><Button variant="outline" size="icon" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="destructive" size="icon" onClick={() => { setItemToDelete({type: 'expense', id: expense.id}); setIsDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button></div></TableCell></TableRow>)) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados.</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                            </Card>
                         </div>
                     )}
                     
                     {currentTab === 'subscription' && (
                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Shield /> Mi Suscripción</CardTitle>
-                                <CardDescription>Gestiona tu membresía en SUMA para seguir recibiendo pacientes.</CardDescription>
-                            </CardHeader>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Shield /> Mi Suscripción</CardTitle><CardDescription>Gestiona tu membresía en SUMA para seguir recibiendo pacientes.</CardDescription></CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="p-6 border rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                    <div className="md:col-span-2 space-y-1">
-                                        <p className="text-sm text-muted-foreground">Estado Actual</p>
-                                        <Badge className={cn('capitalize text-base px-3 py-1', {
-                                            'bg-green-600 text-white': doctorData.subscriptionStatus === 'active',
-                                            'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment',
-                                            'bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive'
-                                        })}>
-                                            {doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago en Revisión' : 'Inactiva'}
-                                        </Badge>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-muted-foreground">Monto de Suscripción</p>
-                                        <p className="text-2xl font-bold">${subscriptionFee.toFixed(2)}<span className="text-base font-normal text-muted-foreground">/mes</span></p>
-                                    </div>
-                                     <div className="space-y-1">
-                                        <p className="text-sm text-muted-foreground">Último Pago</p>
-                                        <p className="font-semibold">{doctorData.lastPaymentDate ? format(new Date(doctorData.lastPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es }) : 'N/A'}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-muted-foreground">Próximo Vencimiento</p>
-                                        <p className="font-semibold">{doctorData.nextPaymentDate ? format(new Date(doctorData.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es }) : 'N/A'}</p>
-                                    </div>
+                                    <div className="md:col-span-2 space-y-1"><p className="text-sm text-muted-foreground">Estado Actual</p><Badge className={cn('capitalize text-base px-3 py-1', {'bg-green-600 text-white': doctorData.subscriptionStatus === 'active', 'bg-amber-500 text-white': doctorData.subscriptionStatus === 'pending_payment','bg-red-600 text-white': doctorData.subscriptionStatus === 'inactive'})}>{doctorData.subscriptionStatus === 'active' ? 'Activa' : doctorData.subscriptionStatus === 'pending_payment' ? 'Pago en Revisión' : 'Inactiva'}</Badge></div>
+                                    <div className="space-y-1"><p className="text-sm text-muted-foreground">Monto de Suscripción</p><p className="text-2xl font-bold">${subscriptionFee.toFixed(2)}<span className="text-base font-normal text-muted-foreground">/mes</span></p></div>
+                                     <div className="space-y-1"><p className="text-sm text-muted-foreground">Último Pago</p><p className="font-semibold">{doctorData.lastPaymentDate ? format(new Date(doctorData.lastPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es }) : 'N/A'}</p></div>
+                                    <div className="space-y-1"><p className="text-sm text-muted-foreground">Próximo Vencimiento</p><p className="font-semibold">{doctorData.nextPaymentDate ? format(new Date(doctorData.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es }) : 'N/A'}</p></div>
                                 </div>
-                                
-                                <Card className="bg-muted/30">
-                                    <CardHeader>
-                                        <CardTitle>Reportar un Pago</CardTitle>
-                                        <CardDescription>
-                                            ¿Ya realizaste el pago de tu suscripción? Repórtalo aquí para que el equipo de SUMA lo verifique.
-                                            Recuerda realizarlo a cualquiera de las cuentas de la plataforma.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button onClick={() => setIsPaymentReportOpen(true)} disabled={doctorData.subscriptionStatus === 'pending_payment'}>
-                                            <Upload className="mr-2 h-4 w-4" /> Reportar Pago
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader><CardTitle>Historial de Pagos</CardTitle></CardHeader>
-                                    <CardContent>
-                                         <Table>
-                                            <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Monto</TableHead><TableHead>Estado</TableHead><TableHead>ID Transacción</TableHead><TableHead className="text-right">Comprobante</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                            {doctorPayments.length > 0 ? (
-                                                [...doctorPayments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(p => (
-                                                <TableRow key={p.id}>
-                                                    <TableCell>{format(new Date(p.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
-                                                    <TableCell>${p.amount.toFixed(2)}</TableCell>
-                                                    <TableCell><Badge className={cn({'bg-green-600 text-white': p.status === 'Paid', 'bg-amber-500 text-white': p.status === 'Pending', 'bg-red-600 text-white': p.status === 'Rejected'})}>{p.status === 'Paid' ? 'Pagado' : p.status === 'Pending' ? 'En Revisión' : 'Rechazado'}</Badge></TableCell>
-                                                    <TableCell className="font-mono text-xs">{p.transactionId}</TableCell>
-                                                    <TableCell className="text-right"><Button variant="outline" size="sm" asChild><a href={p.paymentProofUrl || '#'} target="_blank" rel="noopener noreferrer" >Ver</a></Button></TableCell>
-                                                </TableRow>
-                                                ))
-                                            ) : (
-                                                <TableRow><TableCell colSpan={5} className="h-24 text-center">No hay pagos registrados.</TableCell></TableRow>
-                                            )}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
+                                <Card className="bg-muted/30"><CardHeader><CardTitle>Reportar un Pago</CardTitle><CardDescription>¿Ya realizaste el pago de tu suscripción? Repórtalo aquí para que el equipo de SUMA lo verifique.</CardDescription></CardHeader><CardContent><Button onClick={() => setIsPaymentReportOpen(true)} disabled={doctorData.subscriptionStatus === 'pending_payment'}><Upload className="mr-2 h-4 w-4" /> Reportar Pago</Button></CardContent></Card>
+                                <Card><CardHeader><CardTitle>Historial de Pagos</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Monto</TableHead><TableHead>Estado</TableHead><TableHead>ID Transacción</TableHead><TableHead className="text-right">Comprobante</TableHead></TableRow></TableHeader><TableBody>{doctorPayments.length > 0 ? ([...doctorPayments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(p => ( <TableRow key={p.id}><TableCell>{format(new Date(p.date + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell><TableCell>${p.amount.toFixed(2)}</TableCell><TableCell><Badge className={cn({'bg-green-600 text-white': p.status === 'Paid', 'bg-amber-500 text-white': p.status === 'Pending', 'bg-red-600 text-white': p.status === 'Rejected'})}>{p.status === 'Paid' ? 'Pagado' : p.status === 'Pending' ? 'En Revisión' : 'Rechazado'}</Badge></TableCell><TableCell className="font-mono text-xs">{p.transactionId}</TableCell><TableCell className="text-right"><Button variant="outline" size="sm" asChild><a href={p.paymentProofUrl || '#'} target="_blank" rel="noopener noreferrer" >Ver</a></Button></TableCell></TableRow>))) : (<TableRow><TableCell colSpan={5} className="h-24 text-center">No hay pagos registrados.</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
                             </CardContent>
                        </Card>
                     )}
 
+                    {currentTab === 'profile' && (
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader><CardTitle>Perfil Público</CardTitle><CardDescription>Esta información será visible para los pacientes.</CardDescription></CardHeader>
+                                <form onSubmit={handleSaveProfile}><CardContent className="space-y-6">
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="space-y-2"><Label htmlFor="name">Nombre Completo</Label><Input id="name" name="name" defaultValue={doctorData.name} /></div>
+                                        <div className="space-y-2"><Label htmlFor="cedula">Cédula</Label><Input id="cedula" name="cedula" defaultValue={doctorData.cedula} /></div>
+                                    </div>
+                                    <div className="space-y-2"><Label htmlFor="whatsapp">Nro. WhatsApp</Label><Input id="whatsapp" name="whatsapp" defaultValue={doctorData.whatsapp} /></div>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="space-y-2"><Label htmlFor="address">Dirección</Label><Input id="address" name="address" defaultValue={doctorData.address} /></div>
+                                        <div className="space-y-2"><Label htmlFor="sector">Sector</Label><Input id="sector" name="sector" defaultValue={doctorData.sector} /></div>
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="space-y-2"><Label htmlFor="consultationFee">Tarifa Consulta ($)</Label><Input id="consultationFee" name="consultationFee" type="number" defaultValue={doctorData.consultationFee} /></div>
+                                        <div className="space-y-2"><Label htmlFor="slotDuration">Duración Cita (min)</Label><Input id="slotDuration" name="slotDuration" type="number" defaultValue={doctorData.slotDuration} /></div>
+                                    </div>
+                                    <div className="space-y-2"><Label htmlFor="description">Descripción Profesional</Label><Textarea id="description" name="description" defaultValue={doctorData.description} rows={5}/></div>
+                                    <div className="grid md:grid-cols-2 gap-8">
+                                        <div className="space-y-2"><Label>Foto de Perfil</Label><Image src={profileImageFile ? URL.createObjectURL(profileImageFile) : doctorData.profileImage} alt="Perfil" width={100} height={100} className="rounded-full border" /><Input type="file" onChange={(e) => setProfileImageFile(e.target.files?.[0] || null)} /></div>
+                                        <div className="space-y-2"><Label>Imagen de Banner</Label><Image src={bannerImageFile ? URL.createObjectURL(bannerImageFile) : doctorData.bannerImage} alt="Banner" width={300} height={100} className="rounded-md border aspect-video object-cover" /><Input type="file" onChange={(e) => setBannerImageFile(e.target.files?.[0] || null)} /></div>
+                                    </div>
+                                </CardContent><CardFooter><Button type="submit">Guardar Perfil</Button></CardFooter></form>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>Seguridad</CardTitle><CardDescription>Cambia tu contraseña.</CardDescription></CardHeader>
+                                <CardContent><Button onClick={() => setIsPasswordDialogOpen(true)}>Cambiar Contraseña</Button></CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {currentTab === 'services' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Mis Servicios</CardTitle><Button onClick={() => {setEditingService(null); setIsServiceDialogOpen(true);}}><PlusCircle className="mr-2"/>Añadir Servicio</Button></CardHeader>
+                            <CardContent><Table><TableHeader><TableRow><TableHead>Nombre del Servicio</TableHead><TableHead className="text-right">Precio</TableHead><TableHead className="text-center w-[120px]">Acciones</TableHead></TableRow></TableHeader><TableBody>{doctorData.services?.length > 0 ? doctorData.services.map(service => (<TableRow key={service.id}><TableCell className="font-medium">{service.name}</TableCell><TableCell className="text-right font-mono">${service.price.toFixed(2)}</TableCell><TableCell className="text-center"><div className="flex justify-center gap-2"><Button variant="outline" size="icon" onClick={() => {setEditingService(service); setIsServiceDialogOpen(true);}}><Pencil className="h-4 w-4"/></Button><Button variant="destructive" size="icon" onClick={() => {setItemToDelete({type: 'service', id: service.id}); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4"/></Button></div></TableCell></TableRow>)) : <TableRow><TableCell colSpan={3} className="text-center h-24">No has registrado servicios adicionales.</TableCell></TableRow>}</TableBody></Table></CardContent>
+                        </Card>
+                    )}
+
+                    {currentTab === 'schedule' && (
+                        <Card>
+                            <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between"><CardTitle>Mi Horario</CardTitle><Button onClick={handleSaveSchedule} disabled={isScheduleSaved}>{isScheduleSaved ? <CheckCircle className="mr-2"/> : <Loader2 className="mr-2 animate-spin"/>} {isScheduleSaved ? 'Horario Guardado' : 'Guardar Cambios'}</Button></CardHeader>
+                            <CardContent className="space-y-4">
+                                {tempSchedule && daysOfWeek.map(day => (
+                                    <div key={day} className="border p-4 rounded-lg">
+                                        <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold">{dayLabels[day]}</h3><div className="flex items-center gap-2"><Label htmlFor={`switch-${day}`}>Atiende</Label><Switch id={`switch-${day}`} checked={tempSchedule[day].active} onCheckedChange={(checked) => handleScheduleChange(day, 'active', checked)} /></div></div>
+                                        {tempSchedule[day].active && (
+                                            <div className="space-y-2">
+                                                {tempSchedule[day].slots.map((slot, index) => (
+                                                    <div key={index} className="flex items-center gap-2">
+                                                        <Input type="time" value={slot.start} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, start: e.target.value}, index)} />
+                                                        <Input type="time" value={slot.end} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, end: e.target.value}, index)} />
+                                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(day, index)}><X className="h-4 w-4"/></Button>
+                                                    </div>
+                                                ))}
+                                                <Button variant="outline" size="sm" onClick={() => handleAddSlot(day)}>+ Añadir bloque</Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {currentTab === 'bank-details' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Mis Cuentas Bancarias</CardTitle><Button onClick={() => {setEditingBankDetail(null); setIsBankDetailDialogOpen(true);}}><PlusCircle className="mr-2"/>Añadir Cuenta</Button></CardHeader>
+                            <CardContent><Table><TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead className="text-right">Número de Cuenta</TableHead><TableHead className="text-center w-[120px]">Acciones</TableHead></TableRow></TableHeader><TableBody>{doctorData.bankDetails?.length > 0 ? doctorData.bankDetails.map(bd => (<TableRow key={bd.id}><TableCell className="font-medium">{bd.bank}</TableCell><TableCell>{bd.accountHolder}</TableCell><TableCell className="text-right font-mono">{bd.accountNumber}</TableCell><TableCell className="text-center"><div className="flex justify-center gap-2"><Button variant="outline" size="icon" onClick={() => {setEditingBankDetail(bd); setIsBankDetailDialogOpen(true);}}><Pencil className="h-4 w-4"/></Button><Button variant="destructive" size="icon" onClick={() => {setItemToDelete({type: 'bank', id: bd.id}); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4"/></Button></div></TableCell></TableRow>)) : <TableRow><TableCell colSpan={4} className="text-center h-24">No has registrado cuentas bancarias.</TableCell></TableRow>}</TableBody></Table></CardContent>
+                        </Card>
+                    )}
+
+                    {currentTab === 'coupons' && (
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Mis Cupones</CardTitle><Button onClick={() => {setEditingCoupon(null); setIsCouponDialogOpen(true);}}><PlusCircle className="mr-2"/>Añadir Cupón</Button></CardHeader>
+                            <CardContent><Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-center w-[120px]">Acciones</TableHead></TableRow></TableHeader><TableBody>{doctorData.coupons?.length > 0 ? doctorData.coupons.map(coupon => (<TableRow key={coupon.id}><TableCell className="font-mono font-semibold">{coupon.code}</TableCell><TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Monto Fijo' : 'Porcentaje'}</TableCell><TableCell className="text-right font-mono">{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell><TableCell className="text-center"><div className="flex justify-center gap-2"><Button variant="outline" size="icon" onClick={() => {setEditingCoupon(coupon); setIsCouponDialogOpen(true);}}><Pencil className="h-4 w-4"/></Button><Button variant="destructive" size="icon" onClick={() => {setItemToDelete({type: 'coupon', id: coupon.id}); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4"/></Button></div></TableCell></TableRow>)) : <TableRow><TableCell colSpan={4} className="text-center h-24">No has creado cupones.</TableCell></TableRow>}</TableBody></Table></CardContent>
+                        </Card>
+                    )}
+
+                    {currentTab === 'chat' && (
+                        <Card>
+                            <CardHeader><CardTitle>Chat con Pacientes</CardTitle><CardDescription>Aquí puedes comunicarte directamente con tus pacientes.</CardDescription></CardHeader>
+                            <CardContent className="text-center text-muted-foreground py-12"><p>Por favor, ve a la sección de "Citas" y selecciona una cita para iniciar un chat.</p></CardContent>
+                        </Card>
+                    )}
+
+                    {currentTab === 'support' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Soporte Técnico</CardTitle><Button onClick={() => setIsSupportDialogOpen(true)}><PlusCircle className="mr-2"/>Abrir Ticket</Button></CardHeader>
+                            <CardContent><Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Asunto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader><TableBody>{supportTickets.length > 0 ? supportTickets.map(ticket => (<TableRow key={ticket.id}><TableCell>{format(parseISO(ticket.date), "dd MMM, yyyy", { locale: es })}</TableCell><TableCell>{ticket.subject}</TableCell><TableCell><Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>{ticket.status}</Badge></TableCell><TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => {setSelectedSupportTicket(ticket); setIsSupportDetailOpen(true);}}>Ver</Button></TableCell></TableRow>)) : <TableRow><TableCell colSpan={4} className="text-center h-24">No tienes tickets de soporte.</TableCell></TableRow>}</TableBody></Table></CardContent>
+                        </Card>
+                    )}
                 </div>
             </main>
-             {/* ALL DIALOGS HERE */}
+            
+            <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
+                    <form onSubmit={handleChangePassword} className="space-y-4 py-4">
+                        <div><Label htmlFor="currentPassword">Contraseña Actual</Label><Input id="currentPassword" name="currentPassword" type="password" required /></div>
+                        <div><Label htmlFor="newPassword">Nueva Contraseña</Label><Input id="newPassword" name="newPassword" type="password" required /></div>
+                        <div><Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label><Input id="confirmPassword" name="confirmPassword" type="password" required /></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Actualizar Contraseña</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isPaymentReportOpen} onOpenChange={setIsPaymentReportOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Reportar Pago de Suscripción</DialogTitle><DialogDescription>Completa la información para que verifiquemos tu pago.</DialogDescription></DialogHeader>
+                    <form onSubmit={handleReportPayment} className="space-y-4 py-4">
+                        <div><Label>Monto a Pagar</Label><Input value={`$${subscriptionFee.toFixed(2)}`} disabled /></div>
+                        <div><Label htmlFor="transactionId">ID o Referencia de Transacción</Label><Input id="transactionId" name="transactionId" required/></div>
+                        <div><Label htmlFor="amount">Monto Exacto Pagado</Label><Input id="amount" name="amount" type="number" step="0.01" required/></div>
+                        <div><Label htmlFor="paymentProofFile">Comprobante de Pago</Label><Input id="paymentProofFile" type="file" required onChange={(e) => setPaymentProofFile(e.target.files ? e.target.files[0] : null)} /></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Reportar Pago</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>{editingService ? 'Editar Servicio' : 'Nuevo Servicio'}</DialogTitle></DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); const data = {name: fd.get('name') as string, price: parseFloat(fd.get('price') as string)}; const result = ServiceFormSchema.safeParse(data); if(result.success) handleSaveEntity('service', result.data); else toast({variant: 'destructive', title: 'Error', description: result.error.errors.map(e=>e.message).join(' ')})}} className="space-y-4 py-4">
+                        <div><Label htmlFor="name">Nombre del Servicio</Label><Input id="name" name="name" defaultValue={editingService?.name || ''} required/></div>
+                        <div><Label htmlFor="price">Precio ($)</Label><Input id="price" name="price" type="number" step="0.01" defaultValue={editingService?.price || ''} required/></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isBankDetailDialogOpen} onOpenChange={setIsBankDetailDialogOpen}>
+                <DialogContent><DialogHeader><DialogTitle>{editingBankDetail ? 'Editar Cuenta' : 'Nueva Cuenta'}</DialogTitle></DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); const data = {bank: fd.get('bank') as string, accountHolder: fd.get('accountHolder') as string, idNumber: fd.get('idNumber') as string, accountNumber: fd.get('accountNumber') as string, description: fd.get('description') as string}; const result = BankDetailFormSchema.safeParse(data); if(result.success) handleSaveEntity('bank', result.data); else toast({variant: 'destructive', title: 'Error', description: result.error.errors.map(e=>e.message).join(' ')})}} className="space-y-4 py-4">
+                        <div><Label htmlFor="bank">Banco</Label><Input id="bank" name="bank" defaultValue={editingBankDetail?.bank || ''} required/></div>
+                        <div><Label htmlFor="accountHolder">Titular</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingBankDetail?.accountHolder || ''} required/></div>
+                        <div><Label htmlFor="idNumber">CI/RIF del Titular</Label><Input id="idNumber" name="idNumber" defaultValue={editingBankDetail?.idNumber || ''} required/></div>
+                        <div><Label htmlFor="accountNumber">Número de Cuenta</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingBankDetail?.accountNumber || ''} required/></div>
+                        <div><Label htmlFor="description">Descripción (Opcional)</Label><Input id="description" name="description" defaultValue={editingBankDetail?.description || ''}/></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+                <DialogContent><DialogHeader><DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Nuevo Cupón'}</DialogTitle></DialogHeader>
+                     <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); const data = {code: fd.get('code') as string, discountType: fd.get('discountType') as 'percentage' | 'fixed', value: parseFloat(fd.get('value') as string)}; const result = CouponFormSchema.safeParse(data); if(result.success) handleSaveEntity('coupon', result.data); else toast({variant: 'destructive', title: 'Error', description: result.error.errors.map(e=>e.message).join(' ')})}} className="space-y-4 py-4">
+                        <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={editingCoupon?.code || ''} required/></div>
+                        <div><Label htmlFor="discountType">Tipo</Label><Select name="discountType" defaultValue={editingCoupon?.discountType || 'fixed'}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="fixed">Monto Fijo ($)</SelectItem><SelectItem value="percentage">Porcentaje (%)</SelectItem></SelectContent></Select></div>
+                        <div><Label htmlFor="value">Valor</Label><Input id="value" name="value" type="number" step="0.01" defaultValue={editingCoupon?.value || ''} required/></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+             <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+                <DialogContent><DialogHeader><DialogTitle>{editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}</DialogTitle></DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); const data = {date: fd.get('date') as string, description: fd.get('description') as string, amount: parseFloat(fd.get('amount') as string)}; const result = ExpenseFormSchema.safeParse(data); if(result.success) handleSaveEntity('expense', result.data); else toast({variant: 'destructive', title: 'Error', description: result.error.errors.map(e=>e.message).join(' ')})}} className="space-y-4 py-4">
+                        <div><Label htmlFor="date">Fecha</Label><Input id="date" name="date" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} required/></div>
+                        <div><Label htmlFor="description">Descripción</Label><Input id="description" name="description" defaultValue={editingExpense?.description || ''} required/></div>
+                        <div><Label htmlFor="amount">Monto ($)</Label><Input id="amount" name="amount" type="number" step="0.01" defaultValue={editingExpense?.amount || ''} required/></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>
+                <DialogContent><DialogHeader><DialogTitle>Crear Ticket de Soporte</DialogTitle></DialogHeader>
+                    <form onSubmit={handleCreateTicket} className="space-y-4 py-4">
+                        <div><Label htmlFor="subject">Asunto</Label><Input id="subject" name="subject" required/></div>
+                        <div><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" required rows={5}/></div>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Enviar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+             <Dialog open={isSupportDetailOpen} onOpenChange={setIsSupportDetailOpen}>
+                <DialogContent className="sm:max-w-xl"><DialogHeader><DialogTitle>Ticket: {selectedSupportTicket?.subject}</DialogTitle></DialogHeader>
+                    {selectedSupportTicket && (<div className="space-y-4">
+                        <div className="max-h-80 overflow-y-auto space-y-4 p-4 bg-muted/50 rounded-lg">{(selectedSupportTicket.messages || []).map(msg => <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'doctor' && 'justify-end')}><div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'doctor' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}><p className="text-sm">{msg.text}</p><p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(parseISO(msg.timestamp), { locale: es, addSuffix: true })}</p></div></div>)}</div>
+                        {selectedSupportTicket.status === 'abierto' && <div className="flex gap-2"><Input value={chatMessage} onChange={e=>setChatMessage(e.target.value)} placeholder="Escribe tu respuesta..."/><Button onClick={()=>{firestoreService.addMessageToSupportTicket(selectedSupportTicket.id, {sender: 'doctor', text: chatMessage}); setChatMessage(''); fetchData();}}><Send/></Button></div>}
+                    </div>)}
+                </DialogContent>
+            </Dialog>
+             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente y no se puede deshacer.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({variant: 'destructive'}))}>Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+            </AlertDialog>
         </div>
     );
+}
+
+function AppointmentCard({ appointment, onOpenDialog }: { appointment: Appointment, onOpenDialog: (type: 'appointment' | 'chat' | 'record', appointment: Appointment) => void }) {
+    const isPast = new Date(appointment.date) < new Date(new Date().toDateString());
+    return (
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 space-y-2">
+                <p className="font-bold text-lg">{appointment.patientName}</p>
+                <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {format(addHours(parseISO(appointment.date),5), 'dd MMM yyyy', {locale: es})}</span>
+                    <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
+                </div>
+            </div>
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
+              <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
+              <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>{appointment.paymentStatus}</Badge>
+            </div>
+          </CardContent>
+          <CardFooter className="p-4 pt-0 border-t mt-4 flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => onOpenDialog('chat', appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Chat</Button>
+            <Button size="sm" onClick={() => onOpenDialog('appointment', appointment)}><Eye className="mr-2 h-4 w-4"/> Ver Detalles</Button>
+          </CardFooter>
+        </Card>
+    )
 }
 
     
