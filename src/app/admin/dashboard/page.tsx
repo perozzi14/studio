@@ -48,8 +48,6 @@ import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/lib/settings';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -1219,7 +1217,10 @@ export default function AdminDashboardPage() {
     return grouped;
   }, [doctorPayments]);
 
-  const handleGenerateAdminFinanceReport = () => {
+  const handleGenerateAdminFinanceReport = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
     const doc = new jsPDF();
     
     doc.setFontSize(22);
@@ -1266,7 +1267,7 @@ export default function AdminDashboardPage() {
             p.transactionId,
             `$${p.amount.toFixed(2)}`
         ]);
-    (doc as any).autoTable({ startY: currentY, head: incomeHead, body: incomeBody, theme: 'striped' });
+    autoTable(doc, { startY: currentY, head: incomeHead, body: incomeBody, theme: 'striped' });
     currentY = (doc as any).lastAutoTable.finalY + 10;
 
     // Commissions
@@ -1281,7 +1282,7 @@ export default function AdminDashboardPage() {
         p.period,
         `$${p.amount.toFixed(2)}`
     ]);
-    (doc as any).autoTable({ startY: currentY, head: commissionHead, body: commissionBody, theme: 'striped' });
+    autoTable(doc, { startY: currentY, head: commissionHead, body: commissionBody, theme: 'striped' });
     currentY = (doc as any).lastAutoTable.finalY + 10;
 
     // Expenses
@@ -1296,7 +1297,7 @@ export default function AdminDashboardPage() {
         e.category.charAt(0).toUpperCase() + e.category.slice(1),
         `$${e.amount.toFixed(2)}`
     ]);
-    (doc as any).autoTable({ startY: currentY, head: expenseHead, body: expenseBody, theme: 'striped' });
+    autoTable(doc, { startY: currentY, head: expenseHead, body: expenseBody, theme: 'striped' });
     
     doc.save(`Reporte_Financiero_SUMA_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
@@ -3117,155 +3118,6 @@ export default function AdminDashboardPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Settings Dialogs */}
-      <Dialog open={isCityDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCity(null); setIsCityDialogOpen(isOpen); }}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>{editingCity?.originalName ? `Editando "${editingCity.originalName}"` : 'Agregar Nueva Ciudad'}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSaveCity}>
-                <div className="grid grid-cols-1 gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="city-name">Nombre de la Ciudad</Label>
-                        <Input id="city-name" name="city-name" defaultValue={editingCity?.name || ''} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="city-fee">Tarifa de Suscripción ($)</Label>
-                        <Input id="city-fee" name="city-fee" type="number" defaultValue={editingCity?.subscriptionFee || 0} />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit">Guardar Ciudad</Button>
-                </DialogFooter>
-              </form>
-          </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSpecialtyDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingSpecialty(null); setIsSpecialtyDialogOpen(isOpen); }}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>{editingSpecialty?.originalName ? `Editando "${editingSpecialty.originalName}"` : 'Agregar Nueva Especialidad'}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSaveSpecialty}>
-                <div className="py-4">
-                    <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
-                    <Input id="specialty-name" name="specialty-name" defaultValue={editingSpecialty?.newName || ''} />
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit">Guardar Especialidad</Button>
-                </DialogFooter>
-              </form>
-          </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isCompanyBankDetailDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCompanyBankDetail(null); setIsCompanyBankDetailDialogOpen(isOpen); }}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>{editingCompanyBankDetail ? 'Editar Cuenta de SUMA' : 'Agregar Nueva Cuenta de SUMA'}</DialogTitle>
-                  <DialogDescription>Gestiona las cuentas donde los médicos pagarán sus suscripciones.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSaveBankDetail}>
-                <div className="grid gap-4 py-4">
-                     <div className="space-y-1.5">
-                        <Label htmlFor="bankName">Nombre del Banco</Label>
-                        <Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} required />
-                    </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="accountHolder">Nombre del Titular</Label>
-                        <Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} required />
-                    </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="idNumber">C.I./R.I.F.</Label>
-                        <Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} required />
-                    </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="accountNumber">Número de Cuenta</Label>
-                        <Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} required />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="description">Descripción (Opcional)</Label>
-                        <Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} placeholder="Ej: Cuenta Principal, Zelle, etc."/>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit">Guardar Cuenta</Button>
-                </DialogFooter>
-              </form>
-          </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCouponDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setEditingCoupon(null); setIsCouponDialogOpen(isOpen); }}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}</DialogTitle>
-                <DialogDescription>Completa la información para el cupón de descuento.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSaveCoupon}>
-              <div className="space-y-4 py-4">
-                  <div><Label>Código</Label><Input name="code" defaultValue={editingCoupon?.code} placeholder="VERANO20" required/></div>
-                  <div><Label>Tipo de Descuento</Label><RadioGroup name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'} className="flex gap-4 pt-2"><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="percentage" /> Porcentaje (%)</Label><Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="fixed" /> Fijo ($)</Label></RadioGroup></div>
-                  <div><Label>Valor</Label><Input name="value" type="number" defaultValue={editingCoupon?.value} placeholder="20" required/></div>
-                  <div><Label>Alcance</Label>
-                      <Select name="scope" defaultValue={editingCoupon?.scope.toString() || 'general'}>
-                          <SelectTrigger><SelectValue/></SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="general">General (Todos los Médicos)</SelectItem>
-                              {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                  </div>
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                  <Button type="submit">Guardar Cupón</Button>
-              </DialogFooter>
-            </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isExpenseDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) setEditingExpense(null); setIsExpenseDialogOpen(isOpen); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingExpense ? 'Editar Gasto' : 'Agregar Nuevo Gasto'}</DialogTitle>
-            <DialogDescription>Registra un gasto operativo de la empresa.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveExpense}>
-            <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="expense-date">Fecha</Label>
-                <Input id="expense-date" name="date" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} required />
-              </div>
-              <div>
-                <Label htmlFor="expense-description">Descripción</Label>
-                <Input id="expense-description" name="description" defaultValue={editingExpense?.description || ''} required />
-              </div>
-              <div>
-                <Label htmlFor="expense-amount">Monto ($)</Label>
-                <Input id="expense-amount" name="amount" type="number" step="0.01" defaultValue={editingExpense?.amount || ''} required />
-              </div>
-              <div>
-                <Label htmlFor="expense-category">Categoría</Label>
-                 <Select name="category" defaultValue={editingExpense?.category || 'operativo'}>
-                    <SelectTrigger id="expense-category"><SelectValue/></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="operativo">Operativo</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="personal">Personal</SelectItem>
-                    </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit">{editingExpense ? 'Guardar Cambios' : 'Agregar Gasto'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
       {/* View Payment Proof Dialog */}
       <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
         <DialogContent>
@@ -3303,6 +3155,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
-    

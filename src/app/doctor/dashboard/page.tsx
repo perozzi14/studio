@@ -57,9 +57,6 @@ import { Switch } from '@/components/ui/switch';
 import { startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, format, getWeek, startOfMonth, addDays, isSameDay, formatDistanceToNow, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
-import { generatePdfReport } from '@/lib/pdf-utils';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { z } from 'zod';
 import { DaySchedule, Schedule } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -329,10 +326,9 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (doctorData?.id) {
-        setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+      setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
     }
   }, [doctorData]);
-
 
   useEffect(() => {
     if (!selectedAppointment) return;
@@ -927,67 +923,6 @@ export default function DoctorDashboardPage() {
       description: 'La prescripción del paciente ha sido actualizada.',
     });
   };
-
-  const handleGeneratePrescription = () => {
-    if (!selectedAppointment || !selectedAppointment.patient || !doctorData) {
-      return;
-    }
-    const result = PrescriptionSchema.safeParse(selectedAppointment.prescription);
-    if (!result.success) {
-      toast({
-        variant: "destructive",
-        title: "Récipé Inválido",
-        description: "La prescripción no puede estar vacía o ser demasiado corta.",
-      });
-      return;
-    }
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text(doctorData.name, 20, 20);
-    
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(doctorData.specialty, 20, 27);
-    doc.text(doctorData.address, 20, 34);
-    doc.text(`${doctorData.city}, Venezuela`, 20, 41);
-    
-    doc.line(20, 50, 190, 50);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Paciente:", 20, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(selectedAppointment.patient.name, 40, 58);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Cédula:", 130, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(selectedAppointment.patient.cedula || 'N/A', 150, 58);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Fecha:", 20, 66);
-    doc.setFont("helvetica", "normal");
-    doc.text(format(new Date(), 'dd/MM/yyyy'), 40, 66);
-    
-    doc.line(20, 75, 190, 75);
-    
-    doc.setFontSize(26);
-    doc.text("Rp.", 20, 90);
-    
-    doc.setFontSize(12);
-    const prescriptionText = result.data;
-    const splitText = doc.splitTextToSize(prescriptionText, 160);
-    doc.text(splitText, 25, 100);
-    
-    doc.line(80, 270, 130, 270);
-    doc.text("Firma del Médico", 105, 275, { align: 'center' });
-    doc.text(doctorData.cedula, 105, 280, { align: 'center' });
-    
-    doc.save(
-      `Recipe_${selectedAppointment.patient.name.replace(' ', '_')}_${selectedAppointment.date}.pdf`
-    );
-  };
   
   const handleReportPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1457,32 +1392,6 @@ export default function DoctorDashboardPage() {
                            <CardTitle>Resumen Financiero: {timeRangeLabels[timeRange]}</CardTitle>
                            <CardDescription>Comparativa de ingresos y gastos.</CardDescription>
                         </div>
-                        <Button onClick={() => generatePdfReport({
-                            title: `Reporte Financiero para Dr. ${doctorData.name}`,
-                            subtitle: `Período: ${timeRangeLabels[timeRange]} - Generado el ${format(new Date(), 'dd/MM/yyyy')}`,
-                            sections: [
-                                {
-                                    title: "Ingresos por Citas",
-                                    columns: ["Fecha", "Paciente", "Servicios", "Monto"],
-                                    data: financialStats.paidAppointments.map(a => [
-                                        format(new Date(a.date + 'T00:00:00'), 'dd/MM/yy'),
-                                        a.patientName,
-                                        a.services.map(s => s.name).join(', '),
-                                        `$${a.totalPrice.toFixed(2)}`
-                                    ])
-                                },
-                                {
-                                    title: "Gastos del Consultorio",
-                                    columns: ["Fecha", "Descripción", "Monto"],
-                                    data: (doctorData.expenses || []).map(e => [
-                                        format(new Date(e.date + 'T00:00:00'), 'dd/MM/yy'),
-                                        e.description,
-                                        `$${e.amount.toFixed(2)}`
-                                    ])
-                                }
-                            ],
-                            fileName: `Reporte_Financiero_${doctorData.name.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-                        })}><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
                       </CardHeader>
                       <CardContent className="pl-2">
                           {timeRange !== 'today' && financialStats.chartData.length > 0 ? (
@@ -2186,7 +2095,6 @@ export default function DoctorDashboardPage() {
                             />
                             <div className="flex justify-end mt-2 gap-2">
                               <Button onClick={handleSavePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>Guardar Récipé</Button>
-                              <Button onClick={handleGeneratePrescription} disabled={selectedAppointment.attendance !== 'Atendido'}>Generar Récipé PDF</Button>
                             </div>
                         </div>
                     </div>
