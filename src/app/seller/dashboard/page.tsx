@@ -8,7 +8,6 @@ import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
 import { type Doctor, type SellerPayment, type MarketingMaterial, type AdminSupportTicket, type Seller, type BankDetail, type ChatMessage, type Expense, type DoctorPayment } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +28,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { useSettings } from '@/lib/settings';
@@ -824,7 +822,7 @@ export default function SellerDashboardPage() {
                                                 <TableRow key={doctor.id}>
                                                     <TableCell className="font-medium">{doctor.name}</TableCell>
                                                     <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
-                                                    <TableCell className="text-right font-mono">${(cityFeesMap.get(doctor.city) || 0 * (sellerData?.commissionRate || 0)).toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">${((cityFeesMap.get(doctor.city) || 0) * (sellerData?.commissionRate || 0)).toFixed(2)}</TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
@@ -846,7 +844,10 @@ export default function SellerDashboardPage() {
                         </Card>
 
                          <Card>
-                            <CardHeader className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardHeader><CardDescription>Registro de todas las comisiones que has recibido.</CardDescription></CardHeader>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Landmark/> Historial de Pagos de SUMA</CardTitle>
+                                <CardDescription>Registro de todas las comisiones que has recibido.</CardDescription>
+                            </CardHeader>
                             <CardContent>
                                 <Table className="hidden md:table">
                                     <TableHeader><TableRow><TableHead>Fecha de Pago</TableHead><TableHead>Período de Comisión</TableHead><TableHead>Médicos Pagados</TableHead><TableHead className="text-right">Monto Recibido</TableHead><TableHead className="text-center">Acciones</TableHead></TableRow></TableHeader>
@@ -1042,7 +1043,7 @@ export default function SellerDashboardPage() {
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountHolder" className="text-right">Titular</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingBankDetail?.accountHolder} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="idNumber" className="text-right">C.I./R.I.F.</Label><Input id="idNumber" name="idNumber" defaultValue={editingBankDetail?.idNumber} className="col-span-3" /></div>
                     <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="accountNumber" className="text-right">Nro. Cuenta</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingBankDetail?.accountNumber} className="col-span-3" /></div>
-                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Input id="description" name="description" defaultValue={editingBankDetail?.description} className="col-span-3" placeholder="Ej: Cuenta en Dólares" /></div>
+                    <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descripción</Label><Input id="description" name="description" defaultValue={editingBankDetail?.description || ''} className="col-span-3" placeholder="Ej: Cuenta en Dólares" /></div>
                 </div><DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form>
             </DialogContent>
         </Dialog>
@@ -1093,7 +1094,7 @@ export default function SellerDashboardPage() {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isSupportDetailOpen} onOpenChange={setIsSupportDetailOpen}>
+        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Ticket de Soporte: {selectedSupportTicket?.subject}</DialogTitle>
@@ -1292,5 +1293,3 @@ export default function SellerDashboardPage() {
     </div>
   );
 }
-
-    
