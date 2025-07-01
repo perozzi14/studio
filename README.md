@@ -4,11 +4,13 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
-## Deployment to Production
+## Despliegue a Producción
 
-To deploy your SUMA application to Firebase Hosting and connect a custom domain, follow these steps.
+Aquí tienes el paso a paso para desplegar tu aplicación SUMA en Firebase Hosting y, opcionalmente, conectarla a tu propio dominio.
 
 ### **Paso 1: Configurar tu Proyecto en Firebase**
+
+> **Nota:** Si ya creaste tu proyecto de Firebase y configuraste la base de datos y la autenticación, puedes saltar directamente al **Paso 2**.
 
 1.  **Crea un Proyecto en Firebase:** Si aún no tienes uno, ve a la [Consola de Firebase](https://console.firebase.google.com/) y crea un nuevo proyecto.
 2.  **Activa Firestore:** En tu nuevo proyecto, ve a la sección "Firestore Database" y crea una nueva base de datos. **Inicia en modo de producción**, que proporciona reglas de seguridad seguras por defecto.
@@ -56,7 +58,7 @@ Al finalizar, la terminal te proporcionará la URL de tu aplicación en vivo (al
     *   Firebase te pedirá que **verifiques la propiedad** del dominio. Generalmente, esto implica añadir un registro TXT a la configuración DNS de tu dominio. Firebase te dará el valor exacto que necesitas copiar.
     *   Ve al panel de control de tu proveedor de dominio (GoDaddy, Namecheap, etc.), busca la configuración de DNS y añade ese registro TXT.
 4.  **Apunta tu Dominio a Firebase:**
-    *   Una vez verificado, Firebase te proporcionará uno o más **registros A**. Estos son las direcciones IP de los servidores de Firebase.
+    *   Una vez verificado, Firebase te proporcionará uno o más **registros A**. Estas son las direcciones IP de los servidores de Firebase.
     *   Vuelve a la configuración de DNS de tu proveedor de dominio y **crea o actualiza los registros A** para que apunten a las IPs que Firebase te dio.
 5.  **Espera la Propagación:** Los cambios de DNS pueden tardar un tiempo en propagarse por todo el internet (desde unos minutos hasta 24 horas). Una vez que se complete, Firebase lo detectará automáticamente.
 6.  **Certificado SSL Automático:** En cuanto Firebase confirme que tu dominio apunta correctamente a sus servidores, **aprovisionará e instalará automáticamente un certificado SSL gratuito** para tu dominio, dándote seguridad con `https://`.
