@@ -275,14 +275,21 @@ export default function SellerDashboardPage() {
   const financeStats = useMemo(() => {
     if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
     
+    const now = new Date();
+    const currentPeriod = format(now, "LLLL yyyy", { locale: es });
+    
+    const hasBeenPaidThisPeriod = sellerPayments.some(p => p.period.toLowerCase() === currentPeriod.toLowerCase());
+    
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     
-    const pendingCommission = activeReferred.reduce((sum, doc) => {
-        const fee = cityFeesMap.get(doc.city) || 0;
-        return sum + (fee * sellerData.commissionRate);
-    }, 0);
+    let pendingCommission = 0;
+    if (!hasBeenPaidThisPeriod) {
+        pendingCommission = activeReferred.reduce((sum, doc) => {
+            const fee = cityFeesMap.get(doc.city) || 0;
+            return sum + (fee * sellerData.commissionRate);
+        }, 0);
+    }
     
-    const now = new Date();
     let startDate, endDate;
 
     let filteredPayments = sellerPayments;
@@ -314,17 +321,16 @@ export default function SellerDashboardPage() {
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
     const nextPaymentYear = getYear(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
-    const currentPeriod = format(new Date(), "LLLL 'de' yyyy", { locale: es });
-
+    
     return { 
         totalReferred: referredDoctors.length, 
         activeReferredCount: activeReferred.length, 
-        pendingCommission, 
+        pendingCommission,
         totalEarned, 
         totalExpenses,
         netProfit,
         nextPaymentDate,
-        currentPeriod,
+        currentPeriod: currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1),
         filteredPayments,
         filteredExpenses,
         activeReferred,
