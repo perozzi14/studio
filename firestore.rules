@@ -1,0 +1,90 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // You would typically store admin UIDs in a separate collection.
+    // For this project's structure, we check for a specific email for simplicity.
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == 'admin@admin.com';
+    }
+
+    // Publicly readable collections
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow write: if isAdmin() || isOwner(doctorId);
+    }
+    
+    match /settings/main {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /marketingMaterials/{materialId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /coupons/{couponId} {
+       allow read: if isAuthenticated();
+       allow write: if isAdmin();
+    }
+
+    // User-specific collections
+    match /patients/{patientId} {
+      allow get, update: if isOwner(patientId) || isAdmin();
+      allow create: if request.auth.uid == patientId; // A user can create their own patient document
+      allow list, delete: if isAdmin();
+    }
+
+    match /sellers/{sellerId} {
+      allow get, update: if isOwner(sellerId) || isAdmin();
+      allow list, create, delete: if isAdmin();
+    }
+    
+    // Appointments
+    match /appointments/{appointmentId} {
+      function isParticipant() {
+        return isOwner(resource.data.patientId) || isOwner(resource.data.doctorId);
+      }
+      
+      allow get: if isParticipant() || isAdmin();
+      allow list: if isAdmin(); // Only admin can list all appointments
+      allow create: if isOwner(request.resource.data.patientId);
+      allow update: if isParticipant() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Admin-only write collections
+    match /sellerPayments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /doctorPayments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /supportTickets/{ticketId} {
+       allow get, update: if isOwner(resource.data.userId) || isAdmin();
+       allow create: if isOwner(request.resource.data.userId);
+       allow list, delete: if isAdmin();
+    }
+    
+    match /companyExpenses/{expenseId} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
+    }
+  }
+}
