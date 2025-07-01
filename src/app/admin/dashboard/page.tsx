@@ -117,8 +117,6 @@ const SellerFormSchema = z.object({
 
 
 const SellerPaymentFormSchema = z.object({
-    amount: z.number().positive("El monto debe ser un número positivo."),
-    period: z.string().min(3, "El período es requerido."),
     transactionId: z.string().min(1, "El ID de transacción es requerido."),
     paymentProof: z.any().refine((file) => file?.name, "El comprobante es requerido."),
 });
@@ -204,10 +202,11 @@ export default function AdminDashboardPage() {
   // States for Seller management
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
-  const [isSellerFinanceDialogOpen, setIsSellerFinanceDialogOpen] = useState(false);
   const [managingSeller, setManagingSeller] = useState<Seller | null>(null);
   const [isRegisterPaymentDialogOpen, setIsRegisterPaymentDialogOpen] = useState(false);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentPeriod, setPaymentPeriod] = useState("");
 
   // States for Doctor management
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
@@ -664,9 +663,19 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleOpenSellerFinanceDialog = (seller: Seller) => {
+  const handleInitiatePayment = (seller: Seller) => {
+    const activeReferred = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
+    const pendingCommission = activeReferred.reduce((sum, doc) => {
+        const fee = cityFeesMap.get(doc.city) || 0;
+        return sum + (fee * seller.commissionRate);
+    }, 0);
+    const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es });
+
     setManagingSeller(seller);
-    setIsSellerFinanceDialogOpen(true);
+    setPaymentAmount(pendingCommission);
+    setPaymentPeriod(currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1));
+    
+    setIsRegisterPaymentDialogOpen(true);
   };
   
   const handleRegisterPayment = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -674,8 +683,6 @@ export default function AdminDashboardPage() {
     const formData = new FormData(e.currentTarget);
     
     const dataToValidate = {
-        amount: parseFloat(formData.get('amount') as string),
-        period: formData.get('period') as string,
         transactionId: formData.get('transactionId') as string,
         paymentProof: paymentProofFile,
     };
@@ -688,14 +695,14 @@ export default function AdminDashboardPage() {
         return;
     }
 
-    const { amount, period, transactionId } = result.data;
+    const { transactionId } = result.data;
 
     // TODO: In a real app, upload proofFile and get URL
     const newPayment: Omit<SellerPayment, 'id'> = {
       sellerId: managingSeller.id,
       paymentDate: new Date().toISOString().split('T')[0],
-      amount,
-      period,
+      amount: paymentAmount,
+      period: paymentPeriod,
       includedDoctors: doctors.filter(d => d.sellerId === managingSeller.id && d.status === 'active'),
       paymentProofUrl: 'https://placehold.co/400x200.png',
       transactionId,
@@ -1569,11 +1576,16 @@ export default function AdminDashboardPage() {
                                       const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                       const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
                                       const activeDoctorsCount = activeDoctors.length;
-                                      const pendingCommission = activeDoctors.reduce((sum, doc) => {
+                                      
+                                      const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
+                                      const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
+                                      
+                                      const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
                                           const fee = cityFeesMap.get(doc.city) || 0;
                                           return sum + (fee * seller.commissionRate);
                                       }, 0);
                                       const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
+                                      
                                       return (
                                         <TableRow key={seller.id}>
                                             <TableCell className="font-medium flex items-center gap-3">
@@ -1591,7 +1603,9 @@ export default function AdminDashboardPage() {
                                             <TableCell className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
                                             <TableCell className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenSellerFinanceDialog(seller)}><Wallet className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="sm" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}>
+                                                    <Wallet className="mr-2 h-4 w-4" /> Pagar Comisión
+                                                </Button>
                                                 <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="h-4 w-4" /></Button>
                                             </TableCell>
@@ -1606,11 +1620,16 @@ export default function AdminDashboardPage() {
                                     const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
                                     const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
                                     const activeDoctorsCount = activeDoctors.length;
-                                    const pendingCommission = activeDoctors.reduce((sum, doc) => {
+                                    
+                                    const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
+                                    const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
+
+                                    const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
                                         const fee = cityFeesMap.get(doc.city) || 0;
                                         return sum + (fee * seller.commissionRate);
                                     }, 0);
                                     const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
+                                    
                                     return (
                                         <div key={seller.id} className="p-4 border rounded-lg space-y-4">
                                             <div className="flex items-center gap-3 mb-2">
@@ -1642,10 +1661,12 @@ export default function AdminDashboardPage() {
                                                 </div>
                                             </div>
                                             <Separator />
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenSellerFinanceDialog(seller)}><Wallet className="mr-2 h-4 w-4" /> Gestionar</Button>
-                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                            <div className="flex flex-col gap-2">
+                                                <Button variant="default" size="sm" className="flex-1" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}><Wallet className="mr-2 h-4 w-4" /> Pagar Comisión</Button>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -2801,99 +2822,6 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
       
-       <Dialog open={isSellerFinanceDialogOpen} onOpenChange={setIsSellerFinanceDialogOpen}>
-        <DialogContent className="sm:max-w-4xl">
-            <DialogHeader>
-                <DialogTitle>Gestión Financiera: {managingSeller?.name}</DialogTitle>
-                <DialogDescription>
-                    Revisa comisiones, registra pagos y consulta el historial de la vendedora.
-                </DialogDescription>
-            </DialogHeader>
-            {managingSeller && (
-            (() => {
-                const referredDoctors = doctors.filter(d => d.sellerId === managingSeller.id);
-                const activeReferred = referredDoctors.filter(d => d.status === 'active');
-                const activeReferredCount = activeReferred.length;
-                const pendingCommission = activeReferred.reduce((sum, doc) => {
-                    const fee = cityFeesMap.get(doc.city) || 0;
-                    return sum + (fee * managingSeller.commissionRate);
-                }, 0);
-                const totalPaid = sellerPayments.filter(p => p.sellerId === managingSeller.id).reduce((sum, p) => sum + p.amount, 0);
-
-                return (
-                    <div className="py-4 space-y-6 max-h-[75vh] overflow-y-auto pr-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                           <Card>
-                               <CardHeader><CardTitle className="text-base">Comisión Pendiente</CardTitle></CardHeader>
-                               <CardContent><p className="text-2xl font-bold text-amber-600">${pendingCommission.toFixed(2)}</p></CardContent>
-                           </Card>
-                           <Card>
-                               <CardHeader><CardTitle className="text-base">Total Histórico Pagado</CardTitle></CardHeader>
-                               <CardContent><p className="text-2xl font-bold text-green-600">${totalPaid.toFixed(2)}</p></CardContent>
-                           </Card>
-                           <Card>
-                               <CardHeader><CardTitle className="text-base">Médicos Activos</CardTitle></CardHeader>
-                               <CardContent><p className="text-2xl font-bold">{activeReferredCount} / {referredDoctors.length}</p></CardContent>
-                           </Card>
-                        </div>
-                        
-                        <Card>
-                            <CardHeader className="flex-row items-center justify-between">
-                                <CardTitle>Historial de Pagos</CardTitle>
-                                <DialogTrigger asChild>
-                                    <Button size="sm" onClick={() => handleRegisterPaymentDialogChange(true)}><PlusCircle className="mr-2" /> Registrar Pago</Button>
-                                </DialogTrigger>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Fecha</TableHead>
-                                            <TableHead>Período</TableHead>
-                                            <TableHead>Monto</TableHead>
-                                            <TableHead>Comprobante</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {sellerPayments.filter(p => p.sellerId === managingSeller.id).map(payment => (
-                                            <TableRow key={payment.id}>
-                                                <TableCell>{format(new Date(payment.paymentDate + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                                <TableCell>{payment.period}</TableCell>
-                                                <TableCell className="font-mono">${payment.amount.toFixed(2)}</TableCell>
-                                                <TableCell>
-                                                    <a href={payment.paymentProofUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-                                                        <Eye className="mr-2 h-4 w-4"/> Ver
-                                                    </a>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader><CardTitle>Cuentas Bancarias Registradas</CardTitle></CardHeader>
-                            <CardContent>
-                                {managingSeller.bankDetails.length > 0 ? managingSeller.bankDetails.map(bd => (
-                                     <div key={bd.id} className="p-3 border rounded-md mb-2">
-                                        <p className="font-semibold">{bd.bank}</p>
-                                        <p className="text-sm text-muted-foreground">{bd.accountHolder} - C.I. {bd.idNumber}</p>
-                                        <p className="text-sm font-mono">{bd.accountNumber}</p>
-                                    </div>
-                                )) : <p className="text-muted-foreground text-sm">Esta vendedora no ha registrado cuentas bancarias.</p>}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )
-            })()
-            )}
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       <Dialog open={isRegisterPaymentDialogOpen} onOpenChange={handleRegisterPaymentDialogChange}>
           <DialogContent>
               <DialogHeader>
@@ -2902,9 +2830,18 @@ export default function AdminDashboardPage() {
               </DialogHeader>
               <form onSubmit={handleRegisterPayment}>
                 <div className="space-y-4 py-4">
-                    <div><Label htmlFor="payment-amount">Monto a Pagar ($)</Label><Input id="payment-amount" name="amount" type="number" step="0.01" required /></div>
-                    <div><Label htmlFor="payment-period">Período de Comisión</Label><Input id="payment-period" name="period" placeholder="Ej: Junio 2024" required /></div>
-                    <div><Label htmlFor="payment-txid">ID de Transacción</Label><Input id="payment-txid" name="transactionId" placeholder="ID de la transferencia" required /></div>
+                    <div>
+                        <Label>Período de Comisión</Label>
+                        <Input value={paymentPeriod} disabled />
+                    </div>
+                    <div>
+                        <Label>Monto a Pagar ($)</Label>
+                        <Input type="number" value={paymentAmount.toFixed(2)} disabled />
+                    </div>
+                    <div>
+                        <Label htmlFor="transactionId">ID de Transacción</Label>
+                        <Input id="transactionId" name="transactionId" placeholder="ID de la transferencia" required />
+                    </div>
                     <div>
                         <Label htmlFor="paymentProofFile">Comprobante de Pago</Label>
                         <Input id="paymentProofFile" type="file" required onChange={(e) => setPaymentProofFile(e.target.files ? e.target.files[0] : null)} />
