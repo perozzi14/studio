@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import type { Appointment, PatientNotification } from './types';
 import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from './auth';
 
 interface NotificationContextType {
   notifications: PatientNotification[];
@@ -14,37 +15,46 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-const NOTIFICATION_STORAGE_KEY = 'suma-patient-notifications';
+const getNotificationStorageKey = (userId: string) => `suma-patient-notifications-${userId}`;
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as PatientNotification[];
-        setNotifications(parsed);
-        setUnreadCount(parsed.filter(n => !n.read).length);
+    if (user?.id && user.role === 'patient') {
+      try {
+        const storageKey = getNotificationStorageKey(user.id);
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored) as PatientNotification[];
+          setNotifications(parsed);
+          setUnreadCount(parsed.filter(n => !n.read).length);
+        } else {
+          setNotifications([]);
+          setUnreadCount(0);
+        }
+      } catch (e) {
+        console.error("Failed to load notifications from localStorage", e);
+        setNotifications([]);
+        setUnreadCount(0);
       }
-    } catch (e) {
-      console.error("Failed to load notifications from localStorage", e);
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
     }
-  }, []);
+  }, [user]);
 
 
   const checkAndSetNotifications = useCallback((appointments: Appointment[]) => {
+    if (!user?.id || user.role !== 'patient') return;
+
+    const storageKey = getNotificationStorageKey(user.id);
     const newNotificationsMap = new Map<string, PatientNotification>();
     const now = new Date();
     
-    let storedNotifications: PatientNotification[] = [];
-    try {
-        storedNotifications = JSON.parse(localStorage.getItem(NOTIFICATION_STORAGE_KEY) || '[]') as PatientNotification[];
-    } catch {
-        storedNotifications = [];
-    }
-    const existingIds = new Set(storedNotifications.map(n => n.id));
+    const existingIds = new Set(notifications.map(n => n.id));
 
     appointments.forEach(appt => {
       const apptDateTime = new Date(`${appt.date}T${appt.time}`);
@@ -134,21 +144,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     if (newNotificationsMap.size > 0) {
       const uniqueNewNotifications = Array.from(newNotificationsMap.values());
-      const updatedNotifications = [...uniqueNewNotifications, ...storedNotifications]
+      const updatedNotifications = [...uniqueNewNotifications, ...notifications]
         .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         
-      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updatedNotifications));
+      localStorage.setItem(storageKey, JSON.stringify(updatedNotifications));
       setNotifications(updatedNotifications);
       setUnreadCount(prev => prev + uniqueNewNotifications.length);
     }
-  }, []);
+  }, [user, notifications]);
 
   const markAllAsRead = useCallback(() => {
+    if (!user?.id || user.role !== 'patient') return;
+
+    const storageKey = getNotificationStorageKey(user.id);
     const updated = notifications.map(n => ({ ...n, read: true }));
-    localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(storageKey, JSON.stringify(updated));
     setNotifications(updated);
     setUnreadCount(0);
-  }, [notifications]);
+  }, [notifications, user]);
   
   const value = { notifications, unreadCount, checkAndSetNotifications, markAllAsRead };
 
