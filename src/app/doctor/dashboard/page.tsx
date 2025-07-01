@@ -455,22 +455,24 @@ export default function DoctorDashboardPage() {
                     
                     {currentTab === 'appointments' && (
                         <div className="space-y-8">
-                            <Card>
-                                <CardHeader><CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle></CardHeader>
-                                <CardContent>
-                                    {todayAppointments.length > 0 ? (
-                                        <div className="space-y-4">{todayAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
-                                    ) : <p className="text-muted-foreground text-center py-4">No tienes citas para hoy.</p>}
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader><CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle></CardHeader>
-                                <CardContent>
-                                    {tomorrowAppointments.length > 0 ? (
-                                        <div className="space-y-4">{tomorrowAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
-                                    ) : <p className="text-muted-foreground text-center py-4">No tienes citas para mañana.</p>}
-                                </CardContent>
-                            </Card>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                <Card>
+                                    <CardHeader><CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle></CardHeader>
+                                    <CardContent>
+                                        {todayAppointments.length > 0 ? (
+                                            <div className="space-y-4">{todayAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                        ) : <p className="text-muted-foreground text-center py-4">No tienes citas para hoy.</p>}
+                                    </CardContent>
+                                </Card>
+                                 <Card>
+                                    <CardHeader><CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle></CardHeader>
+                                    <CardContent>
+                                        {tomorrowAppointments.length > 0 ? (
+                                            <div className="space-y-4">{tomorrowAppointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
+                                        ) : <p className="text-muted-foreground text-center py-4">No tienes citas para mañana.</p>}
+                                    </CardContent>
+                                </Card>
+                            </div>
                             <Card>
                                 <CardHeader><CardTitle>Próximas Citas ({upcomingAppointments.length})</CardTitle></CardHeader>
                                 <CardContent>
@@ -747,3 +749,94 @@ function AppointmentCard({ appointment, onOpenDialog }: { appointment: Appointme
         </Card>
     )
 }
+
+function AppointmentDetailDialog({
+  isOpen,
+  onOpenChange,
+  appointment,
+  onUpdateAppointment,
+  onOpenChat,
+  onOpenRecord
+}: {
+  isOpen: boolean,
+  onOpenChange: (open: boolean) => void,
+  appointment: Appointment | null,
+  onUpdateAppointment: (id: string, data: Partial<Appointment>) => void,
+  onOpenChat: (appointment: Appointment) => void,
+  onOpenRecord: (appointment: Appointment) => void,
+}) {
+    if (!appointment) return null;
+    
+    const [clinicalNotes, setClinicalNotes] = useState(appointment.clinicalNotes || "");
+    const [prescription, setPrescription] = useState(appointment.prescription || "");
+
+    const handleSaveRecord = () => {
+        onUpdateAppointment(appointment.id, { clinicalNotes, prescription });
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Detalles de la Cita</DialogTitle>
+                    <DialogDescription>Cita con {appointment.patientName} el {format(addHours(parseISO(appointment.date), 5), 'dd MMM yyyy', { locale: es })} a las {appointment.time}.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                    {/* Patient and Payment Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card><CardHeader><CardTitle className="text-base">Información del Paciente</CardTitle></CardHeader>
+                            <CardContent className="text-sm space-y-1">
+                                <p><strong>Nombre:</strong> {appointment.patientName}</p>
+                            </CardContent>
+                        </Card>
+                        <Card><CardHeader><CardTitle className="text-base">Detalles del Pago</CardTitle></CardHeader>
+                            <CardContent className="text-sm space-y-2">
+                                <p><strong>Total:</strong> <span className="font-mono font-semibold">${appointment.totalPrice.toFixed(2)}</span></p>
+                                <p><strong>Método:</strong> <span className="capitalize">{appointment.paymentMethod}</span></p>
+                                <div className="flex items-center gap-2"><strong>Estado:</strong><Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>{appointment.paymentStatus}</Badge></div>
+                                {appointment.paymentMethod === 'transferencia' && (
+                                    <a href={appointment.paymentProof || '#'} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), 'w-full mt-2')}>
+                                        <Eye className="mr-2 h-4 w-4"/> Ver Comprobante
+                                    </a>
+                                )}
+                                {appointment.paymentStatus === 'Pendiente' && appointment.paymentMethod === 'transferencia' && (
+                                    <Button size="sm" className="w-full mt-2" onClick={() => onUpdateAppointment(appointment.id, { paymentStatus: 'Pagado' })}>
+                                        <CheckCircle className="mr-2 h-4 w-4"/> Aprobar Pago
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Attendance and Clinical Record */}
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Gestión de la Cita</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <Label>Asistencia del Paciente:</Label>
+                                <div className="flex gap-2">
+                                     <Button size="sm" variant={appointment.attendance === 'Atendido' ? 'default' : 'outline'} onClick={() => onUpdateAppointment(appointment.id, { attendance: 'Atendido' })}> <ThumbsUp className="mr-2 h-4 w-4"/>Atendido </Button>
+                                     <Button size="sm" variant={appointment.attendance === 'No Asistió' ? 'destructive' : 'outline'} onClick={() => onUpdateAppointment(appointment.id, { attendance: 'No Asistió' })}> <ThumbsDown className="mr-2 h-4 w-4"/>No Asistió </Button>
+                                </div>
+                            </div>
+                            {appointment.attendance === 'Atendido' && (
+                                <div className="space-y-4 border-t pt-4">
+                                    <div><Label htmlFor="clinicalNotes">Historia Clínica / Notas</Label><Textarea id="clinicalNotes" value={clinicalNotes} onChange={(e) => setClinicalNotes(e.target.value)} rows={5} placeholder="Añade notas sobre la consulta..." /></div>
+                                    <div><Label htmlFor="prescription">Récipé e Indicaciones</Label><Textarea id="prescription" value={prescription} onChange={(e) => setPrescription(e.target.value)} rows={5} placeholder="Añade el récipe y las indicaciones médicas..." /></div>
+                                    <Button onClick={handleSaveRecord}><CheckCircle className="mr-2 h-4 w-4"/> Guardar Resumen Clínico</Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                <DialogFooter className="gap-2 sm:justify-end">
+                    <Button type="button" variant="ghost" onClick={() => { onOpenChat(appointment); onOpenChange(false); }}><MessageSquare className="mr-2 h-4 w-4" />Abrir Chat</Button>
+                    <DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+    
