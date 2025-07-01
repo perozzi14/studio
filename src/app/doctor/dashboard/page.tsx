@@ -42,12 +42,6 @@ import Image from 'next/image';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -115,17 +109,6 @@ const SubscriptionPaymentSchema = z.object({
 
 const ClinicalNoteSchema = z.string().min(10, "Las notas deben tener al menos 10 caracteres.");
 const PrescriptionSchema = z.string().min(10, "La prescripción debe tener al menos 10 caracteres.");
-
-const chartConfig = {
-  income: {
-    label: "Ingresos",
-    color: "hsl(var(--primary))",
-  },
-  expenses: {
-    label: "Gastos",
-    color: "hsl(var(--destructive))",
-  },
-};
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy',
@@ -326,7 +309,7 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
       if (doctorData?.id) {
-          setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
+        setPublicProfileUrl(`${window.location.origin}/doctors/${doctorData.id}`);
       }
   }, [doctorData]);
 
@@ -459,9 +442,9 @@ export default function DoctorDashboardPage() {
     const now = new Date();
     let filteredAppointments = appointments;
     let filteredExpenses = doctorData.expenses || [];
-    let timeRangeStartDate: Date = startOfYear(now), timeRangeEndDate: Date = endOfYear(now);
-
+    
     if (timeRange !== 'all') {
+        let timeRangeStartDate: Date, timeRangeEndDate: Date;
         switch (timeRange) {
             case 'today':
                 timeRangeStartDate = startOfDay(now);
@@ -498,58 +481,7 @@ export default function DoctorDashboardPage() {
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
     
-    const chartData: { label: string; income: number; expenses: number }[] = [];
-    if (timeRange === 'week' || timeRange === 'month' || timeRange === 'today') {
-        const intervalDays = eachDayOfInterval({ start: timeRangeStartDate, end: timeRangeEndDate });
-        intervalDays.forEach(day => {
-            const dayString = format(day, 'yyyy-MM-dd');
-            const income = paidAppointments
-                .filter(a => a.date === dayString)
-                .reduce((sum, a) => sum + a.totalPrice, 0);
-            const expenses = filteredExpenses
-                .filter(e => e.date === dayString)
-                .reduce((sum, e) => sum + e.amount, 0);
-            
-            if (income > 0 || expenses > 0) {
-              chartData.push({
-                  label: format(day, 'dd/MM'),
-                  income,
-                  expenses,
-              });
-            }
-        });
-    } else {
-        const dataByMonth: { [key: string]: { income: number; expenses: number } } = {};
-        
-        const allRelevantTransactions = [
-            ...paidAppointments.map(a => ({ type: 'income', date: a.date, amount: a.totalPrice })),
-            ...filteredExpenses.map(e => ({ type: 'expense', date: e.date, amount: e.amount }))
-        ];
-
-        allRelevantTransactions.forEach(t => {
-            const monthKey = format(new Date(t.date + 'T00:00:00'), 'yyyy-MM');
-            if (!dataByMonth[monthKey]) {
-                dataByMonth[monthKey] = { income: 0, expenses: 0 };
-            }
-            if (t.type === 'income') {
-                dataByMonth[monthKey].income += t.amount;
-            } else {
-                dataByMonth[monthKey].expenses += t.amount;
-            }
-        });
-
-        const sortedMonthKeys = Object.keys(dataByMonth).sort();
-        sortedMonthKeys.forEach(monthKey => {
-            const [year, month] = monthKey.split('-').map(Number);
-            chartData.push({
-                label: format(new Date(year, month - 1), 'MMM', { locale: es }),
-                income: dataByMonth[monthKey].income,
-                expenses: dataByMonth[monthKey].expenses,
-            });
-        });
-    }
-
-    return { totalRevenue, totalExpenses, netProfit, chartData, paidAppointments, paidAppointmentsCount: paidAppointments.length };
+    return { totalRevenue, totalExpenses, netProfit, paidAppointments, paidAppointmentsCount: paidAppointments.length };
   }, [doctorData, appointments, timeRange]);
   
   const doctorCityFee = useMemo(() => {
@@ -1395,24 +1327,9 @@ export default function DoctorDashboardPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="pl-2">
-                          {timeRange !== 'today' && financialStats.chartData.length > 0 ? (
-                            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                <BarChart accessibilityLayer data={financialStats.chartData}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="label" tickLine={false} tickMargin={10} axisLine={false} />
-                                    <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `$${value}`} />
-                                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                    <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ChartContainer>
-                          ) : (
-                            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                              <p>
-                                {timeRange === 'today' ? 'La vista de gráfico no está disponible para el día de hoy.' : 'No hay datos financieros para mostrar en este período.'}
-                              </p>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-center h-[300px] text-muted-foreground bg-muted/50 rounded-lg">
+                              <p>Los gráficos financieros se mostrarán aquí.</p>
+                          </div>
                       </CardContent>
                   </Card>
 
@@ -1480,7 +1397,7 @@ export default function DoctorDashboardPage() {
                         <CardHeader>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div><CardTitle>Registro de Gastos</CardTitle><CardDescription>Administra todos los gastos de tu consultorio.</CardDescription></div>
-                                <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
+                                <Button onClick={()={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
                             </div>
                         </CardHeader>
                       <CardContent>
@@ -2206,3 +2123,5 @@ export default function DoctorDashboardPage() {
     </div>
   );
 }
+
+    
