@@ -1,12 +1,5 @@
 
-
-
-
-
-
-
-
-
+import { Timestamp } from "firebase/firestore";
 
 export type ChatMessage = {
     id: string;
@@ -43,14 +36,6 @@ export type Expense = {
   date: string; // YYYY-MM-DD
   description: string;
   amount: number;
-};
-
-export type SupportTicket = {
-    id: string;
-    subject: string;
-    status: 'abierto' | 'cerrado';
-    date: string;
-    lastReply: string;
 };
 
 export type DaySchedule = {

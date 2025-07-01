@@ -32,7 +32,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   registerDoctor: (doctorData: DoctorRegistrationData) => Promise<void>;
   logout: () => void;
-  updateUser: (data: Partial<Patient>) => void;
+  updateUser: (data: Partial<Patient | Seller>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   toggleFavoriteDoctor: (doctorId: string) => void;
 }
@@ -132,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const freshUser = await firestoreService.findUserByEmail(parsedUser.email);
         if (freshUser) {
           setUser(buildUserFromData(freshUser));
+        } else if (parsedUser.role === 'admin') {
+          setUser(parsedUser); // Keep admin session alive
         } else {
            setUser(null);
            localStorage.removeItem('user');
@@ -277,10 +279,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  const updateUser = async (data: Partial<Patient>) => {
-    if (!user || user.role !== 'patient' || !user.id) return;
+  const updateUser = async (data: Partial<Patient | Seller>) => {
+    if (!user || !user.id) return;
     
-    await firestoreService.updatePatient(user.id, data);
+    if (user.role === 'patient') {
+      await firestoreService.updatePatient(user.id, data);
+    } else if (user.role === 'seller') {
+      await firestoreService.updateSeller(user.id, data);
+    } else {
+      return; // Or handle other roles
+    }
 
     const updatedUser = { ...user, ...data };
     setUser(updatedUser as User);
@@ -288,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    if (!user || user.role !== 'patient') {
+    if (!user || !user.id) {
       return { success: false, message: 'Usuario no autorizado.' };
     }
     
@@ -297,7 +305,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await firestoreService.updatePatient(user.id, { password: newPassword });
+      let updatePromise;
+      if (user.role === 'patient') {
+        updatePromise = firestoreService.updatePatient(user.id, { password: newPassword });
+      } else if (user.role === 'doctor') {
+        updatePromise = firestoreService.updateDoctor(user.id, { password: newPassword });
+      } else {
+        return { success: false, message: 'Rol de usuario no soportado para cambio de contraseña.' };
+      }
+      
+      await updatePromise;
       
       const updatedUser = { ...user, password: newPassword };
       setUser(updatedUser as User);

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
@@ -274,7 +274,7 @@ export default function DoctorDashboardPage() {
     const handleSaveEntity = async (type: 'expense' | 'service' | 'bank' | 'coupon', data: any) => {
         if (!doctorData) return;
         const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        const list = (doctorData[listKey] || []) as any[];
+        const list = (doctorData[listKey as keyof Doctor] || []) as any[];
         const editingEntity = type === 'expense' ? editingExpense : type === 'service' ? editingService : type === 'bank' ? editingBankDetail : editingCoupon;
         
         let newList;
@@ -389,7 +389,7 @@ export default function DoctorDashboardPage() {
         if (!itemToDelete || !doctorData) return;
         const { type, id } = itemToDelete;
         const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        const list = (doctorData[listKey] || []) as any[];
+        const list = (doctorData[listKey as keyof Doctor] || []) as any[];
         const newList = list.filter(item => item.id !== id);
         
         await firestoreService.updateDoctor(doctorData.id, { [listKey]: newList });

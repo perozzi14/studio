@@ -1,6 +1,5 @@
 
-
-import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, SupportTicket, DoctorPayment, AdminSupportTicket, CompanyExpense, BankDetail, Coupon, Schedule, AppSettings } from './types';
+import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, AdminSupportTicket, DoctorPayment, AppSettings } from './types';
 
 export const specialties = [
   "Cardiología",
@@ -20,7 +19,7 @@ export const cities: City[] = [
   { name: "Valencia", subscriptionFee: 45 },
 ];
 
-export const mockCompanyBankDetails: BankDetail[] = [
+export const mockCompanyBankDetails: AppSettings['companyBankDetails'] = [
   {
     id: '9901',
     bank: 'Banesco',
@@ -39,12 +38,12 @@ export const mockCompanyBankDetails: BankDetail[] = [
   },
 ];
 
-export const mockCoupons: Coupon[] = [
+export const mockCoupons: AppSettings['coupons'] = [
   { id: '1', code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
   { id: '2', code: 'VERANO20', discountType: 'percentage', value: 20, scope: '1' } // Dr. Ana Rodriguez
 ];
 
-const defaultSchedule: Schedule = {
+const defaultSchedule: Doctor['schedule'] = {
     monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
     tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
     wednesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -262,7 +261,7 @@ export const appointments: Appointment[] = [
     attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '',
   },
   {
-    id: "appt-3", patientId: "pat-3", patientName: "Dr. Ana Rodriguez", doctorId: '1',
+    id: "appt-3", patientId: "pat-3", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], time: "09:00",
     services: [ { id: '103', name: "Ecocardiograma", price: 80 } ],
     consultationFee: 50,
@@ -294,7 +293,7 @@ export const appointments: Appointment[] = [
 export const mockSellerPayments: SellerPayment[] = [
   {
     id: 'pay-1', sellerId: '1', paymentDate: '2024-05-16', amount: 18, period: 'Abril 2024',
-    includedDoctors: [ { id: '1', name: "Dr. Ana Rodriguez" }, { id: '2', name: "Dr. Carlos Sanchez" }, { id: '4', name: "Dr. Luis Fernandez" } ],
+    includedDoctors: [ { id: '1', name: "Dr. Ana Rodriguez" }, { id: '2', name: "Dr. Carlos Sanchez" } ],
     paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240516-001'
   },
   {
@@ -326,14 +325,7 @@ export const mockAdminSupportTickets: AdminSupportTicket[] = [
     { id: 'ticket-admin-3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true, messages: [] },
 ];
 
-export const mockAdminNotifications: AdminNotification[] = [
-    { id: 'notif-admin-1', type: 'payment', title: 'Pago Pendiente de Aprobación', description: 'El Dr. Sofia Gomez ha reportado un pago de suscripción.', date: new Date(new Date().setDate(new Date().getDate() - 0)).toISOString(), read: false, link: '/admin/dashboard?view=finances' },
-    { id: 'notif-admin-2', type: 'support_ticket', title: 'Nuevo Ticket de Soporte', description: 'Vendedora Principal ha abierto un nuevo ticket.', date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(), read: false, link: '/admin/dashboard?view=support' },
-    { id: 'notif-admin-3', type: 'new_doctor', title: 'Nuevo Médico Registrado', description: 'Dra. Laura Montes se ha unido a la plataforma.', date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), read: true, link: '/admin/dashboard?view=doctors' },
-    { id: 'notif-admin-4', type: 'payment', title: 'Pago Aprobado', description: 'Has aprobado el pago de Dr. Luis Fernandez.', date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString(), read: true, link: '/admin/dashboard?view=finances' }
-];
-
-export const mockCompanyExpenses: CompanyExpense[] = [
+export const mockCompanyExpenses: AppSettings['companyExpenses'] = [
     { id: 'cexp-1', date: '2024-05-01', description: 'Alquiler de oficina', amount: 800, category: 'operativo' },
     { id: 'cexp-2', date: '2024-05-10', description: 'Campaña de publicidad en redes', amount: 250, category: 'marketing' },
     { id: 'cexp-3', date: '2024-05-15', description: 'Nómina - Administrador', amount: 1200, category: 'personal' },
@@ -344,6 +336,8 @@ export const mockSettings: AppSettings = {
     cities: cities,
     specialties: specialties,
     companyBankDetails: mockCompanyBankDetails,
+    companyExpenses: mockCompanyExpenses,
+    coupons: mockCoupons,
     timezone: 'America/Caracas',
     logoUrl: 'https://placehold.co/150x50.png',
     heroImageUrl: 'https://placehold.co/1200x600.png',
