@@ -64,13 +64,6 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
             Ingresa tus credenciales para acceder.
-            <br />
-            <span className="text-xs text-muted-foreground grid">
-                <span>Admin: admin@admin.com / 1234</span>
-                <span>Doctor: doctor@admin.com / 1234</span>
-                <span>Vendedora: vendedora@venta.com / 1234</span>
-                <span>Paciente: paciente@example.com / 1234</span>
-            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
