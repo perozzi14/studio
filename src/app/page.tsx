@@ -1,3 +1,4 @@
+
 import { Header, BottomNav } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -7,7 +8,15 @@ import React from "react";
 import * as firestoreService from "@/lib/firestoreService";
 
 export default async function Home() {
-  const settings = await firestoreService.getSettings();
+  let settings;
+  try {
+    settings = await firestoreService.getSettings();
+  } catch (error) {
+    console.error("Failed to fetch settings, possibly offline. Using defaults.", error);
+    // Gracefully handle the error by setting settings to null
+    // This allows the page to render with fallback values
+    settings = null;
+  }
   const heroImageUrl = settings?.heroImageUrl || "https://placehold.co/1200x600.png";
 
   return (
