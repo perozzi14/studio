@@ -3225,6 +3225,152 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
       
+      {/* Settings Dialogs */}
+      <Dialog open={isCityDialogOpen} onOpenChange={setIsCityDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCity?.originalName ? "Editar Ciudad" : "Agregar Ciudad"}</DialogTitle>
+            <DialogDescription>
+              Gestiona las ciudades donde la plataforma opera y su tarifa de suscripción.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveCity}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="city-name">Nombre de la Ciudad</Label>
+                <Input id="city-name" name="city-name" defaultValue={editingCity?.name || ''} required />
+              </div>
+              <div>
+                <Label htmlFor="city-fee">Tarifa de Suscripción ($)</Label>
+                <Input id="city-fee" name="city-fee" type="number" step="0.01" defaultValue={editingCity?.subscriptionFee || 0} required />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSpecialtyDialogOpen} onOpenChange={setIsSpecialtyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSpecialty?.originalName ? "Editar Especialidad" : "Agregar Especialidad"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSpecialty}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
+                <Input id="specialty-name" name="specialty-name" defaultValue={editingSpecialty?.newName || ''} required />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCoupon ? "Editar Cupón" : "Crear Nuevo Cupón"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCoupon}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="code">Código</Label>
+                <Input id="code" name="code" defaultValue={editingCoupon?.code || ''} className="uppercase" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="discountType">Tipo de Descuento</Label>
+                  <Select name="discountType" defaultValue={editingCoupon?.discountType || 'fixed'}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Monto Fijo ($)</SelectItem>
+                      <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="value">Valor</Label>
+                  <Input id="value" name="value" type="number" step="0.01" defaultValue={editingCoupon?.value || ''} required />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="scope">Alcance del Cupón</Label>
+                <Select name="scope" defaultValue={editingCoupon?.scope || 'general'}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona el alcance..."/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="general">General (Todos los Médicos)</SelectItem>
+                        {doctors.map(doc => (
+                            <SelectItem key={doc.id} value={doc.id}>Dr. {doc.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar Cupón</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isCompanyBankDetailDialogOpen} onOpenChange={setIsCompanyBankDetailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCompanyBankDetail ? "Editar Cuenta" : "Agregar Cuenta de SUMA"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveBankDetail}>
+            <div className="space-y-4 py-4">
+              <div><Label htmlFor="bankName">Nombre del Banco</Label><Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} /></div>
+              <div><Label htmlFor="accountHolder">Titular de la Cuenta</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} /></div>
+              <div><Label htmlFor="idNumber">C.I. / R.I.F.</Label><Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} /></div>
+              <div><Label htmlFor="accountNumber">Número de Cuenta (20 dígitos)</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} maxLength={20} /></div>
+              <div><Label htmlFor="description">Descripción (Opcional)</Label><Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} placeholder="Ej: PagoMóvil" /></div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? "Editar Gasto" : "Registrar Gasto de SUMA"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveExpense}>
+            <div className="space-y-4 py-4">
+              <div><Label htmlFor="date">Fecha</Label><Input id="date" name="date" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} /></div>
+              <div><Label htmlFor="description">Descripción</Label><Input id="description" name="description" defaultValue={editingExpense?.description || ''} /></div>
+              <div><Label htmlFor="amount">Monto ($)</Label><Input id="amount" name="amount" type="number" step="0.01" defaultValue={editingExpense?.amount || ''} /></div>
+              <div><Label htmlFor="category">Categoría</Label>
+                <Select name="category" defaultValue={editingExpense?.category || 'operativo'}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="operativo">Operativo</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="personal">Personal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* DB Import Confirmation Dialog */}
       <AlertDialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
         <AlertDialogContent>
