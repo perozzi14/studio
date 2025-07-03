@@ -49,7 +49,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
+import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfWeek, endOfYear, startOfMonth, endOfMonth, startOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -1150,12 +1150,19 @@ export default function AdminDashboardPage() {
   const { filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses } = useMemo(() => {
     const now = new Date();
     let startDate: Date, endDate: Date;
+
+    const sortByDate = (items: any[], dateField: 'date' | 'paymentDate') => {
+        return [...items].sort((a, b) => {
+            if (!a[dateField] || !b[dateField]) return 0;
+            return new Date(b[dateField] + 'T00:00:00').getTime() - new Date(a[dateField] + 'T00:00:00').getTime();
+        });
+    };
     
     if (timeRange === 'all') {
       return {
-        filteredDoctorPayments: doctorPayments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-        filteredSellerPayments: sellerPayments.sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()),
-        filteredCompanyExpenses: companyExpenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        filteredDoctorPayments: sortByDate(doctorPayments, 'date'),
+        filteredSellerPayments: sortByDate(sellerPayments, 'paymentDate'),
+        filteredCompanyExpenses: sortByDate(companyExpenses, 'date'),
       };
     }
     
@@ -1166,7 +1173,7 @@ export default function AdminDashboardPage() {
             break;
         case 'week':
             startDate = startOfWeek(now, { locale: es });
-            endDate = endOfDay(now);
+            endDate = endOfWeek(now, { locale: es });
             break;
         case 'year':
             startDate = startOfYear(now);
@@ -1180,11 +1187,12 @@ export default function AdminDashboardPage() {
     }
 
     const filterByDateField = (items: any[], dateField: 'date' | 'paymentDate') => {
-        return items.filter(item => {
+        const filtered = items.filter(item => {
             if (!item[dateField]) return false;
             const itemDate = new Date(item[dateField] + 'T00:00:00');
             return itemDate >= startDate && itemDate <= endDate;
-        }).sort((a, b) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+        });
+        return sortByDate(filtered, dateField);
     };
 
     return {
