@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import { AppointmentProvider } from "@/lib/appointments";
 import { NotificationProvider } from "@/lib/notifications";
 import { DoctorNotificationProvider } from "@/lib/doctor-notifications";
+import { SellerNotificationProvider } from "@/lib/seller-notifications";
 import { SettingsProvider } from "@/lib/settings";
 import "./globals.css";
 
@@ -40,10 +41,12 @@ export default function RootLayout({
           <AppointmentProvider>
             <NotificationProvider>
               <DoctorNotificationProvider>
-                <SettingsProvider>
-                  {children}
-                  <Toaster />
-                </SettingsProvider>
+                <SellerNotificationProvider>
+                  <SettingsProvider>
+                    {children}
+                    <Toaster />
+                  </SettingsProvider>
+                </SellerNotificationProvider>
               </DoctorNotificationProvider>
             </NotificationProvider>
           </AppointmentProvider>

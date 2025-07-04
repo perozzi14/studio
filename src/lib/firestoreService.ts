@@ -242,7 +242,14 @@ export const findUserByEmail = async (email: string): Promise<(Doctor | Seller |
 // --- Data Mutation Functions ---
 
 // Doctor
-export const addDoctor = async (doctorData: Omit<Doctor, 'id'>) => addDoc(collection(db, 'doctors'), doctorData);
+export const addDoctor = async (doctorData: Omit<Doctor, 'id'>) => {
+    const dataWithDefaults = { 
+        ...doctorData, 
+        readByAdmin: false,
+        readBySeller: false,
+    };
+    return addDoc(collection(db, 'doctors'), dataWithDefaults);
+};
 export const updateDoctor = async (id: string, data: Partial<Doctor>) => updateDoc(doc(db, 'doctors', id), data);
 export const deleteDoctor = async (id: string) => deleteDoc(doc(db, 'doctors', id));
 export const updateDoctorStatus = async (id: string, status: 'active' | 'inactive') => updateDoc(doc(db, 'doctors', id), { status });
@@ -295,11 +302,15 @@ export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id'
         timestamp: new Date().toISOString(),
     };
 
-    const newTicketData = {
+    const newTicketData: any = {
         ...ticketData,
         messages: [initialMessage],
-        readByAdmin: false
+        readByAdmin: false,
     };
+    
+    if (ticketData.userRole === 'seller') {
+        newTicketData.readBySeller = true; // The creator has "read" it.
+    }
 
     return addDoc(collection(db, 'supportTickets'), newTicketData);
 }
@@ -323,6 +334,12 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
     }
      if (message.sender === 'admin') {
         updateData.status = 'abierto';
+        const ticketDoc = await getDoc(ticketRef);
+        const ticketData = ticketDoc.data() as AdminSupportTicket;
+        if(ticketData.userRole === 'seller') {
+            updateData.readBySeller = false;
+        }
+        // A similar check for doctors could be added here if they have notifications for support
     }
     
     await updateDoc(ticketRef, updateData);
@@ -338,15 +355,18 @@ export const updateCoupon = async (id: string, data: Partial<Coupon>) => updateD
 export const deleteCoupon = async (id: string) => deleteDoc(doc(db, 'coupons', id));
 
 // Payments
-export const addSellerPayment = async (paymentData: Omit<SellerPayment, 'id'>) => addDoc(collection(db, 'sellerPayments'), paymentData);
+export const addSellerPayment = async (paymentData: Omit<SellerPayment, 'id'>) => {
+    const dataWithDefaults = { ...paymentData, readBySeller: false };
+    return addDoc(collection(db, 'sellerPayments'), dataWithDefaults);
+};
 export const addDoctorPayment = async (paymentData: Omit<DoctorPayment, 'id'>) => {
-    const dataWithDefaults = { ...paymentData, readByAdmin: false };
+    const dataWithDefaults = { ...paymentData, readByAdmin: false, readByDoctor: false };
     return addDoc(collection(db, 'doctorPayments'), dataWithDefaults);
 };
-export const updateDoctorPaymentStatus = async (id: string, status: DoctorPayment['status']) => updateDoc(doc(db, 'doctorPayments', id), { status });
+export const updateDoctorPaymentStatus = async (id: string, status: DoctorPayment['status']) => updateDoc(doc(db, 'doctorPayments', id), { status, readByDoctor: false });
 
 // Notifications
-export const batchUpdateNotificationsAsRead = async (ticketIds: string[], paymentIds: string[]) => {
+export const batchUpdateNotificationsAsRead = async (ticketIds: string[], paymentIds: string[], doctorIds: string[]) => {
     const batch = writeBatch(db);
     ticketIds.forEach(id => {
         const docRef = doc(db, "supportTickets", id);
@@ -356,7 +376,11 @@ export const batchUpdateNotificationsAsRead = async (ticketIds: string[], paymen
         const docRef = doc(db, "doctorPayments", id);
         batch.update(docRef, { readByAdmin: true });
     });
-    if (ticketIds.length > 0 || paymentIds.length > 0) {
+    doctorIds.forEach(id => {
+        const docRef = doc(db, "doctors", id);
+        batch.update(docRef, { readByAdmin: true });
+    });
+    if (ticketIds.length > 0 || paymentIds.length > 0 || doctorIds.length > 0) {
         await batch.commit();
     }
 }

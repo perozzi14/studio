@@ -85,6 +85,8 @@ export type Doctor = {
   joinDate: string;
   subscriptionStatus: 'active' | 'inactive' | 'pending_payment';
   nextPaymentDate: string;
+  readByAdmin?: boolean;
+  readBySeller?: boolean;
 };
 
 export type Seller = {
@@ -150,6 +152,7 @@ export type SellerPayment = {
   includedDoctors: IncludedDoctorCommission[];
   paymentProofUrl: string;
   transactionId: string;
+  readBySeller?: boolean;
 };
 
 export type MarketingMaterial = {
@@ -171,6 +174,7 @@ export type DoctorPayment = {
   paymentProofUrl: string | null;
   transactionId: string;
   readByAdmin?: boolean;
+  readByDoctor?: boolean;
 };
 
 
@@ -185,6 +189,7 @@ export type AdminSupportTicket = {
     date: string;
     messages?: ChatMessage[];
     readByAdmin?: boolean;
+    readBySeller?: boolean;
 };
 
 export type AdminNotification = {
@@ -212,6 +217,17 @@ export type PatientNotification = {
 export type DoctorNotification = {
     id: string;
     type: 'payment_verification' | 'support_reply' | 'subscription_update' | 'new_message' | 'patient_confirmed' | 'patient_cancelled';
+    title: string;
+    description: string;
+    date: string; // ISO string of the event
+    createdAt: string; // ISO string of notification creation
+    read: boolean;
+    link: string;
+};
+
+export type SellerNotification = {
+    id: string;
+    type: 'payment_processed' | 'support_reply' | 'new_doctor_registered';
     title: string;
     description: string;
     date: string; // ISO string of the event

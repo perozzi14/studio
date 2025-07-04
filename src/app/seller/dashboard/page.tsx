@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useSellerNotifications } from '@/lib/seller-notifications';
 
 
 const BankDetailFormSchema = z.object({
@@ -144,6 +145,7 @@ export default function SellerDashboardPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { cities, specialties } = useSettings();
+  const { checkAndSetSellerNotifications } = useSellerNotifications();
   
   const [isLoading, setIsLoading] = useState(true);
   const [sellerData, setSellerData] = useState<Seller | null>(null);
@@ -219,6 +221,13 @@ export default function SellerDashboardPage() {
         fetchData();
     }
   }, [user, fetchData]);
+
+  useEffect(() => {
+    if (user?.role === 'seller' && sellerData) {
+        const userTickets = supportTickets.filter(t => t.userId === user.email);
+        checkAndSetSellerNotifications(sellerPayments, userTickets, referredDoctors);
+    }
+  }, [user, sellerData, sellerPayments, supportTickets, referredDoctors, checkAndSetSellerNotifications]);
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 

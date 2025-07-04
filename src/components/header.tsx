@@ -30,10 +30,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/lib/notifications";
 import { useDoctorNotifications } from "@/lib/doctor-notifications";
+import { useSellerNotifications } from "@/lib/seller-notifications";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import * as firestoreService from '@/lib/firestoreService';
-import { type AdminNotification, type DoctorNotification, type PatientNotification } from "@/lib/types";
+import { type AdminNotification, type DoctorNotification, type PatientNotification, type SellerNotification } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -41,7 +42,8 @@ import { es } from 'date-fns/locale';
 export function Header() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
-  const { doctorNotifications, doctorUnreadCount, checkAndSetDoctorNotifications, markDoctorNotificationsAsRead } = useDoctorNotifications();
+  const { doctorNotifications, doctorUnreadCount, markDoctorNotificationsAsRead, checkAndSetDoctorNotifications } = useDoctorNotifications();
+  const { sellerNotifications, sellerUnreadCount, markSellerNotificationsAsRead } = useSellerNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -79,6 +81,15 @@ export function Header() {
     }
   };
 
+  const getSellerNotificationIcon = (type: SellerNotification['type']) => {
+    switch(type) {
+        case 'payment_processed': return <DollarSign className="h-4 w-4 text-green-500" />;
+        case 'new_doctor_registered': return <UserPlus className="h-4 w-4 text-blue-500" />;
+        case 'support_reply': return <LifeBuoy className="h-4 w-4 text-orange-500" />;
+        default: return <BellRing className="h-4 w-4 text-primary" />;
+    }
+  };
+
   const fetchAdminNotifications = useCallback(async () => {
     if (user?.role !== 'admin') {
       setAdminNotifications([]);
@@ -86,9 +97,10 @@ export function Header() {
       return;
     }
 
-    const [tickets, payments] = await Promise.all([
+    const [tickets, payments, doctors] = await Promise.all([
         firestoreService.getSupportTickets(),
-        firestoreService.getDoctorPayments()
+        firestoreService.getDoctorPayments(),
+        firestoreService.getDoctors(),
     ]);
 
     const paymentNotifications: AdminNotification[] = payments
@@ -114,8 +126,20 @@ export function Header() {
             read: false,
             link: `/admin/dashboard?view=support`
         }));
+    
+    const doctorNotifications: AdminNotification[] = doctors
+        .filter(d => !d.readByAdmin)
+        .map(d => ({
+            id: `doctor-${d.id}`,
+            type: 'new_doctor',
+            title: 'Nuevo Médico Registrado',
+            description: `El Dr. ${d.name} se ha unido a la plataforma.`,
+            date: d.joinDate,
+            read: false,
+            link: `/admin/dashboard?view=doctors`
+        }));
 
-    const allNotifications = [...paymentNotifications, ...ticketNotifications]
+    const allNotifications = [...paymentNotifications, ...ticketNotifications, ...doctorNotifications]
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     setAdminNotifications(allNotifications);
@@ -131,12 +155,14 @@ export function Header() {
   useEffect(() => {
     const fetchDoctorDataForNotifications = async () => {
         if (user?.role === 'doctor' && user.id) {
-            const [appointments, tickets] = await Promise.all([
+            const [appointments, tickets, payments] = await Promise.all([
                 firestoreService.getDoctorAppointments(user.id),
-                firestoreService.getSupportTickets()
+                firestoreService.getSupportTickets(),
+                firestoreService.getDoctorPayments()
             ]);
             const userTickets = tickets.filter(t => t.userId === user.email);
-            checkAndSetDoctorNotifications(appointments, userTickets);
+            const userPayments = payments.filter(p => p.doctorId === user.id);
+            checkAndSetDoctorNotifications(appointments, userTickets, userPayments);
         }
     };
     
@@ -147,6 +173,8 @@ export function Header() {
 
 
   const markAdminNotificationsAsRead = async () => {
+    if (adminUnreadCount === 0) return;
+
     const unreadTicketIds = adminNotifications
       .filter(n => n.type === 'support_ticket' && !n.read)
       .map(n => n.id.replace('ticket-', ''));
@@ -154,9 +182,13 @@ export function Header() {
     const unreadPaymentIds = adminNotifications
       .filter(n => n.type === 'payment' && !n.read)
       .map(n => n.id.replace('payment-', ''));
+    
+    const unreadDoctorIds = adminNotifications
+      .filter(n => n.type === 'new_doctor' && !n.read)
+      .map(n => n.id.replace('doctor-', ''));
 
-    if (unreadTicketIds.length > 0 || unreadPaymentIds.length > 0) {
-        await firestoreService.batchUpdateNotificationsAsRead(unreadTicketIds, unreadPaymentIds);
+    if (unreadTicketIds.length > 0 || unreadPaymentIds.length > 0 || unreadDoctorIds.length > 0) {
+        await firestoreService.batchUpdateNotificationsAsRead(unreadTicketIds, unreadPaymentIds, unreadDoctorIds);
         
         // Optimistically update the UI
         setAdminUnreadCount(0);
@@ -213,6 +245,7 @@ export function Header() {
   const isPatient = user?.role === 'patient';
   const isAdmin = user?.role === 'admin';
   const isDoctor = user?.role === 'doctor';
+  const isSeller = user?.role === 'seller';
 
 
   return (
@@ -340,6 +373,45 @@ export function Header() {
             </Popover>
           )}
           
+          {user && isSeller && (
+            <Popover onOpenChange={(open) => { if (open && sellerUnreadCount > 0) markSellerNotificationsAsRead(); }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative ml-2">
+                  <Bell className="h-5 w-5" />
+                  {sellerUnreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{sellerUnreadCount}</span>
+                    </span>
+                  )}
+                  <span className="sr-only">Ver notificaciones de vendedora</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 md:w-96">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <h4 className="font-medium text-sm">Notificaciones</h4>
+                </div>
+                {sellerNotifications.length > 0 ? (
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
+                    {sellerNotifications.map(n => (
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
+                        <div className="mt-1">
+                          {getSellerNotificationIcon(n.type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.createdAt), { locale: es, addSuffix: true })}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
+
           {user && isPatient && (
             <Popover onOpenChange={(open) => {
               if (open && unreadCount > 0) {
@@ -548,6 +620,45 @@ export function Header() {
                     <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
                 )}
                 </PopoverContent>
+            </Popover>
+          )}
+
+          {user && isSeller && (
+            <Popover onOpenChange={(open) => { if (open && sellerUnreadCount > 0) markSellerNotificationsAsRead(); }}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {sellerUnreadCount > 0 && (
+                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{sellerUnreadCount}</span>
+                    </span>
+                  )}
+                  <span className="sr-only">Ver notificaciones de vendedora</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <h4 className="font-medium text-sm">Notificaciones</h4>
+                </div>
+                {sellerNotifications.length > 0 ? (
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
+                    {sellerNotifications.map(n => (
+                      <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
+                        <div className="mt-1">
+                          {getSellerNotificationIcon(n.type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.createdAt), { locale: es, addSuffix: true })}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
+                )}
+              </PopoverContent>
             </Popover>
           )}
 

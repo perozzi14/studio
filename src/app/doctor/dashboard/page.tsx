@@ -42,6 +42,7 @@ import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
 import { DoctorAppointmentCard } from '@/components/doctor/appointment-card';
 import { AppointmentDetailDialog } from '@/components/doctor/appointment-detail-dialog';
+import { useDoctorNotifications } from '@/lib/doctor-notifications';
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -103,6 +104,7 @@ export default function DoctorDashboardPage() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const { cities } = useSettings();
+    const { checkAndSetDoctorNotifications } = useDoctorNotifications();
 
     const [isLoading, setIsLoading] = useState(true);
     const [doctorData, setDoctorData] = useState<Doctor | null>(null);
@@ -170,6 +172,13 @@ export default function DoctorDashboardPage() {
     useEffect(() => {
         if (user?.id) { fetchData(); }
     }, [user, fetchData]);
+
+    useEffect(() => {
+        if(user?.role === 'doctor' && appointments.length > 0) {
+            const userTickets = supportTickets.filter(t => t.userId === user.email);
+            checkAndSetDoctorNotifications(appointments, userTickets, doctorPayments);
+        }
+    }, [user, appointments, supportTickets, doctorPayments, checkAndSetDoctorNotifications]);
     
     useEffect(() => {
       if (user === undefined) return;

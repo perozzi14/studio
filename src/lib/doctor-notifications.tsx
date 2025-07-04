@@ -2,15 +2,19 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import type { Appointment, DoctorNotification, AdminSupportTicket } from './types';
-import { format, formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import type { Appointment, DoctorNotification, AdminSupportTicket, DoctorPayment } from './types';
 import { useAuth } from './auth';
+import { doc, writeBatch } from 'firebase/firestore';
+import { db } from './firebase';
 
 interface DoctorNotificationContextType {
   doctorNotifications: DoctorNotification[];
   doctorUnreadCount: number;
-  checkAndSetDoctorNotifications: (appointments: Appointment[], supportTickets: AdminSupportTicket[]) => void;
+  checkAndSetDoctorNotifications: (
+    appointments: Appointment[], 
+    supportTickets: AdminSupportTicket[], 
+    doctorPayments: DoctorPayment[]
+  ) => void;
   markDoctorNotificationsAsRead: () => void;
 }
 
@@ -46,7 +50,11 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     }
   }, [user]);
 
-  const checkAndSetDoctorNotifications = useCallback((appointments: Appointment[], supportTickets: AdminSupportTicket[]) => {
+  const checkAndSetDoctorNotifications = useCallback((
+    appointments: Appointment[], 
+    supportTickets: AdminSupportTicket[],
+    doctorPayments: DoctorPayment[]
+  ) => {
     if (!user?.id || user.role !== 'doctor') return;
 
     const storageKey = getNotificationStorageKey(user.id);
@@ -57,80 +65,79 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
 
     // --- Generate Notifications ---
 
+    // 1. Payment Verification needed from you
     appointments.forEach(appt => {
-      // 1. Payment Verification
       if (appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente') {
         const id = `verify-${appt.id}`;
         if (!existingIds.has(id)) {
             newNotificationsMap.set(id, {
-                id,
-                type: 'payment_verification',
-                title: 'Verificación de Pago',
+                id, type: 'payment_verification', title: 'Verificación de Pago',
                 description: `El paciente ${appt.patientName} espera aprobación.`,
-                date: appt.date,
-                createdAt: now.toISOString(),
-                read: false,
+                date: appt.date, createdAt: now.toISOString(), read: false,
                 link: `/doctor/dashboard?view=appointments`
             });
         }
       }
-
-      // 2. Patient Confirmation
+      // 2. Patient Confirmation status change
       if (appt.patientConfirmationStatus === 'Confirmada' || appt.patientConfirmationStatus === 'Cancelada') {
-         const id = `confirm-${appt.id}-${appt.patientConfirmationStatus}-${appt.date}`;
+         const id = `confirm-${appt.id}-${appt.patientConfirmationStatus}`;
          if (!existingIds.has(id)) {
              newNotificationsMap.set(id, {
-                 id,
-                 type: appt.patientConfirmationStatus === 'Confirmada' ? 'patient_confirmed' : 'patient_cancelled',
+                 id, type: appt.patientConfirmationStatus === 'Confirmada' ? 'patient_confirmed' : 'patient_cancelled',
                  title: `Cita ${appt.patientConfirmationStatus}`,
-                 description: `${appt.patientName} ha ${appt.patientConfirmationStatus.toLowerCase()} su cita del ${format(new Date(appt.date + 'T00:00:00'), 'dd/MM/yy', { locale: es })}.`,
-                 date: new Date().toISOString(),
-                 createdAt: now.toISOString(),
-                 read: false,
+                 description: `${appt.patientName} ha ${appt.patientConfirmationStatus.toLowerCase()} su cita.`,
+                 date: new Date().toISOString(), createdAt: now.toISOString(), read: false,
                  link: `/doctor/dashboard?view=appointments`
              });
          }
       }
-      
-      // 3. New Messages
-      const lastMessage = appt.messages?.[appt.messages.length - 1];
+      // 3. New Messages from patient
+      const lastMessage = appt.messages?.slice(-1)[0];
       if (lastMessage?.sender === 'patient') {
           const id = `msg-${appt.id}-${lastMessage.id}`;
           if (!existingIds.has(id)) {
               newNotificationsMap.set(id, {
-                  id,
-                  type: 'new_message',
-                  title: `Nuevo Mensaje de ${appt.patientName}`,
+                  id, type: 'new_message', title: `Nuevo Mensaje de ${appt.patientName}`,
                   description: lastMessage.text.substring(0, 50) + '...',
-                  date: lastMessage.timestamp,
-                  createdAt: now.toISOString(),
-                  read: false,
+                  date: lastMessage.timestamp, createdAt: now.toISOString(), read: false,
                   link: `/doctor/dashboard?view=appointments`
               });
           }
       }
     });
 
-    // 4. Support Ticket Replies
-    supportTickets.forEach(ticket => {
-        const lastMessage = ticket.messages?.[ticket.messages.length - 1];
-        if (lastMessage?.sender === 'admin') {
-            const id = `support-${ticket.id}-${lastMessage.id}`;
+    // 4. Subscription payment update from admin
+    doctorPayments.forEach(payment => {
+        if ((payment.status === 'Paid' || payment.status === 'Rejected') && !payment.readByDoctor) {
+            const id = `sub-${payment.id}-${payment.status}`;
             if (!existingIds.has(id)) {
                 newNotificationsMap.set(id, {
-                    id,
-                    type: 'support_reply',
-                    title: `Respuesta de Soporte`,
-                    description: `El equipo de SUMA ha respondido a tu ticket: "${ticket.subject}"`,
-                    date: lastMessage.timestamp,
-                    createdAt: now.toISOString(),
-                    read: false,
-                    link: `/doctor/dashboard?view=support`
+                    id, type: 'subscription_update',
+                    title: `Suscripción ${payment.status === 'Paid' ? 'Aprobada' : 'Rechazada'}`,
+                    description: `Tu pago de $${payment.amount.toFixed(2)} ha sido ${payment.status === 'Paid' ? 'aprobado' : 'rechazado'}.`,
+                    date: payment.date, createdAt: now.toISOString(), read: false,
+                    link: '/doctor/dashboard?view=subscription'
                 });
             }
         }
     });
 
+    // 5. Support Ticket Replies from admin
+    supportTickets.forEach(ticket => {
+        const lastMessage = ticket.messages?.slice(-1)[0];
+        if (lastMessage?.sender === 'admin' && ticket.userId === user.email) {
+            const id = `support-${ticket.id}-${lastMessage.id}`;
+            if (!existingIds.has(id)) {
+                newNotificationsMap.set(id, {
+                    id, type: 'support_reply',
+                    title: `Respuesta de Soporte`,
+                    description: `El equipo de SUMA ha respondido a tu ticket: "${ticket.subject}"`,
+                    date: lastMessage.timestamp, createdAt: now.toISOString(), read: false,
+                    link: `/doctor/dashboard?view=support`
+                });
+            }
+        }
+    });
     // --- End Generate Notifications ---
 
 
@@ -145,14 +152,32 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     }
   }, [doctorNotifications, user]);
 
-  const markDoctorNotificationsAsRead = useCallback(() => {
-    if (!user?.id || user.role !== 'doctor') return;
+  const markDoctorNotificationsAsRead = useCallback(async () => {
+    if (!user?.id || user.role !== 'doctor' || doctorUnreadCount === 0) return;
+    
     const storageKey = getNotificationStorageKey(user.id);
     const updated = doctorNotifications.map(n => ({ ...n, read: true }));
     localStorage.setItem(storageKey, JSON.stringify(updated));
     setDoctorNotifications(updated);
     setDoctorUnreadCount(0);
-  }, [doctorNotifications, user]);
+    
+    // Also mark notifications as read on the backend where applicable
+    const paymentIdsToUpdate = doctorNotifications
+        .filter(n => n.type === 'subscription_update' && !n.read)
+        .map(n => n.id.split('-')[1]);
+        
+    if (paymentIdsToUpdate.length > 0) {
+        const batch = writeBatch(db);
+        paymentIdsToUpdate.forEach(id => {
+            batch.update(doc(db, "doctorPayments", id), { readByDoctor: true });
+        });
+        try {
+            await batch.commit();
+        } catch (e) {
+            console.error("Failed to mark doctor payment notifications as read in Firestore", e);
+        }
+    }
+  }, [doctorNotifications, user, doctorUnreadCount]);
   
   const value = { doctorNotifications, doctorUnreadCount, checkAndSetDoctorNotifications, markDoctorNotificationsAsRead };
 
