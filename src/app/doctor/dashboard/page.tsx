@@ -42,7 +42,6 @@ import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
 import { DoctorAppointmentCard } from '@/components/doctor/appointment-card';
 import { AppointmentDetailDialog } from '@/components/doctor/appointment-detail-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -144,8 +143,7 @@ export default function DoctorDashboardPage() {
     const [tempSchedule, setTempSchedule] = useState<Schedule | null>(null);
     const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
     const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
-    const [filterDate, setFilterDate] = useState<Date | undefined>();
-    const [currentCalendarMonth, setCurrentCalendarMonth] = useState(new Date());
+    const [appointmentFilter, setAppointmentFilter] = useState('upcoming');
 
 
     const fetchData = useCallback(async () => {
@@ -213,59 +211,53 @@ export default function DoctorDashboardPage() {
         return { totalRevenue, totalExpenses, netProfit: totalRevenue - totalExpenses };
     }, [doctorData, appointments, timeRange]);
 
-    const { todayAppointments, tomorrowAppointments, upcomingAppointments } = useMemo(() => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-  
-      const todayStr = format(today, 'yyyy-MM-dd');
-      const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
-  
-      const tA: Appointment[] = [];
-      const tmA: Appointment[] = [];
-      const uA: Appointment[] = [];
-  
-      appointments.forEach(appt => {
-        const apptDate = new Date(appt.date + 'T00:00:00');
-        if (appt.attendance === 'Pendiente' && apptDate >= today) {
-           if (format(apptDate, 'yyyy-MM-dd') === todayStr) {
-            tA.push(appt);
-          } else if (format(apptDate, 'yyyy-MM-dd') === tomorrowStr) {
-            tmA.push(appt);
-          } else if (apptDate > tomorrow) {
-            uA.push(appt);
-          }
-        }
-      });
-  
-      return {
-        todayAppointments: tA.sort((a,b) => a.time.localeCompare(b.time)),
-        tomorrowAppointments: tmA.sort((a,b) => a.time.localeCompare(b.time)),
-        upcomingAppointments: uA.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-      };
+     const { upcomingAppointments, pastAppointments } = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming: Appointment[] = [];
+        const past: Appointment[] = [];
+
+        appointments.forEach(appt => {
+            const apptDate = new Date(appt.date + 'T00:00:00');
+            if (appt.attendance !== 'Pendiente' || apptDate < today) {
+                past.push(appt);
+            } else {
+                upcoming.push(appt);
+            }
+        });
+
+        return {
+            upcomingAppointments: upcoming.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)),
+            pastAppointments: past.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time)),
+        };
     }, [appointments]);
 
-    const displayedAppointments = useMemo(() => {
-        if (filterDate) {
-            const selectedDateStr = format(filterDate, 'yyyy-MM-dd');
-            return appointments
-                .filter(appt => appt.date === selectedDateStr)
-                .sort((a, b) => a.time.localeCompare(b.time));
+    const upcomingMonthsForFilter = useMemo(() => {
+        const months = new Set<string>();
+        upcomingAppointments.forEach(appt => {
+            months.add(format(new Date(appt.date + 'T00:00:00'), 'yyyy-MM'));
+        });
+        return Array.from(months).sort();
+    }, [upcomingAppointments]);
+
+    const filteredUpcomingAppointments = useMemo(() => {
+        if (appointmentFilter === 'upcoming') {
+            return upcomingAppointments;
         }
-        return upcomingAppointments;
-    }, [filterDate, appointments, upcomingAppointments]);
-    
-    const appointmentDates = useMemo(() => 
-        appointments.map(appt => new Date(appt.date + 'T00:00:00Z'))
-    , [appointments]);
-    
-    const appointmentsInCurrentMonth = useMemo(() => {
-        return appointments.filter(appt => {
-            const apptDate = parseISO(appt.date);
-            return apptDate.getMonth() === currentCalendarMonth.getMonth() && apptDate.getFullYear() === currentCalendarMonth.getFullYear();
-        }).length;
-    }, [appointments, currentCalendarMonth]);
+        if (appointmentFilter === 'today') {
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            return upcomingAppointments.filter(a => a.date === todayStr);
+        }
+        if (appointmentFilter === 'tomorrow') {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
+            return upcomingAppointments.filter(a => a.date === tomorrowStr);
+        }
+        // Filter by month 'YYYY-MM'
+        return upcomingAppointments.filter(a => a.date.startsWith(appointmentFilter));
+    }, [appointmentFilter, upcomingAppointments]);
 
 
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
@@ -491,72 +483,63 @@ export default function DoctorDashboardPage() {
                     
                     {currentTab === 'appointments' && (
                         <div className="space-y-8">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                                <Card>
-                                    <CardHeader><CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle></CardHeader>
-                                    <CardContent>
-                                        {todayAppointments.length > 0 ? (
-                                            <div className="space-y-4">{todayAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
-                                        ) : <p className="text-muted-foreground text-center py-4">No tienes citas para hoy.</p>}
-                                    </CardContent>
-                                </Card>
-                                 <Card>
-                                    <CardHeader><CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle></CardHeader>
-                                    <CardContent>
-                                        {tomorrowAppointments.length > 0 ? (
-                                            <div className="space-y-4">{tomorrowAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}</div>
-                                        ) : <p className="text-muted-foreground text-center py-4">No tienes citas para mañana.</p>}
-                                    </CardContent>
-                                </Card>
-                            </div>
                             <Card>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                         <div>
-                                            <CardTitle>Agenda de Citas</CardTitle>
+                                            <CardTitle>Próximas Citas</CardTitle>
                                             <CardDescription>
-                                                {filterDate
-                                                    ? `Mostrando ${displayedAppointments.length} cita(s) para el ${format(filterDate, "d 'de' LLLL", { locale: es })}.`
-                                                    : `Mostrando ${displayedAppointments.length} próxima(s) cita(s).`
-                                                }
+                                                Visualiza y gestiona tus citas programadas.
                                             </CardDescription>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
-                                                        <Calendar className="mr-2 h-4 w-4" />
-                                                        {filterDate ? format(filterDate, "PPP", { locale: es }) : <span>Filtrar por fecha</span>}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                     <div className="p-2 text-center text-sm text-muted-foreground">
-                                                        Citas en {format(currentCalendarMonth, 'LLLL yyyy', {locale: es})}: <strong>{appointmentsInCurrentMonth}</strong>
-                                                    </div>
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={filterDate}
-                                                        onSelect={setFilterDate}
-                                                        onMonthChange={setCurrentCalendarMonth}
-                                                        initialFocus
-                                                        locale={es}
-                                                        modifiers={{ hasAppointment: appointmentDates }}
-                                                        modifiersClassNames={{ hasAppointment: 'day-with-appointment' }}
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            {filterDate && <Button variant="ghost" size="icon" onClick={() => setFilterDate(undefined)}><X className="h-4 w-4" /></Button>}
+                                            <Select value={appointmentFilter} onValueChange={setAppointmentFilter}>
+                                                <SelectTrigger className="w-full sm:w-[240px]">
+                                                    <SelectValue placeholder="Filtrar citas..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="upcoming">Ver todas las próximas</SelectItem>
+                                                    <SelectItem value="today">Ver Hoy</SelectItem>
+                                                    <SelectItem value="tomorrow">Ver Mañana</SelectItem>
+                                                    <Separator />
+                                                    {upcomingMonthsForFilter.map(month => (
+                                                        <SelectItem key={month} value={month}>
+                                                            {format(new Date(month + '-02'), "LLLL yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    {displayedAppointments.length > 0 ? (
+                                    {filteredUpcomingAppointments.length > 0 ? (
                                         <div className="space-y-4">
-                                            {displayedAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast={new Date(appt.date) < new Date()} />)}
+                                            {filteredUpcomingAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}
                                         </div>
                                     ) : (
                                         <p className="text-center text-muted-foreground py-10">
-                                            {filterDate ? "No hay citas para la fecha seleccionada." : "No tienes más citas agendadas."}
+                                            No hay citas próximas que coincidan con el filtro seleccionado.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Historial de Citas</CardTitle>
+                                    <CardDescription>
+                                        Registro de tus consultas pasadas.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {pastAppointments.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {pastAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast />)}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-10">
+                                            Aún no tienes citas en tu historial.
                                         </p>
                                     )}
                                 </CardContent>
