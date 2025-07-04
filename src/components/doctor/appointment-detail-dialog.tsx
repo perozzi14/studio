@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -90,6 +89,7 @@ export function AppointmentDetailDialog({
   }
 
   const isAttended = appointment.attendance === 'Atendido';
+  const isAppointmentLocked = appointment.attendance !== 'Pendiente';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -155,7 +155,9 @@ export function AppointmentDetailDialog({
                         <CardHeader>
                            <CardTitle className="text-base flex justify-between items-center">
                                 <span>Servicios de la Cita</span>
-                                <Button size="sm" variant="secondary" onClick={handleSaveServices}><Save className="mr-2 h-4 w-4" /> Guardar Servicios</Button>
+                                {!isAppointmentLocked && (
+                                    <Button size="sm" variant="secondary" onClick={handleSaveServices}><Save className="mr-2 h-4 w-4" /> Guardar Servicios</Button>
+                                )}
                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -172,8 +174,9 @@ export function AppointmentDetailDialog({
                                                 id={`service-${service.id}`}
                                                 checked={editableServices.some(s => s.id === service.id)}
                                                 onCheckedChange={() => handleServiceToggle(service)}
+                                                disabled={isAppointmentLocked}
                                             />
-                                            <Label htmlFor={`service-${service.id}`} className="font-normal">{service.name}</Label>
+                                            <Label htmlFor={`service-${service.id}`} className={cn("font-normal", isAppointmentLocked && "text-muted-foreground")}>{service.name}</Label>
                                         </div>
                                         <span className="font-mono text-sm">${service.price.toFixed(2)}</span>
                                     </div>
