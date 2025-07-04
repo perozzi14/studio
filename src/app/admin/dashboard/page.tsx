@@ -1210,36 +1210,46 @@ export default function AdminDashboardPage() {
     };
   }, [doctorPayments, sellerPayments, companyExpenses, timeRange]);
 
-  const stats = useMemo(() => {
+  const globalStats = useMemo(() => {
     const totalDoctors = doctors.length;
     const activeDoctors = doctors.filter(d => d.status === 'active').length;
     const totalSellers = sellers.length;
     const totalPatients = patients.length;
     
-    const totalRevenue = filteredDoctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
-    const commissionsPaid = filteredSellerPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalExpenses = filteredCompanyExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+    const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalExpensesValue = companyExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
         totalDoctors,
         activeDoctors,
         totalSellers,
         totalPatients,
+        netProfit: totalRevenue - commissionsPaid - totalExpensesValue,
+    }
+  }, [doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses]);
+
+  const timeRangedStats = useMemo(() => {
+    const totalRevenue = filteredDoctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+    const commissionsPaid = filteredSellerPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalExpenses = filteredCompanyExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    return {
         totalRevenue,
         commissionsPaid,
         totalExpenses,
         netProfit: totalRevenue - commissionsPaid - totalExpenses,
     }
-  }, [doctors, sellers, patients, filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
+  }, [filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
 
   const chartData = useMemo(() => ([
     {
       label: timeRangeLabels[timeRange],
-      Ingresos: stats.totalRevenue,
-      Comisiones: stats.commissionsPaid,
-      Gastos: stats.totalExpenses,
+      Ingresos: timeRangedStats.totalRevenue,
+      Comisiones: timeRangedStats.commissionsPaid,
+      Gastos: timeRangedStats.totalExpenses,
     }
-  ]), [timeRange, stats]);
+  ]), [timeRange, timeRangedStats]);
 
   const chartConfig = {
     Ingresos: { label: "Ingresos", color: "hsl(var(--chart-2))" },
@@ -1314,9 +1324,9 @@ export default function AdminDashboardPage() {
     doc.setFontSize(12);
     const summaryY = 60;
     const summaryData = [
-        ["Ingresos Totales (Suscripciones):", `$${stats.totalRevenue.toFixed(2)}`],
-        ["Comisiones Pagadas a Vendedoras:", `$${stats.commissionsPaid.toFixed(2)}`],
-        ["Gastos Operativos:", `$${stats.totalExpenses.toFixed(2)}`],
+        ["Ingresos Totales (Suscripciones):", `$${timeRangedStats.totalRevenue.toFixed(2)}`],
+        ["Comisiones Pagadas a Vendedoras:", `$${timeRangedStats.commissionsPaid.toFixed(2)}`],
+        ["Gastos Operativos:", `$${timeRangedStats.totalExpenses.toFixed(2)}`],
     ];
     summaryData.forEach((row, index) => {
         doc.text(row[0], 16, summaryY + (index * 8));
@@ -1326,7 +1336,7 @@ export default function AdminDashboardPage() {
     doc.setFont("helvetica", "bold");
     doc.line(14, summaryY + (summaryData.length * 8) - 2, 196, summaryY + (summaryData.length * 8) - 2);
     doc.text("Beneficio Neto:", 16, summaryY + (summaryData.length * 8) + 5);
-    doc.text(`$${stats.netProfit.toFixed(2)}`, 194, summaryY + (summaryData.length * 8) + 5, { align: 'right' });
+    doc.text(`$${timeRangedStats.netProfit.toFixed(2)}`, 194, summaryY + (summaryData.length * 8) + 5, { align: 'right' });
     doc.setFont("helvetica", "normal");
     
     let currentY = summaryY + (summaryData.length * 8) + 20;
@@ -1417,8 +1427,8 @@ export default function AdminDashboardPage() {
                                   <Stethoscope className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold">{stats.totalDoctors}</div>
-                                  <p className="text-xs text-muted-foreground">{stats.activeDoctors} activos</p>
+                                  <div className="text-2xl font-bold">{globalStats.totalDoctors}</div>
+                                  <p className="text-xs text-muted-foreground">{globalStats.activeDoctors} activos</p>
                               </CardContent>
                           </Card>
                            <Card>
@@ -1427,7 +1437,7 @@ export default function AdminDashboardPage() {
                                   <UserCheck className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold">{stats.totalSellers}</div>
+                                  <div className="text-2xl font-bold">{globalStats.totalSellers}</div>
                                   <p className="text-xs text-muted-foreground">Gestionando referidos</p>
                               </CardContent>
                           </Card>
@@ -1437,7 +1447,7 @@ export default function AdminDashboardPage() {
                                   <Users className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold">{stats.totalPatients}</div>
+                                  <div className="text-2xl font-bold">{globalStats.totalPatients}</div>
                                   <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
                               </CardContent>
                           </Card>
@@ -1447,7 +1457,7 @@ export default function AdminDashboardPage() {
                                   <BarChartIcon className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${stats.netProfit.toFixed(2)}</div>
+                                  <div className={`text-2xl font-bold ${globalStats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${globalStats.netProfit.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Ingresos - Egresos (Global)</p>
                               </CardContent>
                           </Card>
@@ -1801,7 +1811,7 @@ export default function AdminDashboardPage() {
                                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</div>
+                                  <div className="text-2xl font-bold text-green-600">${timeRangedStats.totalRevenue.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
@@ -1811,7 +1821,7 @@ export default function AdminDashboardPage() {
                                   <Landmark className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold text-amber-600">${stats.commissionsPaid.toFixed(2)}</div>
+                                  <div className="text-2xl font-bold text-amber-600">${timeRangedStats.commissionsPaid.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
@@ -1821,7 +1831,7 @@ export default function AdminDashboardPage() {
                                   <TrendingDown className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className="text-2xl font-bold text-red-600">${stats.totalExpenses.toFixed(2)}</div>
+                                  <div className="text-2xl font-bold text-red-600">${timeRangedStats.totalExpenses.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
@@ -1831,7 +1841,7 @@ export default function AdminDashboardPage() {
                                   <Wallet className="h-4 w-4 text-muted-foreground" />
                               </CardHeader>
                               <CardContent>
-                                  <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${stats.netProfit.toFixed(2)}</div>
+                                  <div className={`text-2xl font-bold ${timeRangedStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${timeRangedStats.netProfit.toFixed(2)}</div>
                                   <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
                               </CardContent>
                           </Card>
