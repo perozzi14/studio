@@ -419,12 +419,12 @@ export default function AdminDashboardPage() {
   }, [logoUrl, heroImageUrl]);
   
   const handleSaveImages = async () => {
-    let finalLogoUrl = logoUrl;
+    let finalLogoUrl = tempLogoUrl;
     if (logoFile) {
         finalLogoUrl = await fileToDataUri(logoFile);
     }
     
-    let finalHeroImageUrl = heroImageUrl;
+    let finalHeroImageUrl = tempHeroImageUrl;
     if (heroImageFile) {
       finalHeroImageUrl = await fileToDataUri(heroImageFile);
     }
