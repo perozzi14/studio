@@ -302,7 +302,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -341,7 +341,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -380,7 +380,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -424,7 +424,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -552,7 +552,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -591,7 +591,7 @@ export function Header() {
                         <div className="flex-1">
                             <p className="font-semibold text-sm">{n.title}</p>
                             <p className="text-xs text-muted-foreground">{n.description}</p>
-                            <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                            <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                         </Link>
                     ))}
@@ -630,7 +630,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -674,7 +674,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{n.date && formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
