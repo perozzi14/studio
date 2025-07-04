@@ -233,32 +233,46 @@ export default function DoctorDashboardPage() {
         };
     }, [appointments]);
 
-    const upcomingMonthsForFilter = useMemo(() => {
+    const appointmentMonthsForFilter = useMemo(() => {
         const months = new Set<string>();
-        upcomingAppointments.forEach(appt => {
+        appointments.forEach(appt => {
             months.add(format(new Date(appt.date + 'T00:00:00'), 'yyyy-MM'));
         });
-        return Array.from(months).sort();
-    }, [upcomingAppointments]);
+        return Array.from(months).sort((a, b) => b.localeCompare(a));
+    }, [appointments]);
 
-    const filteredUpcomingAppointments = useMemo(() => {
+    const displayedAppointments = useMemo(() => {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
+
         if (appointmentFilter === 'upcoming') {
             return upcomingAppointments;
         }
         if (appointmentFilter === 'today') {
-            const todayStr = format(new Date(), 'yyyy-MM-dd');
-            return upcomingAppointments.filter(a => a.date === todayStr);
+            return appointments.filter(a => a.date === todayStr).sort((a,b) => a.time.localeCompare(b.time));
         }
         if (appointmentFilter === 'tomorrow') {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
-            return upcomingAppointments.filter(a => a.date === tomorrowStr);
+            return appointments.filter(a => a.date === tomorrowStr).sort((a,b) => a.time.localeCompare(b.time));
         }
-        // Filter by month 'YYYY-MM'
-        return upcomingAppointments.filter(a => a.date.startsWith(appointmentFilter));
-    }, [appointmentFilter, upcomingAppointments]);
+        if (appointmentFilter === 'history') {
+            return pastAppointments;
+        }
+        // If it's a month filter
+        return appointments
+            .filter(a => a.date.startsWith(appointmentFilter))
+            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time));
 
+    }, [appointmentFilter, appointments, upcomingAppointments, pastAppointments]);
+
+    const filterTitle = useMemo(() => {
+        if (appointmentFilter === 'upcoming') return 'Próximas Citas';
+        if (appointmentFilter === 'today') return 'Citas de Hoy';
+        if (appointmentFilter === 'tomorrow') return 'Citas de Mañana';
+        if (appointmentFilter === 'history') return 'Historial de Citas';
+        return `Citas de ${format(new Date(appointmentFilter + '-02'), 'LLLL yyyy', {locale: es})}`;
+    }, [appointmentFilter]);
 
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
         await firestoreService.updateAppointment(id, data);
@@ -487,7 +501,7 @@ export default function DoctorDashboardPage() {
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                         <div>
-                                            <CardTitle>Próximas Citas</CardTitle>
+                                            <CardTitle>Agenda de Citas</CardTitle>
                                             <CardDescription>
                                                 Visualiza y gestiona tus citas programadas.
                                             </CardDescription>
@@ -498,11 +512,12 @@ export default function DoctorDashboardPage() {
                                                     <SelectValue placeholder="Filtrar citas..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="upcoming">Ver todas las próximas</SelectItem>
-                                                    <SelectItem value="today">Ver Hoy</SelectItem>
-                                                    <SelectItem value="tomorrow">Ver Mañana</SelectItem>
+                                                    <SelectItem value="upcoming">Próximas Citas</SelectItem>
+                                                    <SelectItem value="today">Citas de Hoy</SelectItem>
+                                                    <SelectItem value="tomorrow">Citas de Mañana</SelectItem>
+                                                    <SelectItem value="history">Historial de Citas</SelectItem>
                                                     <Separator />
-                                                    {upcomingMonthsForFilter.map(month => (
+                                                    {appointmentMonthsForFilter.map(month => (
                                                         <SelectItem key={month} value={month}>
                                                             {format(new Date(month + '-02'), "LLLL yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
                                                         </SelectItem>
@@ -513,33 +528,20 @@ export default function DoctorDashboardPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    {filteredUpcomingAppointments.length > 0 ? (
+                                    <h3 className="text-lg font-semibold mb-4">{filterTitle} ({displayedAppointments.length})</h3>
+                                    {displayedAppointments.length > 0 ? (
                                         <div className="space-y-4">
-                                            {filteredUpcomingAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)}
+                                            {displayedAppointments.map(appt => {
+                                                const today = new Date();
+                                                today.setHours(0, 0, 0, 0);
+                                                const apptDate = new Date(appt.date + 'T00:00:00');
+                                                const isPast = apptDate < today || appt.attendance !== 'Pendiente';
+                                                return <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast={isPast} />
+                                            })}
                                         </div>
                                     ) : (
                                         <p className="text-center text-muted-foreground py-10">
-                                            No hay citas próximas que coincidan con el filtro seleccionado.
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Historial de Citas</CardTitle>
-                                    <CardDescription>
-                                        Registro de tus consultas pasadas.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {pastAppointments.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {pastAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast />)}
-                                        </div>
-                                    ) : (
-                                        <p className="text-center text-muted-foreground py-10">
-                                            Aún no tienes citas en tu historial.
+                                            No hay citas que coincidan con el filtro seleccionado.
                                         </p>
                                     )}
                                 </CardContent>
