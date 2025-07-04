@@ -208,7 +208,7 @@ export type PatientNotification = {
     appointmentId: string;
     title: string;
     description: string;
-    relativeTime: string;
+    date: string; // ISO string of the event
     read: boolean;
     createdAt: string; // ISO string to sort and manage notifications
     link: string;
