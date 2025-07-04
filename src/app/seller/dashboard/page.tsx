@@ -190,11 +190,15 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
 
     try {
-        const [seller, allDocs, allPayments, materials, allTickets, allDoctorPayments] = await Promise.all([
+        // Fetch global data like marketing materials separately for robustness
+        const materials = await firestoreService.getMarketingMaterials();
+        setMarketingMaterials(materials);
+
+        // Fetch seller-specific data
+        const [seller, allDocs, allPayments, allTickets, allDoctorPayments] = await Promise.all([
             firestoreService.getSeller(user.id),
             firestoreService.getDoctors(),
             firestoreService.getSellerPayments(),
-            firestoreService.getMarketingMaterials(),
             firestoreService.getSupportTickets(),
             firestoreService.getDoctorPayments(),
         ]);
@@ -205,7 +209,6 @@ export default function SellerDashboardPage() {
             setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
             setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
             setDoctorPayments(allDoctorPayments.filter(p => referredDoctorIds.includes(p.doctorId)));
-            setMarketingMaterials(materials);
             setSupportTickets(allTickets.filter(t => t.userId === user.email));
         }
     } catch (error) {
