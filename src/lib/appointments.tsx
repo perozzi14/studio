@@ -33,7 +33,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   }, [fetchAppointments]);
 
   const addAppointment = useCallback(async (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName'>) => {
-    if (!user) return; 
+    if (!user || user.role !== 'patient') return; 
 
     const newAppointment: Omit<Appointment, 'id'> = {
       ...newAppointmentData,

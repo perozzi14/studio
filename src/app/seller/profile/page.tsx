@@ -26,6 +26,14 @@ const SellerProfileSchema = z.object({
   profileImage: z.string().optional().nullable(),
 });
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export default function SellerProfilePage() {
   const { user, updateUser } = useAuth();
@@ -57,11 +65,20 @@ export default function SellerProfilePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     
-    const result = SellerProfileSchema.safeParse({ fullName, phone, profileImage });
+    let imageUri = profileImage;
+    if (newImageFile) {
+        imageUri = await fileToDataUri(newImageFile);
+    }
+
+    const result = SellerProfileSchema.safeParse({ 
+        fullName, 
+        phone, 
+        profileImage: imageUri 
+    });
 
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');

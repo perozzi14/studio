@@ -421,16 +421,12 @@ export default function AdminDashboardPage() {
   const handleSaveImages = async () => {
     let finalLogoUrl = logoUrl;
     if (logoFile) {
-        finalLogoUrl = 'https://placehold.co/150x50.png';
-    } else {
-        finalLogoUrl = tempLogoUrl;
+        finalLogoUrl = await fileToDataUri(logoFile);
     }
     
     let finalHeroImageUrl = heroImageUrl;
     if (heroImageFile) {
-      finalHeroImageUrl = 'https://placehold.co/1200x600.png';
-    } else {
-      finalHeroImageUrl = tempHeroImageUrl;
+      finalHeroImageUrl = await fileToDataUri(heroImageFile);
     }
     
     await Promise.all([
@@ -721,6 +717,11 @@ export default function AdminDashboardPage() {
         toast({ variant: "destructive", title: "Errores de Validación", description: errorMessage });
         return;
     }
+    
+    if (!paymentProofFile) {
+        toast({ variant: "destructive", title: "Archivo requerido", description: "Por favor, sube un comprobante de pago."});
+        return;
+    }
 
     const { transactionId } = result.data;
     
@@ -732,14 +733,15 @@ export default function AdminDashboardPage() {
             commissionAmount: (cityFeesMap.get(doc.city) || 0) * managingSeller.commissionRate
         }));
 
-    // TODO: In a real app, upload proofFile and get URL
+    const proofUrl = await fileToDataUri(paymentProofFile);
+
     const newPayment: Omit<SellerPayment, 'id'> = {
       sellerId: managingSeller.id,
       paymentDate: new Date().toISOString().split('T')[0],
       amount: paymentAmount,
       period: paymentPeriod,
       includedDoctors: includedDoctorsWithCommission,
-      paymentProofUrl: 'https://placehold.co/400x200.png',
+      paymentProofUrl: proofUrl,
       transactionId,
     };
 

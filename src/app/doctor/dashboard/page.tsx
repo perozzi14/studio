@@ -98,6 +98,15 @@ const timeRangeLabels: Record<string, string> = {
   today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Global',
 };
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 export default function DoctorDashboardPage() {
     const { user, updateUser, changePassword } = useAuth();
     const router = useRouter();
@@ -346,10 +355,14 @@ export default function DoctorDashboardPage() {
         }
         
         let profileImageUrl = doctorData.profileImage;
-        if (profileImageFile) { profileImageUrl = 'https://placehold.co/400x400.png'; }
+        if (profileImageFile) { 
+            profileImageUrl = await fileToDataUri(profileImageFile);
+        }
         
         let bannerImageUrl = doctorData.bannerImage;
-        if (bannerImageFile) { bannerImageUrl = 'https://placehold.co/1200x400.png'; }
+        if (bannerImageFile) {
+            bannerImageUrl = await fileToDataUri(bannerImageFile);
+        }
 
         await firestoreService.updateDoctor(doctorData.id, {...result.data, profileImage: profileImageUrl, bannerImage: bannerImageUrl});
         toast({ title: 'Perfil Actualizado' });
@@ -440,6 +453,8 @@ export default function DoctorDashboardPage() {
         const transactionId = formData.get('transactionId') as string;
         const amount = parseFloat(formData.get('amount') as string);
         
+        const proofUrl = await fileToDataUri(paymentProofFile);
+
         await firestoreService.addDoctorPayment({
             doctorId: doctorData.id,
             doctorName: doctorData.name,
@@ -447,7 +462,7 @@ export default function DoctorDashboardPage() {
             amount: amount,
             status: 'Pending',
             transactionId,
-            paymentProofUrl: 'https://placehold.co/400x300.png',
+            paymentProofUrl: proofUrl,
         });
         
         await firestoreService.updateDoctor(doctorData.id, { subscriptionStatus: 'pending_payment' });

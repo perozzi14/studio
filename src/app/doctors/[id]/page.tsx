@@ -25,6 +25,15 @@ import Link from "next/link";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 function generateTimeSlots(startTime: string, endTime: string, duration: number): string[] {
     const slots: string[] = [];
     const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -198,7 +207,7 @@ export default function DoctorProfilePage() {
     setStep('selectPayment');
   };
 
-  const handlePaymentSubmit = () => {
+  const handlePaymentSubmit = async () => {
     if (!doctor || !selectedDate || !selectedTime || !paymentMethod) return;
 
     if (!user) {
@@ -218,12 +227,13 @@ export default function DoctorProfilePage() {
       });
       return;
     }
+    
+    let proofUrl: string | null = null;
+    if (paymentMethod === 'transferencia' && paymentProof) {
+        proofUrl = await fileToDataUri(paymentProof);
+    }
 
-    // Note: In a real app, paymentProof would be uploaded to a storage service
-    // and the URL would be saved. Here we use a placeholder.
-    const proofUrl = paymentProof ? URL.createObjectURL(paymentProof) : null;
-
-    addAppointment({
+    await addAppointment({
       doctorId: doctor.id,
       doctorName: doctor.name,
       consultationFee: doctor.consultationFee || 0,
