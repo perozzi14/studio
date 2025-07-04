@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -18,6 +17,8 @@ import { ArrowLeft, Stethoscope, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { useSettings } from '@/lib/settings';
+import Image from 'next/image';
 
 
 const RegisterSchema = z.object({
@@ -38,6 +39,7 @@ const RegisterSchema = z.object({
 export default function RegisterPage() {
   const { register } = useAuth();
   const { toast } = useToast();
+  const { logoUrl } = useSettings();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,9 +72,22 @@ export default function RegisterPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
-           <div className="inline-block mx-auto mb-4">
-            <Stethoscope className="h-10 w-10 text-primary" />
-          </div>
+          {logoUrl ? (
+            <div className="mx-auto mb-4 h-16 flex items-center">
+              <Image 
+                src={logoUrl} 
+                alt="SUMA Logo" 
+                width={160} 
+                height={60} 
+                className="object-contain"
+                data-ai-hint="logo"
+              />
+            </div>
+          ) : (
+            <div className="inline-block mx-auto mb-4">
+              <Stethoscope className="h-10 w-10 text-primary" />
+            </div>
+          )}
           <CardTitle className="text-2xl font-headline">
             Registro de Paciente
           </CardTitle>

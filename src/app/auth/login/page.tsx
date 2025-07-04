@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -14,11 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Stethoscope } from "lucide-react";
+import { ArrowLeft, Stethoscope, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useSettings } from "@/lib/settings";
+import Image from "next/image";
+
 
 const LoginSchema = z.object({
   email: z.string().email("Correo electrónico inválido."),
@@ -28,6 +29,7 @@ const LoginSchema = z.object({
 export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
+  const { logoUrl } = useSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -58,9 +60,22 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
-          <div className="inline-block mx-auto mb-4">
-            <Stethoscope className="h-10 w-10 text-primary" />
-          </div>
+          {logoUrl ? (
+            <div className="mx-auto mb-4 h-16 flex items-center">
+              <Image 
+                src={logoUrl} 
+                alt="SUMA Logo" 
+                width={160} 
+                height={60} 
+                className="object-contain"
+                data-ai-hint="logo"
+              />
+            </div>
+          ) : (
+            <div className="inline-block mx-auto mb-4">
+              <Stethoscope className="h-10 w-10 text-primary" />
+            </div>
+          )}
           <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
             Ingresa tus credenciales para acceder.

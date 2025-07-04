@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -20,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import Image from 'next/image';
 
 const DoctorRegistrationSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -42,7 +42,7 @@ const DoctorRegistrationSchema = z.object({
 
 export default function RegisterDoctorPage() {
   const { registerDoctor } = useAuth();
-  const { cities, specialties } = useSettings();
+  const { cities, specialties, logoUrl } = useSettings();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -99,9 +99,22 @@ export default function RegisterDoctorPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="mx-auto max-w-lg w-full">
         <CardHeader className="text-center">
-           <div className="inline-block mx-auto mb-4">
-            <Stethoscope className="h-10 w-10 text-primary" />
-          </div>
+           {logoUrl ? (
+            <div className="mx-auto mb-4 h-16 flex items-center">
+              <Image 
+                src={logoUrl} 
+                alt="SUMA Logo" 
+                width={160} 
+                height={60} 
+                className="object-contain"
+                data-ai-hint="logo"
+              />
+            </div>
+          ) : (
+            <div className="inline-block mx-auto mb-4">
+              <Stethoscope className="h-10 w-10 text-primary" />
+            </div>
+          )}
           <CardTitle className="text-2xl font-headline">
             Registro para Médicos
           </CardTitle>
