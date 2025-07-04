@@ -35,15 +35,15 @@ import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import * as firestoreService from '@/lib/firestoreService';
 import { type AdminNotification, type DoctorNotification, type PatientNotification, type SellerNotification } from "@/lib/types";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
 export function Header() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
-  const { doctorNotifications, doctorUnreadCount, markDoctorNotificationsAsRead, checkAndSetDoctorNotifications } = useDoctorNotifications();
-  const { sellerNotifications, sellerUnreadCount, markSellerNotificationsAsRead, checkAndSetSellerNotifications } = useSellerNotifications();
+  const { doctorNotifications, doctorUnreadCount, markDoctorNotificationsAsRead } = useDoctorNotifications();
+  const { sellerNotifications, sellerUnreadCount, markSellerNotificationsAsRead } = useSellerNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -143,7 +143,7 @@ export function Header() {
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     setAdminNotifications(allNotifications);
-    setAdminUnreadCount(allNotifications.length);
+    setAdminUnreadCount(allNotifications.filter(n => !n.read).length);
   }, [user]);
 
   useEffect(() => {
@@ -152,46 +152,6 @@ export function Header() {
     return () => clearInterval(interval);
   }, [fetchAdminNotifications]);
   
-  useEffect(() => {
-    const fetchDoctorDataForNotifications = async () => {
-        if (user?.role === 'doctor' && user.id) {
-            const [appointments, tickets, payments] = await Promise.all([
-                firestoreService.getDoctorAppointments(user.id),
-                firestoreService.getSupportTickets(),
-                firestoreService.getDoctorPayments()
-            ]);
-            const userTickets = tickets.filter(t => t.userId === user.email);
-            const userPayments = payments.filter(p => p.doctorId === user.id);
-            checkAndSetDoctorNotifications(appointments, userTickets, userPayments);
-        }
-    };
-    
-    fetchDoctorDataForNotifications();
-    const interval = setInterval(fetchDoctorDataForNotifications, 30000); // Check every 30s
-    return () => clearInterval(interval);
-  }, [user, checkAndSetDoctorNotifications]);
-
-  useEffect(() => {
-    const fetchSellerDataForNotifications = async () => {
-        if (user?.role === 'seller' && user.id) {
-            const [payments, tickets, doctors] = await Promise.all([
-                firestoreService.getSellerPayments(),
-                firestoreService.getSupportTickets(),
-                firestoreService.getDoctors()
-            ]);
-            const userPayments = payments.filter(p => p.sellerId === user.id);
-            const userTickets = tickets.filter(t => t.userId === user.email);
-            const userDoctors = doctors.filter(d => d.sellerId === user.id);
-            checkAndSetSellerNotifications(userPayments, userTickets, userDoctors);
-        }
-    };
-    
-    fetchSellerDataForNotifications();
-    const interval = setInterval(fetchSellerDataForNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [user, checkAndSetSellerNotifications]);
-
-
   const markAdminNotificationsAsRead = async () => {
     if (adminUnreadCount === 0) return;
 
@@ -342,7 +302,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -381,7 +341,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -420,7 +380,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -464,7 +424,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -592,7 +552,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -631,7 +591,7 @@ export function Header() {
                         <div className="flex-1">
                             <p className="font-semibold text-sm">{n.title}</p>
                             <p className="text-xs text-muted-foreground">{n.description}</p>
-                            <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                            <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                         </Link>
                     ))}
@@ -670,7 +630,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
@@ -714,7 +674,7 @@ export function Header() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{n.title}</p>
                           <p className="text-xs text-muted-foreground">{n.description}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(n.date), { locale: es, addSuffix: true })}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(parseISO(n.date), { locale: es, addSuffix: true })}</p>
                         </div>
                       </Link>
                     ))}
