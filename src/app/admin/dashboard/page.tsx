@@ -181,6 +181,14 @@ const MarketingMaterialSchema = z.object({
   thumbnailUrl: z.string().min(1, "Se requiere una URL de miniatura o un archivo."),
 });
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -233,6 +241,7 @@ export default function AdminDashboardPage() {
   const [editingMaterial, setEditingMaterial] = useState<MarketingMaterial | null>(null);
   const [materialFile, setMaterialFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [isSavingMaterial, setIsSavingMaterial] = useState(false);
   
   // States for Support
   const [isSupportDetailDialogOpen, setIsSupportDetailDialogOpen] = useState(false);
@@ -1047,39 +1056,49 @@ export default function AdminDashboardPage() {
 
   const handleSaveMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      setIsSavingMaterial(true);
       const formData = new FormData(e.currentTarget);
 
-      const urlFromInput = formData.get('url') as string;
-      const thumbnailUrlFromInput = formData.get('thumbnailUrl') as string;
+      let finalUrl = formData.get('url') as string;
+      let finalThumbnailUrl = formData.get('thumbnailUrl') as string;
 
-      // In a real app, you would upload to storage. Here, we prioritize file upload and use a placeholder URL.
-      const finalUrl = materialFile ? 'https://placehold.co/1200x600.png' : urlFromInput;
-      const finalThumbnailUrl = thumbnailFile ? 'https://placehold.co/600x400.png' : thumbnailUrlFromInput;
-      
-      const dataToValidate = {
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        type: formData.get('type') as MarketingMaterial['type'],
-        url: finalUrl,
-        thumbnailUrl: finalThumbnailUrl,
-      };
+      try {
+          if (materialFile) {
+              finalUrl = await fileToDataUri(materialFile);
+          }
+          if (thumbnailFile) {
+              finalThumbnailUrl = await fileToDataUri(thumbnailFile);
+          }
+          
+          const dataToValidate = {
+              title: formData.get('title') as string,
+              description: formData.get('description') as string,
+              type: formData.get('type') as MarketingMaterial['type'],
+              url: finalUrl,
+              thumbnailUrl: finalThumbnailUrl || (finalUrl.startsWith('data:image') ? finalUrl : 'https://placehold.co/600x400.png'),
+          };
 
-      const result = MarketingMaterialSchema.safeParse(dataToValidate);
-      if (!result.success) {
-          toast({ variant: 'destructive', title: 'Errores de Validación', description: result.error.errors.map(e => e.message).join(' ') });
-          return;
+          const result = MarketingMaterialSchema.safeParse(dataToValidate);
+          if (!result.success) {
+              toast({ variant: 'destructive', title: 'Errores de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+              return;
+          }
+          
+          if (editingMaterial) {
+              await firestoreService.updateMarketingMaterial(editingMaterial.id, result.data);
+              toast({ title: "Material Actualizado", description: "El material de marketing ha sido modificado." });
+          } else {
+              await firestoreService.addMarketingMaterial(result.data);
+              toast({ title: "Material Agregado", description: "El nuevo material de marketing está disponible." });
+          }
+          
+          fetchData();
+          setIsMarketingDialogOpen(false);
+      } catch (error) {
+          toast({ variant: 'destructive', title: 'Error al procesar archivo', description: 'No se pudo leer el archivo seleccionado.' });
+      } finally {
+          setIsSavingMaterial(false);
       }
-      
-      if (editingMaterial) {
-          await firestoreService.updateMarketingMaterial(editingMaterial.id, result.data);
-          toast({ title: "Material Actualizado", description: "El material de marketing ha sido modificado." });
-      } else {
-          await firestoreService.addMarketingMaterial(result.data);
-          toast({ title: "Material Agregado", description: "El nuevo material de marketing está disponible." });
-      }
-      
-      fetchData();
-      setIsMarketingDialogOpen(false);
   };
 
   const handleBeautySpecialtyChange = async (specialty: string, checked: boolean) => {
@@ -2722,6 +2741,7 @@ export default function AdminDashboardPage() {
             setEditingMaterial(null);
             setMaterialFile(null);
             setThumbnailFile(null);
+            setIsSavingMaterial(false);
         }
         setIsMarketingDialogOpen(isOpen);
       }}>
@@ -2762,7 +2782,10 @@ export default function AdminDashboardPage() {
             </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" disabled={isSavingMaterial}>
+                {isSavingMaterial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
