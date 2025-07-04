@@ -21,7 +21,7 @@ import {
     UserCircle, Edit, Link as LinkIcon, Download, Eye, Upload, Video, FileText, Image as ImageIcon, ClipboardList, CalendarDays, Clock, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare, FileDown, Briefcase, Calendar, Lock, Shield, X, AlertCircle, HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, parseISO, formatDistanceToNow, addHours } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, parseISO, formatDistanceToNow, addHours, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -143,8 +143,7 @@ export default function DoctorDashboardPage() {
     const [tempSchedule, setTempSchedule] = useState<Schedule | null>(null);
     const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
     const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
-    const [appointmentFilter, setAppointmentFilter] = useState('upcoming');
-
+    const [pendingMonthFilter, setPendingMonthFilter] = useState('all');
 
     const fetchData = useCallback(async () => {
         if (!user || user.role !== 'doctor' || !user.id) return;
@@ -211,68 +210,55 @@ export default function DoctorDashboardPage() {
         return { totalRevenue, totalExpenses, netProfit: totalRevenue - totalExpenses };
     }, [doctorData, appointments, timeRange]);
 
-     const { upcomingAppointments, pastAppointments } = useMemo(() => {
+    const { todayAppointments, tomorrowAppointments, upcomingAppointments, pastAppointments } = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const todayStr = format(today, 'yyyy-MM-dd');
 
-        const upcoming: Appointment[] = [];
-        const past: Appointment[] = [];
+        const tomorrow = addDays(today, 1);
+        const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
 
+        const todayAppts: Appointment[] = [];
+        const tomorrowAppts: Appointment[] = [];
+        const upcomingAppts: Appointment[] = [];
+        const pastAppts: Appointment[] = [];
+        
         appointments.forEach(appt => {
-            const apptDate = new Date(appt.date + 'T00:00:00');
-            if (appt.attendance !== 'Pendiente' || apptDate < today) {
-                past.push(appt);
-            } else {
-                upcoming.push(appt);
+            const apptDate = parseISO(appt.date);
+             if (appt.attendance !== 'Pendiente' || apptDate < today) {
+                pastAppts.push(appt);
+            } else if (appt.date === todayStr) {
+                todayAppts.push(appt);
+            } else if (appt.date === tomorrowStr) {
+                tomorrowAppts.push(appt);
+            } else if (apptDate > tomorrow) {
+                upcomingAppts.push(appt);
             }
         });
 
-        return {
-            upcomingAppointments: upcoming.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)),
-            pastAppointments: past.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time)),
-        };
+        const sortByTime = (a: Appointment, b: Appointment) => a.time.localeCompare(b.time);
+        todayAppts.sort(sortByTime);
+        tomorrowAppts.sort(sortByTime);
+        upcomingAppts.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time));
+        pastAppts.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time));
+
+        return { todayAppointments: todayAppts, tomorrowAppointments: tomorrowAppts, upcomingAppointments: upcomingAppts, pastAppointments: pastAppts };
     }, [appointments]);
 
-    const appointmentMonthsForFilter = useMemo(() => {
+    const pendingMonthsForFilter = useMemo(() => {
         const months = new Set<string>();
-        appointments.forEach(appt => {
+        upcomingAppointments.forEach(appt => {
             months.add(format(new Date(appt.date + 'T00:00:00'), 'yyyy-MM'));
         });
-        return Array.from(months).sort((a, b) => b.localeCompare(a));
-    }, [appointments]);
-
-    const displayedAppointments = useMemo(() => {
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
-
-        if (appointmentFilter === 'upcoming') {
+        return Array.from(months).sort((a, b) => a.localeCompare(b));
+    }, [upcomingAppointments]);
+    
+    const filteredPendingAppointments = useMemo(() => {
+        if (pendingMonthFilter === 'all') {
             return upcomingAppointments;
         }
-        if (appointmentFilter === 'today') {
-            return appointments.filter(a => a.date === todayStr).sort((a,b) => a.time.localeCompare(b.time));
-        }
-        if (appointmentFilter === 'tomorrow') {
-            return appointments.filter(a => a.date === tomorrowStr).sort((a,b) => a.time.localeCompare(b.time));
-        }
-        if (appointmentFilter === 'history') {
-            return pastAppointments;
-        }
-        // If it's a month filter
-        return appointments
-            .filter(a => a.date.startsWith(appointmentFilter))
-            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time));
-
-    }, [appointmentFilter, appointments, upcomingAppointments, pastAppointments]);
-
-    const filterTitle = useMemo(() => {
-        if (appointmentFilter === 'upcoming') return 'Próximas Citas';
-        if (appointmentFilter === 'today') return 'Citas de Hoy';
-        if (appointmentFilter === 'tomorrow') return 'Citas de Mañana';
-        if (appointmentFilter === 'history') return 'Historial de Citas';
-        return `Citas de ${format(new Date(appointmentFilter + '-02'), 'LLLL yyyy', {locale: es})}`;
-    }, [appointmentFilter]);
+        return upcomingAppointments.filter(appt => appt.date.startsWith(pendingMonthFilter));
+    }, [upcomingAppointments, pendingMonthFilter]);
 
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
         await firestoreService.updateAppointment(id, data);
@@ -497,27 +483,49 @@ export default function DoctorDashboardPage() {
                     
                     {currentTab === 'appointments' && (
                         <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
+                                        {todayAppointments.length > 0 ? (
+                                            todayAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)
+                                        ) : (
+                                            <p className="text-center text-muted-foreground py-10">No hay citas para hoy.</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
+                                        {tomorrowAppointments.length > 0 ? (
+                                            tomorrowAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)
+                                        ) : (
+                                            <p className="text-center text-muted-foreground py-10">No hay citas para mañana.</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+
                             <Card>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                         <div>
-                                            <CardTitle>Agenda de Citas</CardTitle>
-                                            <CardDescription>
-                                                Visualiza y gestiona tus citas programadas.
-                                            </CardDescription>
+                                            <CardTitle>Próximas Citas Pendientes</CardTitle>
+                                            <CardDescription>Citas a partir de pasado mañana.</CardDescription>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Select value={appointmentFilter} onValueChange={setAppointmentFilter}>
+                                            <Select value={pendingMonthFilter} onValueChange={setPendingMonthFilter}>
                                                 <SelectTrigger className="w-full sm:w-[240px]">
-                                                    <SelectValue placeholder="Filtrar citas..." />
+                                                    <SelectValue placeholder="Filtrar por mes..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="upcoming">Próximas Citas</SelectItem>
-                                                    <SelectItem value="today">Citas de Hoy</SelectItem>
-                                                    <SelectItem value="tomorrow">Citas de Mañana</SelectItem>
-                                                    <SelectItem value="history">Historial de Citas</SelectItem>
+                                                    <SelectItem value="all">Todos los meses</SelectItem>
                                                     <Separator />
-                                                    {appointmentMonthsForFilter.map(month => (
+                                                    {pendingMonthsForFilter.map(month => (
                                                         <SelectItem key={month} value={month}>
                                                             {format(new Date(month + '-02'), "LLLL yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
                                                         </SelectItem>
@@ -527,21 +535,28 @@ export default function DoctorDashboardPage() {
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent>
-                                    <h3 className="text-lg font-semibold mb-4">{filterTitle} ({displayedAppointments.length})</h3>
-                                    {displayedAppointments.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {displayedAppointments.map(appt => {
-                                                const today = new Date();
-                                                today.setHours(0, 0, 0, 0);
-                                                const apptDate = new Date(appt.date + 'T00:00:00');
-                                                const isPast = apptDate < today || appt.attendance !== 'Pendiente';
-                                                return <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast={isPast} />
-                                            })}
-                                        </div>
+                                <CardContent className="space-y-4">
+                                    {filteredPendingAppointments.length > 0 ? (
+                                        filteredPendingAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} />)
                                     ) : (
                                         <p className="text-center text-muted-foreground py-10">
-                                            No hay citas que coincidan con el filtro seleccionado.
+                                            No hay más citas pendientes.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Historial de Citas</CardTitle>
+                                    <CardDescription>Citas pasadas y atendidas.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {pastAppointments.length > 0 ? (
+                                        pastAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={handleOpenDialog} isPast />)
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-10">
+                                            No hay citas en el historial.
                                         </p>
                                     )}
                                 </CardContent>
