@@ -273,7 +273,7 @@ export default function SellerDashboardPage() {
 
 
   const financeStats = useMemo(() => {
-    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [] };
+    if (!sellerData) return { totalReferred: 0, activeReferredCount: 0, pendingCommission: 0, totalEarned: 0, totalExpenses: 0, netProfit: 0, nextPaymentDate: '', currentPeriod: '', filteredPayments: [], filteredExpenses: [], activeReferred: [], doctorsForPendingCommission: [], hasBeenPaidThisPeriod: false };
     
     const now = new Date();
     const currentPeriod = format(now, "LLLL yyyy", { locale: es });
@@ -289,6 +289,8 @@ export default function SellerDashboardPage() {
             return sum + (fee * sellerData.commissionRate);
         }, 0);
     }
+
+    const doctorsForPendingCommission = hasBeenPaidThisPeriod ? [] : activeReferred;
     
     let startDate, endDate;
 
@@ -334,6 +336,8 @@ export default function SellerDashboardPage() {
         filteredPayments,
         filteredExpenses,
         activeReferred,
+        doctorsForPendingCommission,
+        hasBeenPaidThisPeriod,
     };
   }, [referredDoctors, sellerPayments, sellerData, cityFeesMap, timeRange]);
   
@@ -809,8 +813,10 @@ export default function SellerDashboardPage() {
                             <CardHeader>
                                 <CardTitle>Desglose de Comisiones Pendientes</CardTitle>
                                 <CardDescription>
-                                    Desglose de tu próxima comisión para el período de <span className="font-semibold capitalize">{financeStats.currentPeriod}</span>.
-                                    El pago se realizará el <span className="font-semibold text-primary">{financeStats.nextPaymentDate}</span>.
+                                    {financeStats.hasBeenPaidThisPeriod 
+                                        ? `La comisión para el período de ${financeStats.currentPeriod} ya fue procesada.`
+                                        : `Desglose de tu próxima comisión para el período de ${financeStats.currentPeriod}. El pago se realizará el ${financeStats.nextPaymentDate}.`
+                                    }
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -823,8 +829,8 @@ export default function SellerDashboardPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {financeStats.activeReferred.length > 0 ? (
-                                            financeStats.activeReferred.map(doctor => (
+                                        {financeStats.doctorsForPendingCommission.length > 0 ? (
+                                            financeStats.doctorsForPendingCommission.map(doctor => (
                                                 <TableRow key={doctor.id}>
                                                     <TableCell className="font-medium">{doctor.name}</TableCell>
                                                     <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
@@ -834,7 +840,7 @@ export default function SellerDashboardPage() {
                                         ) : (
                                             <TableRow>
                                                 <TableCell colSpan={3} className="h-24 text-center">
-                                                    No tienes médicos activos para generar comisiones.
+                                                    {financeStats.hasBeenPaidThisPeriod ? "Comisión de este mes ya pagada." : "No tienes médicos activos para generar comisiones."}
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -1061,14 +1067,37 @@ export default function SellerDashboardPage() {
                     <div className="py-2 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                         <div className="space-y-1">
                             <p><span className="font-semibold">Fecha de Pago:</span> {format(new Date(selectedPayment.paymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
-                            <p><span className="font-semibold">Monto:</span> <span className="font-bold text-green-600">${selectedPayment.amount.toFixed(2)}</span></p>
                             <p><span className="font-semibold">ID de Transacción:</span> <span className="font-mono text-xs">{selectedPayment.transactionId}</span></p>
                         </div><Separator/>
                         <div><h4 className="font-semibold mb-2">Comprobante de Pago de SUMA</h4><div className="relative aspect-video"><Image src={selectedPayment.paymentProofUrl} alt="Comprobante de pago" fill className="rounded-md border object-contain" data-ai-hint="payment receipt"/></div></div><Separator/>
-                        <div><h4 className="font-semibold mb-2">Médicos Incluidos ({selectedPayment.includedDoctors.length})</h4><ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">{selectedPayment.includedDoctors.map(doc => <li key={doc.id}>{doc.name}</li>)}</ul></div>
+                        <div>
+                            <h4 className="font-semibold mb-2">Desglose de la Comisión</h4>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Médico</TableHead>
+                                        <TableHead className="text-right">Comisión Generada</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {selectedPayment.includedDoctors.map(doc => (
+                                        <TableRow key={doc.id}>
+                                            <TableCell>{doc.name}</TableCell>
+                                            <TableCell className="text-right font-mono">${doc.commissionAmount.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell className="font-bold">Total Recibido</TableCell>
+                                        <TableCell className="text-right font-bold text-green-600 text-lg font-mono">${selectedPayment.amount.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        </div>
                     </div>
                 )}
-                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose></DialogFooter>
+                <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cerrar</Button></DialogClose></DialogFooter>
             </DialogContent>
         </Dialog>
 

@@ -135,13 +135,19 @@ export type Appointment = {
   messages?: ChatMessage[];
 };
 
+export type IncludedDoctorCommission = {
+  id: string;
+  name: string;
+  commissionAmount: number;
+};
+
 export type SellerPayment = {
   id: string;
   sellerId: string;
   paymentDate: string; // YYYY-MM-DD
   amount: number;
   period: string; // e.g., "Mayo 2024"
-  includedDoctors: { id: string; name: string }[];
+  includedDoctors: IncludedDoctorCommission[];
   paymentProofUrl: string;
   transactionId: string;
 };
@@ -240,5 +246,3 @@ export type AppSettings = {
     billingCycleStartDay?: number;
     billingCycleEndDay?: number;
 }
-
-    

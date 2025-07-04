@@ -293,12 +293,19 @@ export const appointments: Appointment[] = [
 export const mockSellerPayments: SellerPayment[] = [
   {
     id: 'pay-1', sellerId: '1', paymentDate: '2024-05-16', amount: 18, period: 'Abril 2024',
-    includedDoctors: [ { id: '1', name: "Dr. Ana Rodriguez" }, { id: '2', name: "Dr. Carlos Sanchez" } ],
+    includedDoctors: [ 
+        { id: '1', name: "Dr. Ana Rodriguez", commissionAmount: 10 }, 
+        { id: '2', name: "Dr. Carlos Sanchez", commissionAmount: 8 } 
+    ],
     paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240516-001'
   },
   {
     id: 'pay-2', sellerId: '1', paymentDate: '2024-04-16', amount: 20.00, period: 'Marzo 2024',
-    includedDoctors: [ { id: '1', name: "Dr. Ana Rodriguez" }, { id: '2', name: "Dr. Carlos Sanchez" } ],
+    includedDoctors: [ 
+        { id: '1', name: "Dr. Ana Rodriguez", commissionAmount: 10 }, 
+        { id: '2', name: "Dr. Carlos Sanchez", commissionAmount: 8 },
+        { id: '3', name: "Dr. Sofia Gomez", commissionAmount: 2 } 
+    ],
     paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240416-001'
   },
 ];

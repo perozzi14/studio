@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City, ChartConfig } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City, ChartConfig, IncludedDoctorCommission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -714,6 +714,14 @@ export default function AdminDashboardPage() {
     }
 
     const { transactionId } = result.data;
+    
+    const includedDoctorsWithCommission = doctors
+        .filter(d => d.sellerId === managingSeller.id && d.status === 'active')
+        .map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            commissionAmount: (cityFeesMap.get(doc.city) || 0) * managingSeller.commissionRate
+        }));
 
     // TODO: In a real app, upload proofFile and get URL
     const newPayment: Omit<SellerPayment, 'id'> = {
@@ -721,7 +729,7 @@ export default function AdminDashboardPage() {
       paymentDate: new Date().toISOString().split('T')[0],
       amount: paymentAmount,
       period: paymentPeriod,
-      includedDoctors: doctors.filter(d => d.sellerId === managingSeller.id && d.status === 'active'),
+      includedDoctors: includedDoctorsWithCommission,
       paymentProofUrl: 'https://placehold.co/400x200.png',
       transactionId,
     };
@@ -1231,7 +1239,7 @@ export default function AdminDashboardPage() {
       Comisiones: stats.commissionsPaid,
       Gastos: stats.totalExpenses,
     }
-  ]), [timeRange, stats, timeRangeLabels]);
+  ]), [timeRange, stats]);
 
   const chartConfig = {
     Ingresos: { label: "Ingresos", color: "hsl(var(--chart-2))" },
