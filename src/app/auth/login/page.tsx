@@ -19,6 +19,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useSettings } from "@/lib/settings";
 import Image from "next/image";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 
 const LoginSchema = z.object({
@@ -27,12 +37,16 @@ const LoginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, sendPasswordReset } = useAuth();
   const { toast } = useToast();
   const { logoUrl } = useSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetLoading, setIsResetLoading] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +69,25 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  
+  const handleResetPassword = async () => {
+      if (!resetEmail) {
+          toast({ variant: 'destructive', title: 'Correo Requerido', description: 'Por favor, ingresa tu correo electrónico.' });
+          return;
+      }
+      const emailValidation = z.string().email("Correo electrónico inválido.").safeParse(resetEmail);
+      if (!emailValidation.success) {
+          toast({ variant: 'destructive', title: 'Error de Validación', description: 'Por favor, ingresa un correo electrónico válido.' });
+          return;
+      }
+      
+      setIsResetLoading(true);
+      await sendPasswordReset(resetEmail);
+      setIsResetLoading(false);
+      setIsResetDialogOpen(false);
+      setResetEmail("");
+  };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -99,12 +132,41 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Link
-                    href="#"
-                    className="ml-auto inline-block text-sm underline"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
+                   <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="link" type="button" className="ml-auto inline-block text-sm underline h-auto p-0">
+                            ¿Olvidaste tu contraseña?
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Restablecer Contraseña</DialogTitle>
+                            <DialogDescription>
+                                Ingresa tu correo electrónico y te enviaremos un enlace para que puedas restablecer tu contraseña.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="reset-email">Correo Electrónico</Label>
+                                <Input
+                                    id="reset-email"
+                                    type="email"
+                                    placeholder="m@example.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    disabled={isResetLoading}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                            <Button type="button" onClick={handleResetPassword} disabled={isResetLoading}>
+                                {isResetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Enviar Correo
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <Input
                   id="password"

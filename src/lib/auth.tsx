@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
-import { getAuth } from "firebase/auth";
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { app } from './firebase';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
@@ -35,6 +34,7 @@ interface AuthContextType {
   updateUser: (data: Partial<Patient | Seller>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   toggleFavoriteDoctor: (doctorId: string) => void;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -339,9 +339,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
     await updateUser({ favoriteDoctorIds: newFavorites });
   };
+  
+  const sendPasswordReset = async (email: string) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({
+            title: 'Correo de Recuperación Enviado',
+            description: 'Revisa tu bandeja de entrada para restablecer tu contraseña.',
+        });
+    } catch (error: any) {
+        console.error("Error sending password reset email:", error);
+        // Firebase Auth now uses 'auth/invalid-email' for non-existent users
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+            toast({
+                variant: 'destructive',
+                title: 'Usuario no encontrado',
+                description: 'No existe una cuenta asociada a este correo electrónico.',
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo enviar el correo de recuperación. Inténtalo de nuevo.',
+            });
+        }
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    login,
+    register,
+    registerDoctor,
+    logout,
+    updateUser,
+    changePassword,
+    toggleFavoriteDoctor,
+    sendPasswordReset
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, registerDoctor, logout, updateUser, changePassword, toggleFavoriteDoctor }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
