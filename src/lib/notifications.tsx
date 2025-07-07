@@ -6,6 +6,7 @@ import type { Appointment, PatientNotification } from './types';
 import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from './auth';
+import { batchUpdatePatientAppointmentsAsRead } from './firestoreService';
 
 interface NotificationContextType {
   notifications: PatientNotification[];
@@ -140,6 +141,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               });
           }
       }
+
+      // --- Attendance Marked ---
+      if (appt.attendance !== 'Pendiente' && appt.readByPatient === false) {
+          const id = `attendance-marked-${appt.id}`;
+          if (!existingIds.has(id)) {
+              newNotificationsMap.set(id, {
+                  id,
+                  type: 'attendance_marked',
+                  appointmentId: appt.id,
+                  title: `Cita Finalizada`,
+                  description: `El Dr. ${appt.doctorName} ha marcado tu cita como "${appt.attendance}".`,
+                  date: now.toISOString(),
+                  read: false,
+                  createdAt: now.toISOString(),
+                  link: '/dashboard',
+              });
+          }
+      }
     });
 
     if (newNotificationsMap.size > 0) {
@@ -153,15 +172,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [user, notifications]);
 
-  const markAllAsRead = useCallback(() => {
-    if (!user?.id || user.role !== 'patient') return;
+  const markAllAsRead = useCallback(async () => {
+    if (!user?.id || user.role !== 'patient' || unreadCount === 0) return;
 
     const storageKey = getNotificationStorageKey(user.id);
     const updated = notifications.map(n => ({ ...n, read: true }));
     localStorage.setItem(storageKey, JSON.stringify(updated));
     setNotifications(updated);
     setUnreadCount(0);
-  }, [notifications, user]);
+    
+    const appointmentIdsToUpdate = notifications
+      .filter(n => n.type === 'attendance_marked' && !n.read)
+      .map(n => n.appointmentId);
+      
+    if (appointmentIdsToUpdate.length > 0) {
+        await batchUpdatePatientAppointmentsAsRead(appointmentIdsToUpdate);
+    }
+  }, [notifications, user, unreadCount]);
   
   const value = { notifications, unreadCount, checkAndSetNotifications, markAllAsRead };
 

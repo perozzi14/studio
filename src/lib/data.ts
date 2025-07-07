@@ -249,7 +249,7 @@ export const appointments: Appointment[] = [
     consultationFee: 50,
     totalPrice: 80, 
     paymentMethod: 'transferencia', paymentStatus: 'Pendiente', paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: 'Tomar 1 pastilla de Losartán Potásico cada 12 horas. Repetir EKG en 3 meses.',
+    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: 'Tomar 1 pastilla de Losartán Potásico cada 12 horas. Repetir EKG en 3 meses.', readByDoctor: true, readByPatient: true,
   },
   {
     id: "appt2", patientId: "pat2", patientName: "Jorge Paez", doctorName: "Dr. Carlos Sanchez", doctorId: '2',
@@ -258,7 +258,7 @@ export const appointments: Appointment[] = [
     consultationFee: 45,
     totalPrice: 105, 
     paymentMethod: 'efectivo', paymentStatus: 'Pendiente', paymentProof: null,
-    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '',
+    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
   },
   {
     id: "appt3", patientId: "pat3", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
@@ -267,7 +267,7 @@ export const appointments: Appointment[] = [
     consultationFee: 50,
     totalPrice: 130, 
     paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '',
+    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
   },
   {
     id: "appt4", patientId: "pat6", patientName: "Luis Ramirez", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
@@ -277,7 +277,7 @@ export const appointments: Appointment[] = [
     totalPrice: 50, 
     paymentMethod: 'efectivo', paymentStatus: 'Pagado', paymentProof: null,
     attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Paciente presenta arritmia leve, se recomienda seguimiento y control de estrés.',
-    prescription: 'Concor 2.5mg, 1 al día. Dieta baja en sodio.',
+    prescription: 'Concor 2.5mg, 1 al día.', readByDoctor: true, readByPatient: true,
   },
   {
     id: "appt5", patientId: "pat5", patientName: "Paciente de Prueba", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
@@ -286,7 +286,7 @@ export const appointments: Appointment[] = [
     consultationFee: 50,
     totalPrice: 50, 
     paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
-    attendance: 'No Asistió', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'El paciente no asistió a la cita. Contactar para reprogramar.', prescription: '',
+    attendance: 'No Asistió', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'El paciente no asistió a la cita. Contactar para reprogramar.', prescription: '', readByDoctor: true, readByPatient: true,
   },
 ];
 
@@ -314,7 +314,7 @@ export const marketingMaterials: MarketingMaterial[] = [
     { id: 'mat1', type: 'image', title: 'Banner para Redes Sociales', description: 'Banner promocional para usar en Instagram, Facebook y otras redes.', url: 'https://placehold.co/1080x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
     { id: 'mat2', type: 'video', title: 'Video Explicativo de SUMA', description: 'Video corto que explica los beneficios de la plataforma para los médicos.', url: 'https://placehold.co/1920x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
     { id: 'mat3', type: 'file', title: 'Folleto Informativo (PDF)', description: 'Documento PDF con toda la información clave para presentar a los médicos.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' },
-    { id: 'mat4', type: 'url', title: 'Artículo de Blog: Beneficios de la Telemedicina', description: 'Enlace a un artículo relevante que puedes compartir con los doctores.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' }
+    { id: 'mat4', type: 'url', title: 'Artículo de Blog: Beneficios de la Telemedicina', description: 'Enlace a un artículo relevante que puedes compartir con los doctores.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' },
 ];
 
 export const mockDoctorPayments: DoctorPayment[] = [
@@ -327,9 +327,9 @@ export const mockDoctorPayments: DoctorPayment[] = [
 
 
 export const mockAdminSupportTickets: AdminSupportTicket[] = [
-    { id: 'ticketadmin1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', description: 'No estoy segura de cómo se calcula la comisión para uno de mis médicos.', status: 'abierto', date: '2024-05-20', readByAdmin: false, messages: [] },
-    { id: 'ticketadmin2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', description: '¿Cómo puedo bloquear un día completo en mi calendario?', status: 'abierto', date: '2024-05-28', readByAdmin: false, messages: [] },
-    { id: 'ticketadmin3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true, messages: [] },
+    { id: 'ticketadmin1', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Problema con la comisión de un referido', description: 'No estoy segura de cómo se calcula la comisión para uno de mis médicos.', status: 'abierto', date: '2024-05-20', readByAdmin: false, messages: [], readBySeller: true },
+    { id: 'ticketadmin2', userId: 'doctor@admin.com', userName: 'Dr. Ana Rodriguez', userRole: 'doctor', subject: 'Duda sobre el horario de trabajo', description: '¿Cómo puedo bloquear un día completo en mi calendario?', status: 'abierto', date: '2024-05-28', readByAdmin: false, messages: [], readByDoctor: true },
+    { id: 'ticketadmin3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true, messages: [], readBySeller: true },
 ];
 
 const mockCompanyExpenses: AppSettings['companyExpenses'] = [

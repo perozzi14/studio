@@ -253,8 +253,22 @@ export const updatePatient = async (id: string, data: Partial<Patient>) => updat
 export const deletePatient = async (id: string) => deleteDoc(doc(db, 'patients', id));
 
 // Appointment
-export const addAppointment = async (appointmentData: Omit<Appointment, 'id'>) => addDoc(collection(db, 'appointments'), appointmentData);
-export const updateAppointment = async (id: string, data: Partial<Appointment>) => updateDoc(doc(db, 'appointments', id), data);
+export const addAppointment = async (appointmentData: Omit<Appointment, 'id'>) => {
+    const dataWithFlags = {
+        ...appointmentData,
+        readByDoctor: false, // New appointment, doctor needs to be notified
+        readByPatient: true,  // Patient created it, so they have "read" it.
+    };
+    return addDoc(collection(db, 'appointments'), dataWithFlags);
+};
+export const updateAppointment = async (id: string, data: Partial<Appointment>) => {
+    const dataWithFlags = { ...data };
+    // If attendance is being marked, the patient needs to be notified.
+    if ('attendance' in data) {
+        dataWithFlags.readByPatient = false;
+    }
+    return updateDoc(doc(db, 'appointments', id), dataWithFlags);
+};
 export const addMessageToAppointment = async (appointmentId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const appointmentRef = doc(db, "appointments", appointmentId);
     const newMessage: ChatMessage = {
@@ -362,4 +376,35 @@ export const batchUpdateNotificationsAsRead = async (ticketIds: string[], paymen
     if (ticketIds.length > 0 || paymentIds.length > 0 || doctorIds.length > 0) {
         await batch.commit();
     }
+}
+
+export const batchUpdateDoctorNotificationsAsRead = async (paymentIds: string[], ticketIds: string[]) => {
+    const batch = writeBatch(db);
+    paymentIds.forEach(id => {
+        batch.update(doc(db, "doctorPayments", id), { readByDoctor: true });
+    });
+    ticketIds.forEach(id => {
+        batch.update(doc(db, "supportTickets", id), { readByDoctor: true });
+    });
+     if (paymentIds.length > 0 || ticketIds.length > 0) {
+        await batch.commit();
+    }
+}
+
+export const batchUpdateDoctorAppointmentsAsRead = async (appointmentIds: string[]) => {
+    if (appointmentIds.length === 0) return;
+    const batch = writeBatch(db);
+    appointmentIds.forEach(id => {
+        batch.update(doc(db, "appointments", id), { readByDoctor: true });
+    });
+    await batch.commit();
+}
+
+export const batchUpdatePatientAppointmentsAsRead = async (appointmentIds: string[]) => {
+    if (appointmentIds.length === 0) return;
+    const batch = writeBatch(db);
+    appointmentIds.forEach(id => {
+        batch.update(doc(db, "appointments", id), { readByPatient: true });
+    });
+    await batch.commit();
 }

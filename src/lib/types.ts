@@ -135,6 +135,8 @@ export type Appointment = {
   clinicalNotes?: string;
   prescription?: string;
   messages?: ChatMessage[];
+  readByDoctor?: boolean;
+  readByPatient?: boolean;
 };
 
 export type IncludedDoctorCommission = {
@@ -205,7 +207,7 @@ export type AdminNotification = {
 
 export type PatientNotification = {
     id: string;
-    type: 'reminder' | 'payment_approved' | 'new_message' | 'record_added';
+    type: 'reminder' | 'payment_approved' | 'new_message' | 'record_added' | 'attendance_marked';
     appointmentId: string;
     title: string;
     description: string;
@@ -217,7 +219,7 @@ export type PatientNotification = {
 
 export type DoctorNotification = {
     id: string;
-    type: 'payment_verification' | 'support_reply' | 'subscription_update' | 'new_message' | 'patient_confirmed' | 'patient_cancelled';
+    type: 'new_appointment' |'payment_verification' | 'support_reply' | 'subscription_update' | 'new_message' | 'patient_confirmed' | 'patient_cancelled';
     title: string;
     description: string;
     date: string; // ISO string of the event
@@ -262,4 +264,6 @@ export type AppSettings = {
     heroImageUrl?: string;
     billingCycleStartDay?: number;
     billingCycleEndDay?: number;
+    coupons: Coupon[];
+    companyExpenses: CompanyExpense[];
 }

@@ -4,8 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { Appointment, DoctorNotification, AdminSupportTicket, DoctorPayment } from './types';
 import { useAuth } from './auth';
-import { doc, writeBatch } from 'firebase/firestore';
-import { db } from './firebase';
+import { batchUpdateDoctorAppointmentsAsRead, batchUpdateDoctorNotificationsAsRead } from './firestoreService';
 
 interface DoctorNotificationContextType {
   doctorNotifications: DoctorNotification[];
@@ -65,8 +64,21 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
 
     // --- Generate Notifications ---
 
-    // 1. Payment Verification needed from you
     appointments.forEach(appt => {
+      // 1. New Appointment
+      if (appt.readByDoctor === false) {
+        const id = `new-appt-${appt.id}`;
+        if (!existingIds.has(id)) {
+            newNotificationsMap.set(id, {
+                id, type: 'new_appointment', title: '¡Nueva Cita Agendada!',
+                description: `El paciente ${appt.patientName} ha reservado para el ${appt.date}.`,
+                date: appt.date, createdAt: now.toISOString(), read: false,
+                link: `/doctor/dashboard?view=appointments`
+            });
+        }
+      }
+
+      // 2. Payment Verification needed from you
       if (appt.paymentMethod === 'transferencia' && appt.paymentStatus === 'Pendiente') {
         const id = `verify-${appt.id}`;
         if (!existingIds.has(id)) {
@@ -78,7 +90,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
             });
         }
       }
-      // 2. Patient Confirmation status change
+      // 3. Patient Confirmation status change
       if (appt.patientConfirmationStatus === 'Confirmada' || appt.patientConfirmationStatus === 'Cancelada') {
          const id = `confirm-${appt.id}-${appt.patientConfirmationStatus}`;
          if (!existingIds.has(id)) {
@@ -91,7 +103,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
              });
          }
       }
-      // 3. New Messages from patient
+      // 4. New Messages from patient
       const lastMessage = appt.messages?.slice(-1)[0];
       if (lastMessage?.sender === 'patient') {
           const id = `msg-${appt.id}-${lastMessage.id}`;
@@ -106,7 +118,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
       }
     });
 
-    // 4. Subscription payment update from admin
+    // 5. Subscription payment update from admin
     doctorPayments.forEach(payment => {
         if ((payment.status === 'Paid' || payment.status === 'Rejected') && !payment.readByDoctor) {
             const id = `sub-${payment.id}-${payment.status}`;
@@ -122,7 +134,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
         }
     });
 
-    // 5. Support Ticket Replies from admin
+    // 6. Support Ticket Replies from admin
     supportTickets.forEach(ticket => {
         const lastMessage = ticket.messages?.slice(-1)[0];
         if (lastMessage?.sender === 'admin' && ticket.userId === user.email && !ticket.readByDoctor) {
@@ -161,28 +173,24 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     setDoctorNotifications(updated);
     setDoctorUnreadCount(0);
     
-    const paymentIdsToUpdate = doctorNotifications
-        .filter(n => n.type === 'subscription_update' && !n.read)
+    const unreadNotifications = doctorNotifications.filter(n => !n.read);
+    if(unreadNotifications.length === 0) return;
+
+    const appointmentIdsToUpdate = unreadNotifications
+        .filter(n => n.type === 'new_appointment')
+        .map(n => n.id.replace('new-appt-', ''));
+    
+    const paymentIdsToUpdate = unreadNotifications
+        .filter(n => n.type === 'subscription_update')
         .map(n => n.id.split('-')[1]);
 
-    const ticketIdsToUpdate = doctorNotifications
-      .filter(n => n.type === 'support_reply' && !n.read)
+    const ticketIdsToUpdate = unreadNotifications
+      .filter(n => n.type === 'support_reply')
       .map(n => n.id.split('-')[1]);
         
-    if (paymentIdsToUpdate.length > 0 || ticketIdsToUpdate.length > 0) {
-        const batch = writeBatch(db);
-        paymentIdsToUpdate.forEach(id => {
-            batch.update(doc(db, "doctorPayments", id), { readByDoctor: true });
-        });
-        ticketIdsToUpdate.forEach(id => {
-            batch.update(doc(db, "supportTickets", id), { readByDoctor: true });
-        });
-        try {
-            await batch.commit();
-        } catch (e) {
-            console.error("Failed to mark doctor notifications as read in Firestore", e);
-        }
-    }
+    await batchUpdateDoctorAppointmentsAsRead(appointmentIdsToUpdate);
+    await batchUpdateDoctorNotificationsAsRead(paymentIdsToUpdate, ticketIdsToUpdate);
+
   }, [doctorNotifications, user, doctorUnreadCount]);
   
   const value = { doctorNotifications, doctorUnreadCount, checkAndSetDoctorNotifications, markDoctorNotificationsAsRead };
