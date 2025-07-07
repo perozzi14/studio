@@ -190,6 +190,7 @@ export type AdminSupportTicket = {
     messages?: ChatMessage[];
     readByAdmin?: boolean;
     readBySeller?: boolean;
+    readByDoctor?: boolean;
 };
 
 export type AdminNotification = {

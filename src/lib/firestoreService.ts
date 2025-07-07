@@ -289,7 +289,9 @@ export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id'
     };
     
     if (ticketData.userRole === 'seller') {
-        newTicketData.readBySeller = true; // The creator has "read" it.
+        newTicketData.readBySeller = true;
+    } else if (ticketData.userRole === 'doctor') {
+        newTicketData.readByDoctor = true;
     }
 
     return addDoc(collection(db, 'supportTickets'), newTicketData);
@@ -303,7 +305,6 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
         timestamp: new Date().toISOString()
     };
     
-    // Set readByAdmin to false if the user is sending the message
     const updateData: any = {
         messages: arrayUnion(newMessage)
     };
@@ -316,10 +317,11 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
         updateData.status = 'abierto';
         const ticketDoc = await getDoc(ticketRef);
         const ticketData = ticketDoc.data() as AdminSupportTicket;
-        if(ticketData.userRole === 'seller') {
+        if (ticketData.userRole === 'seller') {
             updateData.readBySeller = false;
+        } else if (ticketData.userRole === 'doctor') {
+            updateData.readByDoctor = false;
         }
-        // A similar check for doctors could be added here if they have notifications for support
     }
     
     await updateDoc(ticketRef, updateData);

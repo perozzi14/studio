@@ -125,7 +125,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     // 5. Support Ticket Replies from admin
     supportTickets.forEach(ticket => {
         const lastMessage = ticket.messages?.slice(-1)[0];
-        if (lastMessage?.sender === 'admin' && ticket.userId === user.email) {
+        if (lastMessage?.sender === 'admin' && ticket.userId === user.email && !ticket.readByDoctor) {
             const id = `support-${ticket.id}-${lastMessage.id}`;
             if (!existingIds.has(id)) {
                 newNotificationsMap.set(id, {
@@ -161,20 +161,26 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     setDoctorNotifications(updated);
     setDoctorUnreadCount(0);
     
-    // Also mark notifications as read on the backend where applicable
     const paymentIdsToUpdate = doctorNotifications
         .filter(n => n.type === 'subscription_update' && !n.read)
         .map(n => n.id.split('-')[1]);
+
+    const ticketIdsToUpdate = doctorNotifications
+      .filter(n => n.type === 'support_reply' && !n.read)
+      .map(n => n.id.split('-')[1]);
         
-    if (paymentIdsToUpdate.length > 0) {
+    if (paymentIdsToUpdate.length > 0 || ticketIdsToUpdate.length > 0) {
         const batch = writeBatch(db);
         paymentIdsToUpdate.forEach(id => {
             batch.update(doc(db, "doctorPayments", id), { readByDoctor: true });
         });
+        ticketIdsToUpdate.forEach(id => {
+            batch.update(doc(db, "supportTickets", id), { readByDoctor: true });
+        });
         try {
             await batch.commit();
         } catch (e) {
-            console.error("Failed to mark doctor payment notifications as read in Firestore", e);
+            console.error("Failed to mark doctor notifications as read in Firestore", e);
         }
     }
   }, [doctorNotifications, user, doctorUnreadCount]);
