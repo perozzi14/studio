@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -5,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
-import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { app } from './firebase';
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from './firebase';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -121,8 +122,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const router = useRouter();
   const { toast } = useToast();
-  
-  const auth = getAuth(app);
   
   const fetchUserFromStorage = useCallback(async () => {
     try {
