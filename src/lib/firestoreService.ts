@@ -78,7 +78,7 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
 export const seedDatabase = async () => {
     const batch = writeBatch(db);
 
-    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "companyExpenses", "coupons", "doctorPayments", "sellerPayments", "settings", "marketingMaterials", "supportTickets"];
+    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "settings", "doctorPayments", "sellerPayments", "marketingMaterials", "supportTickets"];
     
     // Clear existing collections
     for (const col of collectionsToClear) {
@@ -96,26 +96,14 @@ export const seedDatabase = async () => {
     mockData.sellers.forEach(item => batch.set(doc(db, "sellers", String(item.id)), prepareData(item)));
     mockData.mockPatients.forEach(item => batch.set(doc(db, "patients", String(item.id)), prepareData(item)));
     mockData.appointments.forEach(item => batch.set(doc(db, "appointments", String(item.id)), prepareData(item)));
-    mockData.mockCompanyExpenses.forEach(item => batch.set(doc(db, "companyExpenses", String(item.id)), prepareData(item)));
-    mockData.mockCoupons.forEach(item => batch.set(doc(db, "coupons", String(item.id)), prepareData(item)));
     mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", String(item.id)), prepareData(item)));
     mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", String(item.id)), prepareData(item)));
     mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", String(item.id)), prepareData(item)));
     mockData.mockAdminSupportTickets.forEach(item => batch.set(doc(db, "supportTickets", String(item.id)), prepareData(item)));
     
-    // Seed settings (special case)
+    // Seed settings (special case, monolithic document)
     const settingsRef = doc(db, "settings", "main");
-    const settingsData: AppSettings = {
-        cities: mockData.cities,
-        specialties: mockData.specialties,
-        companyBankDetails: mockData.mockCompanyBankDetails,
-        timezone: 'America/Caracas',
-        logoUrl: 'https://placehold.co/150x50.png',
-        heroImageUrl: 'https://placehold.co/1200x600.png',
-        currency: 'USD',
-        beautySpecialties: ["Medicina Estética"],
-    };
-    batch.set(settingsRef, settingsData);
+    batch.set(settingsRef, mockData.mockSettings);
 
     await batch.commit();
     console.log("Database seeded successfully!");
@@ -126,8 +114,7 @@ export const exportDatabase = async (): Promise<any> => {
     const backup: Record<string, any> = {};
     const collectionsToExport = [
         'doctors', 'sellers', 'patients', 'appointments', 
-        'companyExpenses', 'coupons', 'doctorPayments', 
-        'sellerPayments', 'marketingMaterials', 'supportTickets'
+        'doctorPayments', 'sellerPayments', 'marketingMaterials', 'supportTickets'
     ];
 
     for (const colName of collectionsToExport) {
@@ -143,8 +130,7 @@ export const exportDatabase = async (): Promise<any> => {
 export const importDatabase = async (backupData: any): Promise<void> => {
     const collectionsToClear = [
         "doctors", "sellers", "patients", "appointments", 
-        "companyExpenses", "coupons", "doctorPayments", 
-        "sellerPayments", "marketingMaterials", "supportTickets", "settings"
+        "doctorPayments", "sellerPayments", "marketingMaterials", "supportTickets", "settings"
     ];
 
     // Clear existing collections in a separate batch
@@ -178,7 +164,8 @@ export const importDatabase = async (backupData: any): Promise<void> => {
             } else if (colName === 'settings' && items) {
                 // Handle settings object which is not an array and has a fixed doc ID
                 const settingsRef = doc(db, "settings", "main");
-                writeBatch.set(settingsRef, prepareData(items)); // 'items' is the settings object
+                // The settings object from backup does not have an ID to strip
+                writeBatch.set(settingsRef, items);
             }
         }
     }
@@ -207,8 +194,6 @@ export const getPatientAppointments = async (patientId: string) => {
 };
 export const getDoctorPayments = () => getCollectionData<DoctorPayment>('doctorPayments');
 export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerPayments');
-export const getCompanyExpenses = () => getCollectionData<CompanyExpense>('companyExpenses');
-export const getCoupons = () => getCollectionData<Coupon>('coupons');
 export const getMarketingMaterials = () => getCollectionData<MarketingMaterial>('marketingMaterials');
 export const getSupportTickets = () => getCollectionData<AdminSupportTicket>('supportTickets');
 export const getSettings = () => getDocumentData<AppSettings>('settings', 'main');
@@ -283,11 +268,6 @@ export const addMessageToAppointment = async (appointmentId: string, message: Om
     });
 };
 
-// Company Expense
-export const addCompanyExpense = async (expenseData: Omit<CompanyExpense, 'id'>) => addDoc(collection(db, 'companyExpenses'), expenseData);
-export const updateCompanyExpense = async (id: string, data: Partial<CompanyExpense>) => updateDoc(doc(db, 'companyExpenses', id), data);
-export const deleteCompanyExpense = async (id: string) => deleteDoc(doc(db, 'companyExpenses', id));
-
 // Marketing Material
 export const addMarketingMaterial = async (materialData: Omit<MarketingMaterial, 'id'>) => addDoc(collection(db, 'marketingMaterials'), materialData);
 export const updateMarketingMaterial = async (id: string, data: Partial<MarketingMaterial>) => updateDoc(doc(db, 'marketingMaterials', id), data);
@@ -348,11 +328,8 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
 export const updateSupportTicket = async (id: string, data: Partial<AdminSupportTicket>) => updateDoc(doc(db, 'supportTickets', id), data);
 
 
-// Settings & Related Sub-collections
+// Settings
 export const updateSettings = async (data: Partial<AppSettings>) => updateDoc(doc(db, 'settings', 'main'), data);
-export const addCoupon = async (couponData: Omit<Coupon, 'id'>) => addDoc(collection(db, 'coupons'), couponData);
-export const updateCoupon = async (id: string, data: Partial<Coupon>) => updateDoc(doc(db, 'coupons', id), data);
-export const deleteCoupon = async (id: string) => deleteDoc(doc(db, 'coupons', id));
 
 // Payments
 export const addSellerPayment = async (paymentData: Omit<SellerPayment, 'id'>) => {

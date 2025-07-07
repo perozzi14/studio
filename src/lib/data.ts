@@ -19,7 +19,7 @@ export const cities: City[] = [
   { name: "Valencia", subscriptionFee: 45 },
 ];
 
-export const mockCompanyBankDetails: AppSettings['companyBankDetails'] = [
+const mockCompanyBankDetails: AppSettings['companyBankDetails'] = [
   {
     id: 'compbank1',
     bank: 'Banesco',
@@ -38,7 +38,7 @@ export const mockCompanyBankDetails: AppSettings['companyBankDetails'] = [
   },
 ];
 
-export const mockCoupons: AppSettings['coupons'] = [
+const mockCoupons: AppSettings['coupons'] = [
   { id: 'coupon1', code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
   { id: 'coupon2', code: 'VERANO20', discountType: 'percentage', value: 20, scope: '1' } // Dr. Ana Rodriguez
 ];
@@ -332,7 +332,7 @@ export const mockAdminSupportTickets: AdminSupportTicket[] = [
     { id: 'ticketadmin3', userId: 'vendedora@venta.com', userName: 'Vendedora Principal', userRole: 'seller', subject: 'Cómo actualizar los datos de un médico', description: 'Necesito cambiar el número de teléfono de uno de mis médicos referidos.', status: 'cerrado', date: '2024-05-15', readByAdmin: true, messages: [] },
 ];
 
-export const mockCompanyExpenses: AppSettings['companyExpenses'] = [
+const mockCompanyExpenses: AppSettings['companyExpenses'] = [
     { id: 'cexp1', date: '2024-05-01', description: 'Alquiler de oficina', amount: 800, category: 'operativo' },
     { id: 'cexp2', date: '2024-05-10', description: 'Campaña de publicidad en redes', amount: 250, category: 'marketing' },
     { id: 'cexp3', date: '2024-05-15', description: 'Nómina - Administrador', amount: 1200, category: 'personal' },

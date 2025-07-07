@@ -267,15 +267,6 @@ export default function AdminDashboardPage() {
       addListItem,
       updateListItem,
       deleteListItem,
-      addCompanyExpense,
-      updateCompanyExpense,
-      deleteCompanyExpense,
-      addCoupon,
-      updateCoupon,
-      deleteCoupon,
-      addBankDetail,
-      updateBankDetail,
-      deleteBankDetail
   } = useSettings();
   
   const [tempLogoUrl, setTempLogoUrl] = useState<string>('');
@@ -653,7 +644,7 @@ export default function AdminDashboardPage() {
             toast({ title: "Paciente Eliminado", description: `El perfil de ${data.name} ha sido eliminado.`});
             break;
         case 'expense':
-            await deleteCompanyExpense(data.id);
+            await deleteListItem('companyExpenses', data.id);
             toast({ title: "Gasto Eliminado", description: `El gasto "${data.description}" ha sido eliminado.`});
             break;
         case 'city':
@@ -665,11 +656,11 @@ export default function AdminDashboardPage() {
             toast({ title: "Especialidad Eliminada", description: `La especialidad "${data}" ha sido eliminada.`});
             break;
         case 'coupon':
-            await deleteCoupon(data.id);
+            await deleteListItem('coupons', data.id);
             toast({ title: "Cupón Eliminado", description: `El cupón "${data.code}" ha sido eliminado.`});
             break;
         case 'bank':
-            await deleteBankDetail(data.id);
+            await deleteListItem('companyBankDetails', data.id);
             toast({ title: "Cuenta Bancaria Eliminada", description: `La cuenta de ${data.bank} ha sido eliminada.`});
             break;
         case 'marketing':
@@ -928,10 +919,10 @@ export default function AdminDashboardPage() {
     const { date, description, amount, category } = result.data;
 
     if (editingExpense) {
-        await updateCompanyExpense(editingExpense.id, { date, description, amount, category });
+        await updateListItem('companyExpenses', editingExpense.id, { id: editingExpense.id, date, description, amount, category });
         toast({ title: "Gasto Actualizado", description: "El gasto ha sido modificado exitosamente." });
     } else {
-        await addCompanyExpense({ date, description, amount, category });
+        await addListItem('companyExpenses', { date, description, amount, category });
         toast({ title: "Gasto Registrado", description: "El nuevo gasto ha sido agregado." });
     }
     
@@ -1014,10 +1005,10 @@ export default function AdminDashboardPage() {
     const { code, discountType, value, scope } = result.data;
     
     if (editingCoupon) {
-        await updateCoupon(editingCoupon.id, { code, discountType, value, scope });
+        await updateListItem('coupons', editingCoupon.id, { id: editingCoupon.id, code, discountType, value, scope });
         toast({ title: "Cupón Actualizado" });
     } else {
-        await addCoupon({ code, discountType, value, scope });
+        await addListItem('coupons', { code, discountType, value, scope });
         toast({ title: "Cupón Creado" });
     }
     setIsCouponDialogOpen(false);
@@ -1046,10 +1037,10 @@ export default function AdminDashboardPage() {
     const newBankData = result.data;
     
     if (editingCompanyBankDetail) {
-        await updateBankDetail(editingCompanyBankDetail.id, newBankData);
+        await updateListItem('companyBankDetails', editingCompanyBankDetail.id, { id: editingCompanyBankDetail.id, ...newBankData });
         toast({ title: "Cuenta Actualizada" });
     } else {
-        await addBankDetail(newBankData);
+        await addListItem('companyBankDetails', newBankData);
         toast({ title: "Cuenta Agregada" });
     }
     setIsCompanyBankDetailDialogOpen(false);
