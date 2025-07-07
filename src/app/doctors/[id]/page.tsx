@@ -131,11 +131,13 @@ export default function DoctorProfilePage() {
 
     if (!daySchedule.active) return [];
 
-    let allSlots: string[] = [];
+    const allSlotsSet = new Set<string>();
     daySchedule.slots.forEach(slot => {
         const generated = generateTimeSlots(slot.start, slot.end, doctor.slotDuration);
-        allSlots = [...allSlots, ...generated];
+        generated.forEach(s => allSlotsSet.add(s));
     });
+
+    const allSlots = Array.from(allSlotsSet).sort();
 
     const selectedDateString = selectedDate.toISOString().split('T')[0];
     const bookedSlots = appointments
