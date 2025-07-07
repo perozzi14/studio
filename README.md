@@ -46,3 +46,9 @@ Si ves un error como `(auth/invalid-api-key)` o `Missing or insufficient permiss
     ```
 
 **¡Importante!** Al guardar el archivo `.env.local`, la aplicación se reiniciará automáticamente. Si el error persiste, significa que una de las claves fue copiada incorrectamente. Por favor, revísalas con mucho cuidado.
+
+### ¿Aún ves un error de "Missing or insufficient permissions"?
+
+Si las credenciales son correctas pero sigues viendo un error de permisos, significa que las reglas de seguridad de tu base de datos están bloqueando la aplicación.
+
+**Solución:** Haz clic en el botón **"Publish"** en la parte superior de Firebase Studio. Esto desplegará la aplicación junto con las reglas de seguridad permisivas (`firestore.rules`) que se incluyen en este proyecto, solucionando el problema.
