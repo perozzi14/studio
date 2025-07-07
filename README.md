@@ -13,6 +13,7 @@ Si ves un error como `(auth/invalid-api-key)` o `Missing or insufficient permiss
 ### Paso 1: Configura tus credenciales en el archivo `.env`
 
 1.  En la lista de archivos a la izquierda, busca el archivo llamado `.env`. Este es tu archivo de secretos.
+    *   **¿No ves el archivo `.env`?** He ajustado la configuración para que se muestre. Si aún no lo ves, es posible que el explorador de archivos lo oculte. Refresca la página o busca la opción para "mostrar archivos ocultos" en la configuración del explorador.
 2.  Abre la [Consola de Firebase](https://console.firebase.google.com/) en una nueva pestaña.
 3.  Selecciona tu proyecto (ej. `medagenda`).
 4.  Haz clic en el **engranaje (⚙️)** al lado de "Project Overview" y luego en **Project settings**.
@@ -46,4 +47,4 @@ Si ves un error como `(auth/invalid-api-key)` o `Missing or insufficient permiss
 
 Si las credenciales son correctas pero sigues viendo un error de "Missing or insufficient permissions", significa que las reglas de seguridad de tu base de datos están bloqueando la aplicación.
 
-**Solución:** Haz clic en el botón **"Publish"** en la parte superior de Firebase Studio. Esto desplegará la aplicación junto con las reglas de seguridad permisivas (`firestore.rules`) que se incluyen en este proyecto, solucionando el problema.
+**Solución:** Haz clic en el botón **"Publish"** en la parte superior de Firebase Studio. Esto desplegará la aplicación junto con las reglas
