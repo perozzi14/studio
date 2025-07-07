@@ -47,4 +47,4 @@ Si ves un error como `(auth/invalid-api-key)` o `Missing or insufficient permiss
 
 Si las credenciales son correctas pero sigues viendo un error de "Missing or insufficient permissions", significa que las reglas de seguridad de tu base de datos están bloqueando la aplicación.
 
-**Solución:** Haz clic en el botón **"Publish"** en la parte superior de Firebase Studio. Esto desplegará la aplicación junto con las reglas
+**Solución:** Haz clic en el botón **"Publish"** en la parte superior de Firebase Studio. Esto desplegará la aplicación junto con las reglas de seguridad necesarias para que la base de datos funcione. Este es el paso final y crucial.
