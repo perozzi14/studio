@@ -12,6 +12,16 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Provides a more helpful error message if the environment variables are missing or are placeholders.
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("AIza...")) {
+  throw new Error("CONFIGURACIÓN DE FIREBASE INCOMPLETA: La 'API Key' parece incorrecta o es un marcador de posición. Por favor, verifica tu archivo .env.local y reinicia la aplicación.");
+}
+
+if (!firebaseConfig.projectId || firebaseConfig.projectId.includes("tu-proyecto")) {
+  throw new Error("CONFIGURACIÓN DE FIREBASE INCOMPLETA: El 'Project ID' parece incorrecto o es un marcador de posición. Por favor, verifica tu archivo .env.local y reinicia la aplicación.");
+}
+
+
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);

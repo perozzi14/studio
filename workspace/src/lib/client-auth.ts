@@ -1,7 +1,3 @@
-
-"use client";
-
-import { auth } from './firebase';
-
-// This export is now just a re-export from the central firebase file.
-export { auth };
+// This file is intentionally left blank. 
+// The main client auth configuration is located at /src/lib/client-auth.ts.
+// This empty file prevents build conflicts from duplicated configurations.
