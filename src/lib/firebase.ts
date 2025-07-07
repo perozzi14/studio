@@ -11,12 +11,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Provides a more helpful error message if the environment variables are missing or are placeholders.
+// Provides a more helpful error message if the environment variables are missing.
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("AIza...")) {
   console.error("🔥🔥🔥 ERROR DE CONFIGURACIÓN FIREBASE 🔥🔥🔥");
-  console.error("El valor de NEXT_PUBLIC_FIREBASE_API_KEY en tu archivo .env.local parece ser incorrecto o un marcador de posición.");
-  console.error("Por favor, sigue las instrucciones del archivo README.md para solucionarlo.");
+  console.error("No se ha encontrado la 'API Key'. Por favor, asegúrate de que tu archivo .env contenga la variable NEXT_PUBLIC_FIREBASE_API_KEY con un valor válido.");
 }
+
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
