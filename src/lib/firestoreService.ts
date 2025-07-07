@@ -34,7 +34,7 @@ const convertTimestamps = (data: any) => {
 
 
 // Generic Fetch Function
-async function getCollectionData<T>(collectionName: string): Promise<T[]> {
+export async function getCollectionData<T>(collectionName: string): Promise<T[]> {
   try {
     const colRef = collection(db, collectionName);
     const snapshot = await getDocs(colRef);

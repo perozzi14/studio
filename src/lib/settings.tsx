@@ -58,7 +58,43 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-        const settingsData = await firestoreService.getSettings();
+        let settingsData = await firestoreService.getSettings();
+
+        if (settingsData && (!settingsData.coupons || !settingsData.companyExpenses || !settingsData.companyBankDetails)) {
+            const settingsUpdate: Partial<AppSettings> = {};
+            let needsMigration = false;
+            
+            // This is a backward compatibility check. If we find collections that should be inside the settings doc, we migrate them.
+            if (!settingsData.coupons) {
+                const legacyCoupons = await firestoreService.getCollectionData<Coupon>('coupons');
+                if (legacyCoupons.length > 0) {
+                    settingsUpdate.coupons = legacyCoupons;
+                    needsMigration = true;
+                }
+            }
+            if (!settingsData.companyExpenses) {
+                const legacyExpenses = await firestoreService.getCollectionData<CompanyExpense>('companyExpenses');
+                if (legacyExpenses.length > 0) {
+                    settingsUpdate.companyExpenses = legacyExpenses;
+                    needsMigration = true;
+                }
+            }
+            if (!settingsData.companyBankDetails) {
+                 const legacyBankDetails = await firestoreService.getCollectionData<BankDetail>('companyBankDetails');
+                 if (legacyBankDetails.length > 0) {
+                    settingsUpdate.companyBankDetails = legacyBankDetails;
+                    needsMigration = true;
+                 }
+            }
+
+            if (needsMigration) {
+                console.log("Migrating legacy settings data into the main settings document...");
+                await firestoreService.updateSettings(settingsUpdate); 
+                settingsData = await firestoreService.getSettings(); // Re-fetch to get merged data
+                toast({ title: "Configuración Migrada", description: "Se han actualizado los datos de configuración a la nueva versión." });
+            }
+        }
+
         setSettings(settingsData);
     } catch (error) {
         console.error("Failed to fetch settings:", error);
