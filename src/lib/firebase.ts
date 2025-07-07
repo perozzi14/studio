@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -14,13 +13,10 @@ const firebaseConfig = {
 
 // Provides a more helpful error message if the environment variables are missing or are placeholders.
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("AIza...")) {
-  throw new Error("CONFIGURACIÓN DE FIREBASE INCOMPLETA: La 'API Key' parece incorrecta o es un marcador de posición. Por favor, verifica tu archivo .env.local y reinicia la aplicación.");
+  console.error("🔥🔥🔥 ERROR DE CONFIGURACIÓN FIREBASE 🔥🔥🔥");
+  console.error("El valor de NEXT_PUBLIC_FIREBASE_API_KEY en tu archivo .env.local parece ser incorrecto o un marcador de posición.");
+  console.error("Por favor, sigue las instrucciones del archivo README.md para solucionarlo.");
 }
-
-if (!firebaseConfig.projectId || firebaseConfig.projectId.includes("tu-proyecto")) {
-  throw new Error("CONFIGURACIÓN DE FIREBASE INCOMPLETA: El 'Project ID' parece incorrecto o es un marcador de posición. Por favor, verifica tu archivo .env.local y reinicia la aplicación.");
-}
-
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
