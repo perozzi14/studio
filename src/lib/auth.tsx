@@ -282,9 +282,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user || !user.id) return;
     
     if (user.role === 'patient') {
-      await firestoreService.updatePatient(user.id, data);
+      await firestoreService.updatePatient(user.id, data as Partial<Patient>);
     } else if (user.role === 'seller') {
-      await firestoreService.updateSeller(user.id, data);
+      await firestoreService.updateSeller(user.id, data as Partial<Seller>);
     } else {
       return; // Or handle other roles
     }
