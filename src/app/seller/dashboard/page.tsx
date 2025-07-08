@@ -474,7 +474,7 @@ export default function SellerDashboardPage() {
   };
   
   const handleViewTicket = (ticket: AdminSupportTicket) => {
-    setSelectedSupportTicket(ticket);
+    setSelectedTicket(ticket);
     setIsSupportDetailDialogOpen(true);
   };
 
@@ -495,7 +495,7 @@ export default function SellerDashboardPage() {
             { ...newMessage, id: `msg-${Date.now()}`, timestamp: new Date().toISOString() }
         ]
     };
-    setSelectedSupportTicket(updatedTicket);
+    setSelectedTicket(updatedTicket);
 
     setReplyMessage("");
     fetchData();
@@ -1340,3 +1340,5 @@ export default function SellerDashboardPage() {
     </div>
   );
 }
+
+    
