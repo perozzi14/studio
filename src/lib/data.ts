@@ -261,7 +261,7 @@ export const appointments: Appointment[] = [
     attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
   },
   {
-    id: "appt3", patientId: "pat3", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    id: "appt3", patientId: "pat3", patientName: "Maria Castillo", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], time: "09:00",
     services: [ { id: 's103', name: "Ecocardiograma", price: 80 } ],
     consultationFee: 50,
