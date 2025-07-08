@@ -1,18 +1,16 @@
+
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Stethoscope } from 'lucide-react'
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-center p-4">
-        <Stethoscope className="h-20 w-20 text-primary mb-6" />
-        <h1 className="text-4xl font-bold font-headline mb-2">404 - Página No Encontrada</h1>
-        <p className="text-lg text-muted-foreground max-w-md mb-8">
+    <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>404 - Página No Encontrada</h1>
+        <p style={{ maxWidth: '450px', marginBottom: '2rem', color: '#666' }}>
             Lo sentimos, la página que estás buscando no existe o ha sido movida.
         </p>
-        <Button asChild size="lg">
-            <Link href="/">Volver a la Página de Inicio</Link>
-        </Button>
+        <Link href="/" style={{ textDecoration: 'none', color: 'white', backgroundColor: '#7EC4CF', padding: '0.75rem 1.5rem', borderRadius: '0.5rem' }}>
+            Volver a la Página de Inicio
+        </Link>
     </div>
   )
 }
