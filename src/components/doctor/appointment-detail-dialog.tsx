@@ -134,8 +134,8 @@ export function AppointmentDetailDialog({
                                 <div className="flex items-center gap-4">
                                     <Label>Asistencia del Paciente:</Label>
                                     <div className="flex gap-2">
-                                        <Button size="sm" variant={appointment.attendance === 'Atendido' ? 'default' : 'outline'} onClick={() => onUpdateAppointment(appointment.id, { attendance: 'Atendido' })}> <ThumbsUp className="mr-2 h-4 w-4"/>Atendido </Button>
-                                        <Button size="sm" variant={appointment.attendance === 'No Asistió' ? 'destructive' : 'outline'} onClick={() => onUpdateAppointment(appointment.id, { attendance: 'No Asistió' })}> <ThumbsDown className="mr-2 h-4 w-4"/>No Asistió </Button>
+                                        <Button size="sm" variant='outline' onClick={() => onUpdateAppointment(appointment.id, { attendance: 'Atendido' })}> <ThumbsUp className="mr-2 h-4 w-4"/>Atendido </Button>
+                                        <Button size="sm" variant='outline' onClick={() => onUpdateAppointment(appointment.id, { attendance: 'No Asistió' })}> <ThumbsDown className="mr-2 h-4 w-4"/>No Asistió </Button>
                                     </div>
                                 </div>
                             ) : (
