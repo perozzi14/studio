@@ -32,14 +32,12 @@ export default function FavoritesPage() {
   }, []);
 
   const favoriteDoctors = useMemo(() => {
-    const favoriteIds = user?.favoriteDoctorIds;
-
-    if (user?.role !== 'patient' || !favoriteIds) {
+    if (user?.role !== 'patient' || !user.favoriteDoctorIds) {
       return [];
     }
     
     return allDoctors.filter((doctor) =>
-      favoriteIds.includes(doctor.id)
+      user.favoriteDoctorIds!.includes(doctor.id)
     );
   }, [user, allDoctors]);
 
