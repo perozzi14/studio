@@ -3,7 +3,7 @@
 
 import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import type { Doctor } from "@/lib/data";
+import type { Doctor } from "@/lib/types";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
