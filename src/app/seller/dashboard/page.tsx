@@ -304,7 +304,7 @@ export default function SellerDashboardPage() {
 
     const doctorsForPendingCommission = hasBeenPaidThisPeriod ? [] : activeReferred;
     
-    let startDate, endDate;
+    let startDate: Date, endDate: Date;
 
     let filteredPayments = sellerPayments;
     let filteredExpenses = sellerData.expenses || [];
