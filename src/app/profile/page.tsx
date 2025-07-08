@@ -106,7 +106,7 @@ export default function ProfilePage() {
     updateUser({
       name: result.data.fullName,
       age: result.data.age,
-      gender: result.data.gender,
+      gender: result.data.gender === '' ? null : result.data.gender,
       cedula: result.data.cedula,
       phone: result.data.phone,
       city: result.data.city,
