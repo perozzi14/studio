@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City, ChartConfig, IncludedDoctorCommission } from '@/lib/types';
+import type { Doctor, Seller, Patient, DoctorPayment, AdminSupportTicket, Coupon, SellerPayment, BankDetail, Appointment, CompanyExpense, MarketingMaterial, ChatMessage, City, IncludedDoctorCommission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +22,7 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart"
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -3433,3 +3434,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
