@@ -232,12 +232,12 @@ export const doctors: Doctor[] = [
 
 
 export const mockPatients: Patient[] = [
-    { id: "pat1", name: "Elena Ríos", email: "elena.r@example.com", password: "1234", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456', favoriteDoctorIds: ['1'] },
-    { id: "pat2", name: "Jorge Paez", email: "jorge.p@example.com", password: "1234", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678', favoriteDoctorIds: [] },
-    { id: "pat3", name: "Maria Castillo", email: "maria.c@example.com", password: "1234", age: 29, gender: 'femenino', phone: '0416-3334455', cedula: 'V-20.987.654', favoriteDoctorIds: [] },
-    { id: "pat4", name: "Carlos Briceño", email: "carlos.b@example.com", password: "1234", age: 52, gender: 'masculino', phone: '0424-4445566', cedula: 'V-9.876.543', favoriteDoctorIds: [] },
-    { id: "pat5", name: "Paciente de Prueba", email: "paciente@example.com", password: "1234", age: 40, gender: 'masculino', phone: '0426-5556677', cedula: 'V-15.555.555', favoriteDoctorIds: ['1', '2'] },
-    { id: "pat6", name: "Luis Ramirez", email: "luis.r@example.com", password: "1234", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210', favoriteDoctorIds: [] },
+    { id: "pat1", name: "Elena Ríos", email: "elena.r@example.com", password: "1234", age: 34, gender: 'femenino', phone: '0414-1112233', cedula: 'V-18.123.456', favoriteDoctorIds: ['1'], city: 'Caracas', profileImage: 'https://placehold.co/100x100.png' },
+    { id: "pat2", name: "Jorge Paez", email: "jorge.p@example.com", password: "1234", age: 45, gender: 'masculino', phone: '0412-2223344', cedula: 'V-12.345.678', favoriteDoctorIds: [], city: 'Maracaibo', profileImage: 'https://placehold.co/100x100.png' },
+    { id: "pat3", name: "Maria Castillo", email: "maria.c@example.com", password: "1234", age: 29, gender: 'femenino', phone: '0416-3334455', cedula: 'V-20.987.654', favoriteDoctorIds: [], city: 'Valencia', profileImage: 'https://placehold.co/100x100.png' },
+    { id: "pat4", name: "Carlos Briceño", email: "carlos.b@example.com", password: "1234", age: 52, gender: 'masculino', phone: '0424-4445566', cedula: 'V-9.876.543', favoriteDoctorIds: [], city: 'Caracas', profileImage: 'https://placehold.co/100x100.png' },
+    { id: "pat5", name: "Paciente de Prueba", email: "paciente@example.com", password: "1234", age: 40, gender: 'masculino', phone: '0426-5556677', cedula: 'V-15.555.555', favoriteDoctorIds: ['1', '2'], city: 'Caracas', profileImage: 'https://placehold.co/100x100.png' },
+    { id: "pat6", name: "Luis Ramirez", email: "luis.r@example.com", password: "1234", age: 60, gender: 'masculino', phone: '0412-5556677', cedula: 'V-6.543.210', favoriteDoctorIds: [], city: 'Maracaibo', profileImage: 'https://placehold.co/100x100.png' },
 ];
 
 
