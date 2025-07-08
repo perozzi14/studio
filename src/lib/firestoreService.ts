@@ -142,7 +142,7 @@ export const importDatabase = async (backupData: any): Promise<void> => {
     await deleteBatch.commit();
 
     // Start a new batch for writes
-    const writeBatch = writeBatch(db);
+    const importBatch = writeBatch(db);
 
     const prepareData = <T extends { id?: any }>(dataWithId?: T): Omit<T, 'id'> => {
         if (!dataWithId) return {} as Omit<T, 'id'>;
@@ -158,19 +158,19 @@ export const importDatabase = async (backupData: any): Promise<void> => {
                 items.forEach((item: any) => {
                     if (item && item.id) {
                         const docRef = doc(db, colName, String(item.id));
-                        writeBatch.set(docRef, prepareData(item));
+                        importBatch.set(docRef, prepareData(item));
                     }
                 });
             } else if (colName === 'settings' && items) {
                 // Handle settings object which is not an array and has a fixed doc ID
                 const settingsRef = doc(db, "settings", "main");
                 // The settings object from backup does not have an ID to strip
-                writeBatch.set(settingsRef, items);
+                importBatch.set(settingsRef, items);
             }
         }
     }
 
-    await writeBatch.commit();
+    await importBatch.commit();
 }
 
 
