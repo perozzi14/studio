@@ -94,7 +94,7 @@ export type Seller = {
   name: string;
   email: string;
   password: string;
-  phone: string;
+  phone: string | null;
   profileImage: string;
   referralCode: string;
   bankDetails: BankDetail[];
