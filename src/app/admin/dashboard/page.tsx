@@ -3,9 +3,17 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AdminDashboardClient } from '@/components/admin/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
+import dynamic from 'next/dynamic';
+
+const AdminDashboardClient = dynamic(
+    () => import('@/components/admin/dashboard-client').then(mod => mod.AdminDashboardClient),
+    { 
+        ssr: false,
+        loading: () => <DashboardLoading /> 
+    }
+);
 
 function DashboardLoading() {
   return (

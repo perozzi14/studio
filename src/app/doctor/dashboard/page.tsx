@@ -3,9 +3,18 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DoctorDashboardClient } from '@/components/doctor/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
+import dynamic from 'next/dynamic';
+
+const DoctorDashboardClient = dynamic(
+    () => import('@/components/doctor/dashboard-client').then(mod => mod.DoctorDashboardClient),
+    { 
+        ssr: false,
+        loading: () => <DashboardLoading /> 
+    }
+);
+
 
 function DashboardLoading() {
   return (

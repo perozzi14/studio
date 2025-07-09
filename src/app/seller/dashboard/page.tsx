@@ -3,9 +3,18 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SellerDashboardClient } from '@/components/seller/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
+import dynamic from 'next/dynamic';
+
+const SellerDashboardClient = dynamic(
+    () => import('@/components/seller/dashboard-client').then(mod => mod.SellerDashboardClient),
+    { 
+        ssr: false,
+        loading: () => <DashboardLoading /> 
+    }
+);
+
 
 function DashboardLoading() {
   return (
