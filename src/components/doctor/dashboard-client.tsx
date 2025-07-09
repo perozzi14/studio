@@ -6,14 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Appointment, Doctor, Service, BankDetail, Coupon, Expense, AdminSupportTicket, ChatMessage } from '@/lib/types';
+import type { Appointment, Doctor, Service, BankDetail, Coupon, Expense, AdminSupportTicket, ChatMessage, DoctorPayment } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, Pencil, Trash2, Send, CheckCircle, Wallet } from 'lucide-react';
 import { useSettings } from '@/lib/settings';
 import { useDoctorNotifications } from '@/lib/doctor-notifications';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -97,7 +97,7 @@ export function DoctorDashboardClient() {
     const [doctorData, setDoctorData] = useState<Doctor | null>(null);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
-    const [doctorPayments, setDoctorPayments] = useState<any[]>([]);
+    const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
 
     const currentTab = searchParams.get('view') || 'appointments';
     
@@ -158,7 +158,7 @@ export function DoctorDashboardClient() {
     }, [user, fetchData]);
 
     useEffect(() => {
-        if (!loading && (user === null || user.role !== 'doctor')) {
+        if (!loading && (!user || user.role !== 'doctor')) {
           router.push('/auth/login');
         }
     }, [user, loading, router]);
