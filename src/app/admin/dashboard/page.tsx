@@ -1421,483 +1421,80 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-1 bg-muted/40">
-        <div className="container py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold font-headline mb-2">Panel de Administrador</h1>
-            <p className="text-muted-foreground">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
-          </div>
-          
-           <>
-                {currentTab === 'overview' && (
-                <div className="mt-6">
-                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                          <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Total de Médicos</CardTitle>
-                                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold">{globalStats.totalDoctors}</div>
-                                  <p className="text-xs text-muted-foreground">{globalStats.activeDoctors} activos</p>
-                              </CardContent>
-                          </Card>
-                           <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Total de Vendedoras</CardTitle>
-                                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold">{globalStats.totalSellers}</div>
-                                  <p className="text-xs text-muted-foreground">Gestionando referidos</p>
-                              </CardContent>
-                          </Card>
-                           <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
-                                  <Users className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold">{globalStats.totalPatients}</div>
-                                  <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
-                              </CardContent>
-                          </Card>
-                           <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
-                                  <BarChartIcon className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className={`text-2xl font-bold ${globalStats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${globalStats.netProfit.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Ingresos - Egresos (Global)</p>
-                              </CardContent>
-                          </Card>
-                      </div>
-                      <div className="mt-6 text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
-                          <BarChartIcon className="h-12 w-12" />
-                          <h3 className="text-xl font-semibold">Gráficos y Analíticas</h3>
-                          <p>Más analíticas detalladas sobre el crecimiento y uso de la plataforma estarán disponibles aquí.</p>
-                      </div>
-                </div>
-                )}
-
-                {currentTab === 'doctors' && (
-                <div className="mt-6">
-                    <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <CardTitle>Gestión de Médicos</CardTitle>
-                                <CardDescription>Visualiza, edita y gestiona el estado de todos los médicos en la plataforma.</CardDescription>
-                            </div>
-                            <Button onClick={() => handleOpenDoctorDialog(null)}>
-                                <PlusCircle className="mr-2"/> Registrar Médico
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="hidden md:block">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Médico</TableHead>
-                                            <TableHead>Especialidad</TableHead>
-                                            <TableHead>Ubicación</TableHead>
-                                            <TableHead>Referido por</TableHead>
-                                            <TableHead>Estado</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {doctors.map((doctor) => (
-                                            <TableRow key={doctor.id}>
-                                                <TableCell className="font-medium flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9">
-                                                        <AvatarImage src={doctor.profileImage} alt={doctor.name} />
-                                                        <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p>{doctor.name}</p>
-                                                        <p className="text-xs text-muted-foreground">{doctor.email}</p>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>{doctor.specialty}</TableCell>
-                                                <TableCell>{doctor.city}</TableCell>
-                                                <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
-                                                        {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right flex items-center justify-end gap-2">
-                                                    <Switch 
-                                                        checked={doctor.status === 'active'} 
-                                                        onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
-                                                    />
-                                                    <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
-                                                    <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div className="space-y-4 md:hidden">
-                                {doctors.map((doctor) => (
-                                    <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-10 w-10">
-                                                    <AvatarImage src={doctor.profileImage} alt={doctor.name} />
-                                                    <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-semibold">{doctor.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{doctor.email}</p>
-                                                </div>
-                                            </div>
-                                            <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
-                                                {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
-                                            </Badge>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Especialidad</p>
-                                                <p>{doctor.specialty}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Ubicación</p>
-                                                <p>{doctor.city}</p>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <p className="text-xs text-muted-foreground">Referido por</p>
-                                                <p>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</p>
-                                            </div>
-                                        </div>
-
-                                        <Separator />
-
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2">
-                                                <Label htmlFor={`switch-${doctor.id}`} className="text-sm font-medium">Estado</Label>
-                                                <Switch 
-                                                id={`switch-${doctor.id}`}
-                                                checked={doctor.status === 'active'} 
-                                                onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
-                                            />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {doctors.length === 0 && <p className="text-center text-muted-foreground py-8">No hay médicos registrados.</p>}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-                )}
-                
-                {currentTab === 'sellers' && (
-                 <div className="mt-6">
-                    <Card>
-                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div>
-                            <CardTitle>Gestión de Vendedoras</CardTitle>
-                            <CardDescription>Registra, visualiza y gestiona a todas las vendedoras del sistema.</CardDescription>
-                          </div>
-                           <Button onClick={() => { setEditingSeller(null); setIsSellerDialogOpen(true); }}>
-                              <PlusCircle className="mr-2"/> Registrar Vendedora
-                           </Button>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Vendedora</TableHead>
-                                        <TableHead>Referidos (Activos)</TableHead>
-                                        <TableHead>Comisión</TableHead>
-                                        <TableHead>Comisión Pendiente</TableHead>
-                                        <TableHead>Total Pagado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sellers.map((seller) => {
-                                      const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
-                                      const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
-                                      const activeDoctorsCount = activeDoctors.length;
-                                      
-                                      const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
-                                      const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
-                                      
-                                      const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
-                                          const fee = cityFeesMap.get(doc.city) || 0;
-                                          return sum + (fee * seller.commissionRate);
-                                      }, 0);
-                                      const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
-                                      
-                                      return (
-                                        <TableRow key={seller.id}>
-                                            <TableCell className="font-medium flex items-center gap-3">
-                                                <Avatar className="h-9 w-9">
-                                                    <AvatarImage src={seller.profileImage} alt={seller.name} />
-                                                    <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p>{seller.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{seller.email}</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
-                                            <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
-                                            <TableCell className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
-                                            <TableCell className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}>
-                                                    <Wallet className="mr-2 h-4 w-4" /> Pagar Comisión
-                                                </Button>
-                                                <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                      );
-                                    })}
-                                </TableBody>
-                            </Table>
-                          </div>
-                          <div className="space-y-4 md:hidden">
-                                {sellers.map((seller) => {
-                                    const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
-                                    const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
-                                    const activeDoctorsCount = activeDoctors.length;
-                                    
-                                    const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
-                                    const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
-
-                                    const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
-                                        const fee = cityFeesMap.get(doc.city) || 0;
-                                        return sum + (fee * seller.commissionRate);
-                                    }, 0);
-                                    const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
-                                    
-                                    return (
-                                        <div key={seller.id} className="p-4 border rounded-lg space-y-4">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <Avatar className="h-10 w-10">
-                                                    <AvatarImage src={seller.profileImage} alt={seller.name} />
-                                                    <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-semibold">{seller.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{seller.email}</p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Referidos (Activos)</p>
-                                                    <p>{sellerDoctors.length} ({activeDoctorsCount})</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Comisión</p>
-                                                    <p>{(seller.commissionRate * 100).toFixed(0)}%</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Comisión Pendiente</p>
-                                                    <p className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Total Pagado</p>
-                                                    <p className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</p>
-                                                </div>
-                                            </div>
-                                            <Separator />
-                                            <div className="flex flex-col gap-2">
-                                                <Button variant="default" size="sm" className="flex-1" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}><Wallet className="mr-2 h-4 w-4" /> Pagar Comisión</Button>
-                                                <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {sellers.length === 0 && <p className="text-center text-muted-foreground py-8">No hay vendedoras registradas.</p>}
-                            </div>
-                      </CardContent>
-                    </Card>
-                </div>
-                )}
-                
-                {currentTab === 'patients' && (
-                 <div className="mt-6">
-                     <Card>
-                      <CardHeader>
-                          <CardTitle>Gestión de Pacientes</CardTitle>
-                          <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                         <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Paciente</TableHead>
-                                        <TableHead>Cédula</TableHead>
-                                        <TableHead>Contacto</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {patients.map((patient) => (
-                                        <TableRow key={patient.id}>
-                                            <TableCell className="font-medium">{patient.name}</TableCell>
-                                            <TableCell>{patient.cedula || 'N/A'}</TableCell>
-                                            <TableCell>
-                                                <p>{patient.email}</p>
-                                                <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
-                                            </TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleViewPatientDetails(patient)}><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                         </div>
-                          <div className="space-y-4 md:hidden">
-                                {patients.map((patient) => (
-                                    <div key={patient.id} className="p-4 border rounded-lg space-y-3">
-                                        <div>
-                                            <p className="font-semibold">{patient.name}</p>
-                                            <p className="text-xs text-muted-foreground">{patient.email}</p>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Cédula</p>
-                                                <p>{patient.cedula || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Teléfono</p>
-                                                <p>{patient.phone || 'N/A'}</p>
-                                            </div>
-                                        </div>
-                                        <Separator />
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewPatientDetails(patient)}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
-                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                            <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {patients.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pacientes registrados.</p>}
-                            </div>
-                      </CardContent>
-                    </Card>
-                </div>
-                )}
-
-                {currentTab === 'finances' && (
-                 <div className="mt-6">
-                    <div className="space-y-6">
-                        <div className="w-full">
-                            <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
-                                <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
-                                <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
-                                <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
-                                <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
-                                <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Global</Button>
-                            </div>
-                        </div>
-
+    <>
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <main className="flex-1 bg-muted/40">
+          <div className="container py-12">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold font-headline mb-2">Panel de Administrador</h1>
+              <p className="text-muted-foreground">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
+            </div>
+            
+             <>
+                  {currentTab === 'overview' && (
+                  <div className="mt-6">
                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                          <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Ingresos (Suscripciones)</CardTitle>
-                                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold text-green-600">${timeRangedStats.totalRevenue.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
-                              </CardContent>
-                          </Card>
-                           <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Comisiones Pagadas</CardTitle>
-                                  <Landmark className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold text-amber-600">${timeRangedStats.commissionsPaid.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
-                              </CardContent>
-                          </Card>
-                           <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Gastos Operativos</CardTitle>
-                                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="text-2xl font-bold text-red-600">${timeRangedStats.totalExpenses.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
-                              </CardContent>
-                          </Card>
-                          <Card>
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                  <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
-                                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                              <CardContent>
-                                  <div className={`text-2xl font-bold ${timeRangedStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${timeRangedStats.netProfit.toFixed(2)}</div>
-                                  <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
-                              </CardContent>
-                          </Card>
-                      </div>
-
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total de Médicos</CardTitle>
+                                    <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{globalStats.totalDoctors}</div>
+                                    <p className="text-xs text-muted-foreground">{globalStats.activeDoctors} activos</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total de Vendedoras</CardTitle>
+                                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{globalStats.totalSellers}</div>
+                                    <p className="text-xs text-muted-foreground">Gestionando referidos</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{globalStats.totalPatients}</div>
+                                    <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
+                                    <BarChartIcon className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className={`text-2xl font-bold ${globalStats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${globalStats.netProfit.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">Ingresos - Egresos (Global)</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="mt-6 text-center py-20 text-muted-foreground flex flex-col items-center gap-4 border-2 border-dashed rounded-lg">
+                            <BarChartIcon className="h-12 w-12" />
+                            <h3 className="text-xl font-semibold">Gráficos y Analíticas</h3>
+                            <p>Más analíticas detalladas sobre el crecimiento y uso de la plataforma estarán disponibles aquí.</p>
+                        </div>
+                  </div>
+                  )}
+  
+                  {currentTab === 'doctors' && (
+                  <div className="mt-6">
                       <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <CardTitle>Visión General Financiera</CardTitle>
-                                <CardDescription>Revisa el estado financiero de SUMA para {timeRangeLabels[timeRange]}.</CardDescription>
-                            </div>
-                            <Button onClick={handleGenerateAdminFinanceReport}>
-                                <FileDown className="mr-2"/> Descargar Reporte PDF
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                          <ChartContainer config={chartConfig} className="h-72 w-full">
-                            <BarChart data={chartData} accessibilityLayer>
-                                <CartesianGrid vertical={false} />
-                                <XAxis
-                                dataKey="label"
-                                tickLine={false}
-                                tickMargin={10}
-                                axisLine={false}
-                                />
-                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent indicator="dot" />}
-                                />
-                                <ChartLegend content={<ChartLegendContent />} />
-                                <Bar dataKey="Ingresos" fill="var(--color-Ingresos)" radius={4} />
-                                <Bar dataKey="Comisiones" fill="var(--color-Comisiones)" radius={4} />
-                                <Bar dataKey="Gastos" fill="var(--color-Gastos)" radius={4} />
-                            </BarChart>
-                           </ChartContainer>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                          <CardHeader>
-                              <CardTitle>Pagos Pendientes de Aprobación</CardTitle>
-                              <CardDescription>Revisa y aprueba los pagos de suscripción reportados por los médicos.</CardDescription>
+                          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div>
+                                  <CardTitle>Gestión de Médicos</CardTitle>
+                                  <CardDescription>Visualiza, edita y gestiona el estado de todos los médicos en la plataforma.</CardDescription>
+                              </div>
+                              <Button onClick={() => handleOpenDoctorDialog(null)}>
+                                  <PlusCircle className="mr-2"/> Registrar Médico
+                              </Button>
                           </CardHeader>
                           <CardContent>
                               <div className="hidden md:block">
@@ -1905,34 +1502,507 @@ export default function AdminDashboardPage() {
                                       <TableHeader>
                                           <TableRow>
                                               <TableHead>Médico</TableHead>
-                                              <TableHead>Fecha Reporte</TableHead>
-                                              <TableHead>Monto</TableHead>
-                                              <TableHead className="text-center">Comprobante</TableHead>
+                                              <TableHead>Especialidad</TableHead>
+                                              <TableHead>Ubicación</TableHead>
+                                              <TableHead>Referido por</TableHead>
+                                              <TableHead>Estado</TableHead>
                                               <TableHead className="text-right">Acciones</TableHead>
                                           </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                          {pendingDoctorPayments.length > 0 ? (
-                                              pendingDoctorPayments.map((payment) => (
-                                                  <TableRow key={payment.id}>
-                                                      <TableCell className="font-medium">{payment.doctorName}</TableCell>
-                                                      <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                      <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
-                                                      <TableCell className="text-center">
-                                                          <Button variant="outline" size="sm" onClick={() => handleViewProof(payment.paymentProofUrl)}>
-                                                              <Eye className="mr-2 h-4 w-4" /> Ver
-                                                          </Button>
-                                                      </TableCell>
-                                                      <TableCell className="text-right space-x-2">
-                                                          <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="h-4 w-4" /></Button>
-                                                          <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="h-4 w-4" /></Button>
+                                          {doctors.map((doctor) => (
+                                              <TableRow key={doctor.id}>
+                                                  <TableCell className="font-medium flex items-center gap-3">
+                                                      <Avatar className="h-9 w-9">
+                                                          <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                          <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                      </Avatar>
+                                                      <div>
+                                                          <p>{doctor.name}</p>
+                                                          <p className="text-xs text-muted-foreground">{doctor.email}</p>
+                                                      </div>
+                                                  </TableCell>
+                                                  <TableCell>{doctor.specialty}</TableCell>
+                                                  <TableCell>{doctor.city}</TableCell>
+                                                  <TableCell>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</TableCell>
+                                                  <TableCell>
+                                                      <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
+                                                          {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                                      </Badge>
+                                                  </TableCell>
+                                                  <TableCell className="text-right flex items-center justify-end gap-2">
+                                                      <Switch 
+                                                          checked={doctor.status === 'active'} 
+                                                          onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
+                                                      />
+                                                      <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
+                                                      <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
+                                                      <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                                  </TableCell>
+                                              </TableRow>
+                                          ))}
+                                      </TableBody>
+                                  </Table>
+                              </div>
+                              <div className="space-y-4 md:hidden">
+                                  {doctors.map((doctor) => (
+                                      <div key={doctor.id} className="p-4 border rounded-lg space-y-4">
+                                          <div className="flex items-start justify-between gap-4">
+                                              <div className="flex items-center gap-3">
+                                                  <Avatar className="h-10 w-10">
+                                                      <AvatarImage src={doctor.profileImage} alt={doctor.name} />
+                                                      <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                                  </Avatar>
+                                                  <div>
+                                                      <p className="font-semibold">{doctor.name}</p>
+                                                      <p className="text-xs text-muted-foreground">{doctor.email}</p>
+                                                  </div>
+                                              </div>
+                                              <Badge variant={doctor.status === 'active' ? 'default' : 'destructive'} className={cn(doctor.status === 'active' ? 'bg-green-600 text-white' : 'bg-destructive')}>
+                                                  {doctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                              </Badge>
+                                          </div>
+  
+                                          <div className="grid grid-cols-2 gap-4 text-sm">
+                                              <div>
+                                                  <p className="text-xs text-muted-foreground">Especialidad</p>
+                                                  <p>{doctor.specialty}</p>
+                                              </div>
+                                              <div>
+                                                  <p className="text-xs text-muted-foreground">Ubicación</p>
+                                                  <p>{doctor.city}</p>
+                                              </div>
+                                              <div className="col-span-2">
+                                                  <p className="text-xs text-muted-foreground">Referido por</p>
+                                                  <p>{sellers.find(s => s.id === doctor.sellerId)?.name || 'SUMA'}</p>
+                                              </div>
+                                          </div>
+  
+                                          <Separator />
+  
+                                          <div className="flex items-center justify-between gap-4">
+                                              <div className="flex items-center gap-2">
+                                                  <Label htmlFor={`switch-${doctor.id}`} className="text-sm font-medium">Estado</Label>
+                                                  <Switch 
+                                                  id={`switch-${doctor.id}`}
+                                                  checked={doctor.status === 'active'} 
+                                                  onCheckedChange={(checked) => handleDoctorStatusChange(doctor.id, checked ? 'active' : 'inactive')}
+                                              />
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <Button variant="outline" size="icon" onClick={() => handleViewDoctorDetails(doctor)}><Eye className="h-4 w-4" /></Button>
+                                                  <Button variant="outline" size="icon" onClick={() => handleOpenDoctorDialog(doctor)}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('doctor', doctor)}><Trash2 className="h-4 w-4" /></Button>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
+                                  {doctors.length === 0 && <p className="text-center text-muted-foreground py-8">No hay médicos registrados.</p>}
+                              </div>
+                          </CardContent>
+                      </Card>
+                  </div>
+                  )}
+                  
+                  {currentTab === 'sellers' && (
+                   <div className="mt-6">
+                      <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                              <CardTitle>Gestión de Vendedoras</CardTitle>
+                              <CardDescription>Registra, visualiza y gestiona a todas las vendedoras del sistema.</CardDescription>
+                            </div>
+                             <Button onClick={() => { setEditingSeller(null); setIsSellerDialogOpen(true); }}>
+                                <PlusCircle className="mr-2"/> Registrar Vendedora
+                             </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="hidden md:block">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Vendedora</TableHead>
+                                          <TableHead>Referidos (Activos)</TableHead>
+                                          <TableHead>Comisión</TableHead>
+                                          <TableHead>Comisión Pendiente</TableHead>
+                                          <TableHead>Total Pagado</TableHead>
+                                          <TableHead className="text-right">Acciones</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {sellers.map((seller) => {
+                                        const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
+                                        const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
+                                        const activeDoctorsCount = activeDoctors.length;
+                                        
+                                        const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
+                                        const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
+                                        
+                                        const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
+                                            const fee = cityFeesMap.get(doc.city) || 0;
+                                            return sum + (fee * seller.commissionRate);
+                                        }, 0);
+                                        const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
+                                        
+                                        return (
+                                          <TableRow key={seller.id}>
+                                              <TableCell className="font-medium flex items-center gap-3">
+                                                  <Avatar className="h-9 w-9">
+                                                      <AvatarImage src={seller.profileImage} alt={seller.name} />
+                                                      <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                                                  </Avatar>
+                                                  <div>
+                                                      <p>{seller.name}</p>
+                                                      <p className="text-xs text-muted-foreground">{seller.email}</p>
+                                                  </div>
+                                              </TableCell>
+                                              <TableCell>{sellerDoctors.length} ({activeDoctorsCount})</TableCell>
+                                              <TableCell>{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
+                                              <TableCell className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</TableCell>
+                                              <TableCell className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</TableCell>
+                                              <TableCell className="text-right flex items-center justify-end gap-2">
+                                                  <Button variant="outline" size="sm" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}>
+                                                      <Wallet className="mr-2 h-4 w-4" /> Pagar Comisión
+                                                  </Button>
+                                                  <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="h-4 w-4" /></Button>
+                                              </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                  </TableBody>
+                              </Table>
+                            </div>
+                            <div className="space-y-4 md:hidden">
+                                  {sellers.map((seller) => {
+                                      const sellerDoctors = doctors.filter(d => d.sellerId === seller.id);
+                                      const activeDoctors = sellerDoctors.filter(d => d.status === 'active');
+                                      const activeDoctorsCount = activeDoctors.length;
+                                      
+                                      const currentPeriod = format(new Date(), 'LLLL yyyy', { locale: es }).toLowerCase();
+                                      const hasBeenPaidThisPeriod = sellerPayments.some(p => p.sellerId === seller.id && p.period.toLowerCase() === currentPeriod);
+  
+                                      const pendingCommission = hasBeenPaidThisPeriod ? 0 : activeDoctors.reduce((sum, doc) => {
+                                          const fee = cityFeesMap.get(doc.city) || 0;
+                                          return sum + (fee * seller.commissionRate);
+                                      }, 0);
+                                      const totalPaid = sellerPayments.filter(p => p.sellerId === seller.id).reduce((sum, p) => sum + p.amount, 0);
+                                      
+                                      return (
+                                          <div key={seller.id} className="p-4 border rounded-lg space-y-4">
+                                              <div className="flex items-center gap-3 mb-2">
+                                                  <Avatar className="h-10 w-10">
+                                                      <AvatarImage src={seller.profileImage} alt={seller.name} />
+                                                      <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                                                  </Avatar>
+                                                  <div>
+                                                      <p className="font-semibold">{seller.name}</p>
+                                                      <p className="text-xs text-muted-foreground">{seller.email}</p>
+                                                  </div>
+                                              </div>
+                                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                                  <div>
+                                                      <p className="text-xs text-muted-foreground">Referidos (Activos)</p>
+                                                      <p>{sellerDoctors.length} ({activeDoctorsCount})</p>
+                                                  </div>
+                                                  <div>
+                                                      <p className="text-xs text-muted-foreground">Comisión</p>
+                                                      <p>{(seller.commissionRate * 100).toFixed(0)}%</p>
+                                                  </div>
+                                                  <div>
+                                                      <p className="text-xs text-muted-foreground">Comisión Pendiente</p>
+                                                      <p className="font-mono text-amber-600 font-semibold">${pendingCommission.toFixed(2)}</p>
+                                                  </div>
+                                                  <div>
+                                                      <p className="text-xs text-muted-foreground">Total Pagado</p>
+                                                      <p className="font-mono text-green-600 font-semibold">${totalPaid.toFixed(2)}</p>
+                                                  </div>
+                                              </div>
+                                              <Separator />
+                                              <div className="flex flex-col gap-2">
+                                                  <Button variant="default" size="sm" className="flex-1" onClick={() => handleInitiatePayment(seller)} disabled={pendingCommission <= 0}><Wallet className="mr-2 h-4 w-4" /> Pagar Comisión</Button>
+                                                  <div className="flex gap-2">
+                                                      <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                                      <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                                  {sellers.length === 0 && <p className="text-center text-muted-foreground py-8">No hay vendedoras registradas.</p>}
+                              </div>
+                        </CardContent>
+                      </Card>
+                  </div>
+                  )}
+                  
+                  {currentTab === 'patients' && (
+                   <div className="mt-6">
+                       <Card>
+                        <CardHeader>
+                            <CardTitle>Gestión de Pacientes</CardTitle>
+                            <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="hidden md:block">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Paciente</TableHead>
+                                          <TableHead>Cédula</TableHead>
+                                          <TableHead>Contacto</TableHead>
+                                          <TableHead className="text-right">Acciones</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {patients.map((patient) => (
+                                          <TableRow key={patient.id}>
+                                              <TableCell className="font-medium">{patient.name}</TableCell>
+                                              <TableCell>{patient.cedula || 'N/A'}</TableCell>
+                                              <TableCell>
+                                                  <p>{patient.email}</p>
+                                                  <p className="text-xs text-muted-foreground">{patient.phone || 'N/A'}</p>
+                                              </TableCell>
+                                              <TableCell className="text-right flex items-center justify-end gap-2">
+                                                  <Button variant="outline" size="icon" onClick={() => handleViewPatientDetails(patient)}><Eye className="h-4 w-4" /></Button>
+                                                  <Button variant="outline" size="icon" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
+                                              </TableCell>
+                                          </TableRow>
+                                      ))}
+                                  </TableBody>
+                              </Table>
+                           </div>
+                            <div className="space-y-4 md:hidden">
+                                  {patients.map((patient) => (
+                                      <div key={patient.id} className="p-4 border rounded-lg space-y-3">
+                                          <div>
+                                              <p className="font-semibold">{patient.name}</p>
+                                              <p className="text-xs text-muted-foreground">{patient.email}</p>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-4 text-sm">
+                                              <div>
+                                                  <p className="text-xs text-muted-foreground">Cédula</p>
+                                                  <p>{patient.cedula || 'N/A'}</p>
+                                              </div>
+                                              <div>
+                                                  <p className="text-xs text-muted-foreground">Teléfono</p>
+                                                  <p>{patient.phone || 'N/A'}</p>
+                                              </div>
+                                          </div>
+                                          <Separator />
+                                          <div className="flex justify-end gap-2">
+                                              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewPatientDetails(patient)}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
+                                              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                              <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleOpenDeleteDialog('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                          </div>
+                                      </div>
+                                  ))}
+                                  {patients.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pacientes registrados.</p>}
+                              </div>
+                        </CardContent>
+                      </Card>
+                  </div>
+                  )}
+  
+                  {currentTab === 'finances' && (
+                   <div className="mt-6">
+                      <div className="space-y-6">
+                          <div className="w-full">
+                              <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
+                                  <Button variant={timeRange === 'today' ? 'default' : 'outline'} onClick={() => setTimeRange('today')}>Hoy</Button>
+                                  <Button variant={timeRange === 'week' ? 'default' : 'outline'} onClick={() => setTimeRange('week')}>Esta Semana</Button>
+                                  <Button variant={timeRange === 'month' ? 'default' : 'outline'} onClick={() => setTimeRange('month')}>Este Mes</Button>
+                                  <Button variant={timeRange === 'year' ? 'default' : 'outline'} onClick={() => setTimeRange('year')}>Este Año</Button>
+                                  <Button variant={timeRange === 'all' ? 'default' : 'outline'} onClick={() => setTimeRange('all')}>Global</Button>
+                              </div>
+                          </div>
+  
+                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Ingresos (Suscripciones)</CardTitle>
+                                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600">${timeRangedStats.totalRevenue.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Comisiones Pagadas</CardTitle>
+                                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-amber-600">${timeRangedStats.commissionsPaid.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Gastos Operativos</CardTitle>
+                                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-red-600">${timeRangedStats.totalExpenses.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle>
+                                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className={`text-2xl font-bold ${timeRangedStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${timeRangedStats.netProfit.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">Período: {timeRangeLabels[timeRange]}</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+  
+                        <Card>
+                          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div>
+                                  <CardTitle>Visión General Financiera</CardTitle>
+                                  <CardDescription>Revisa el estado financiero de SUMA para {timeRangeLabels[timeRange]}.</CardDescription>
+                              </div>
+                              <Button onClick={handleGenerateAdminFinanceReport}>
+                                  <FileDown className="mr-2"/> Descargar Reporte PDF
+                              </Button>
+                          </CardHeader>
+                          <CardContent>
+                            <ChartContainer config={chartConfig} className="h-72 w-full">
+                              <BarChart data={chartData} accessibilityLayer>
+                                  <CartesianGrid vertical={false} />
+                                  <XAxis
+                                  dataKey="label"
+                                  tickLine={false}
+                                  tickMargin={10}
+                                  axisLine={false}
+                                  />
+                                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                  <ChartTooltip
+                                  cursor={false}
+                                  content={<ChartTooltipContent indicator="dot" />}
+                                  />
+                                  <ChartLegend content={<ChartLegendContent />} />
+                                  <Bar dataKey="Ingresos" fill="var(--color-Ingresos)" radius={4} />
+                                  <Bar dataKey="Comisiones" fill="var(--color-Comisiones)" radius={4} />
+                                  <Bar dataKey="Gastos" fill="var(--color-Gastos)" radius={4} />
+                              </BarChart>
+                             </ChartContainer>
+                          </CardContent>
+                        </Card>
+  
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Pagos Pendientes de Aprobación</CardTitle>
+                                <CardDescription>Revisa y aprueba los pagos de suscripción reportados por los médicos.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="hidden md:block">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Médico</TableHead>
+                                                <TableHead>Fecha Reporte</TableHead>
+                                                <TableHead>Monto</TableHead>
+                                                <TableHead className="text-center">Comprobante</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {pendingDoctorPayments.length > 0 ? (
+                                                pendingDoctorPayments.map((payment) => (
+                                                    <TableRow key={payment.id}>
+                                                        <TableCell className="font-medium">{payment.doctorName}</TableCell>
+                                                        <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                        <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Button variant="outline" size="sm" onClick={() => handleViewProof(payment.paymentProofUrl)}>
+                                                                <Eye className="mr-2 h-4 w-4" /> Ver
+                                                            </Button>
+                                                        </TableCell>
+                                                        <TableCell className="text-right space-x-2">
+                                                            <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="h-4 w-4" /></Button>
+                                                            <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="h-4 w-4" /></Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center h-24">
+                                                        No hay pagos pendientes de aprobación.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                <div className="space-y-4 md:hidden">
+                                    {pendingDoctorPayments.length > 0 ? (
+                                        pendingDoctorPayments.map((payment) => (
+                                            <div key={payment.id} className="p-4 border rounded-lg space-y-3">
+                                                <div>
+                                                    <p className="font-semibold">{payment.doctorName}</p>
+                                                    <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })} - <span className="font-mono">${(payment.amount || 0).toFixed(2)}</span></p>
+                                                </div>
+                                                <Separator />
+                                                <Button variant="outline" size="sm" className="w-full mb-2" onClick={() => handleViewProof(payment.paymentProofUrl)}>
+                                                    <Eye className="mr-2 h-4 w-4" /> Ver Comprobante
+                                                </Button>
+                                                <div className="flex gap-2">
+                                                  <Button size="sm" variant="outline" className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="mr-2 h-4 w-4" /> Rechazar</Button>
+                                                  <Button size="sm" variant="outline" className="flex-1 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="mr-2 h-4 w-4" /> Aprobar</Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-8">
+                                            No hay pagos pendientes de aprobación.
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+  
+                        <Card>
+                          <CardHeader>
+                              <CardTitle>Suscripciones por Vencer este Mes</CardTitle>
+                              <CardDescription>Lista de médicos cuya suscripción vence o ha vencido en el mes actual y no han reportado un pago.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="hidden md:block">
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Médico</TableHead>
+                                              <TableHead>Ciudad</TableHead>
+                                              <TableHead>Monto a Pagar</TableHead>
+                                              <TableHead>Fecha de Vencimiento</TableHead>
+                                              <TableHead className="text-right">Suscripción</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {pendingToPayThisMonth.length > 0 ? (
+                                              pendingToPayThisMonth.map((doctor) => (
+                                                  <TableRow key={doctor.id}>
+                                                      <TableCell className="font-medium">{doctor.name}</TableCell>
+                                                      <TableCell>{doctor.city}</TableCell>
+                                                      <TableCell className="font-mono">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</TableCell>
+                                                      <TableCell>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                                      <TableCell className="text-right">
+                                                          <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
+                                                              {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
+                                                          </Badge>
                                                       </TableCell>
                                                   </TableRow>
                                               ))
                                           ) : (
                                               <TableRow>
                                                   <TableCell colSpan={5} className="text-center h-24">
-                                                      No hay pagos pendientes de aprobación.
+                                                      No hay médicos con pagos por vencer para este mes.
                                                   </TableCell>
                                               </TableRow>
                                           )}
@@ -1940,794 +2010,726 @@ export default function AdminDashboardPage() {
                                   </Table>
                               </div>
                               <div className="space-y-4 md:hidden">
-                                  {pendingDoctorPayments.length > 0 ? (
-                                      pendingDoctorPayments.map((payment) => (
-                                          <div key={payment.id} className="p-4 border rounded-lg space-y-3">
+                                  {pendingToPayThisMonth.length > 0 ? (
+                                      pendingToPayThisMonth.map((doctor) => (
+                                          <div key={doctor.id} className="p-4 border rounded-lg space-y-3">
                                               <div>
-                                                  <p className="font-semibold">{payment.doctorName}</p>
-                                                  <p className="text-sm text-muted-foreground">{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })} - <span className="font-mono">${(payment.amount || 0).toFixed(2)}</span></p>
+                                                  <p className="font-semibold">{doctor.name}</p>
+                                                  <p className="text-sm text-muted-foreground">{doctor.city}</p>
                                               </div>
                                               <Separator />
-                                              <Button variant="outline" size="sm" className="w-full mb-2" onClick={() => handleViewProof(payment.paymentProofUrl)}>
-                                                  <Eye className="mr-2 h-4 w-4" /> Ver Comprobante
-                                              </Button>
-                                              <div className="flex gap-2">
-                                                <Button size="sm" variant="outline" className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleRejectPayment(payment.id)}><ThumbsDown className="mr-2 h-4 w-4" /> Rechazar</Button>
-                                                <Button size="sm" variant="outline" className="flex-1 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleApprovePayment(payment.id)}><ThumbsUp className="mr-2 h-4 w-4" /> Aprobar</Button>
+                                              <div className="flex justify-between items-center text-sm">
+                                                  <p className="text-muted-foreground">Vence:</p>
+                                                  <p>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
+                                              </div>
+                                              <div className="flex justify-between items-center text-sm">
+                                                  <p className="text-muted-foreground">Monto:</p>
+                                                  <p className="font-mono font-semibold">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</p>
+                                              </div>
+                                              <div className="flex justify-between items-center text-sm">
+                                                  <p className="text-muted-foreground">Estado:</p>
+                                                  <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
+                                                      {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
+                                                  </Badge>
                                               </div>
                                           </div>
                                       ))
                                   ) : (
                                       <p className="text-center text-muted-foreground py-8">
-                                          No hay pagos pendientes de aprobación.
+                                          No hay médicos con pagos por vencer para este mes.
                                       </p>
                                   )}
                               </div>
                           </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                            <CardTitle>Suscripciones por Vencer este Mes</CardTitle>
-                            <CardDescription>Lista de médicos cuya suscripción vence o ha vencido en el mes actual y no han reportado un pago.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="hidden md:block">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Médico</TableHead>
-                                            <TableHead>Ciudad</TableHead>
-                                            <TableHead>Monto a Pagar</TableHead>
-                                            <TableHead>Fecha de Vencimiento</TableHead>
-                                            <TableHead className="text-right">Suscripción</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {pendingToPayThisMonth.length > 0 ? (
-                                            pendingToPayThisMonth.map((doctor) => (
-                                                <TableRow key={doctor.id}>
-                                                    <TableCell className="font-medium">{doctor.name}</TableCell>
-                                                    <TableCell>{doctor.city}</TableCell>
-                                                    <TableCell className="font-mono">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</TableCell>
-                                                    <TableCell>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
-                                                            {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center h-24">
-                                                    No hay médicos con pagos por vencer para este mes.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div className="space-y-4 md:hidden">
-                                {pendingToPayThisMonth.length > 0 ? (
-                                    pendingToPayThisMonth.map((doctor) => (
-                                        <div key={doctor.id} className="p-4 border rounded-lg space-y-3">
-                                            <div>
-                                                <p className="font-semibold">{doctor.name}</p>
-                                                <p className="text-sm text-muted-foreground">{doctor.city}</p>
-                                            </div>
-                                            <Separator />
-                                            <div className="flex justify-between items-center text-sm">
-                                                <p className="text-muted-foreground">Vence:</p>
-                                                <p>{format(new Date(doctor.nextPaymentDate + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <p className="text-muted-foreground">Monto:</p>
-                                                <p className="font-mono font-semibold">${(cityFeesMap.get(doctor.city) || 0).toFixed(2)}</p>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <p className="text-muted-foreground">Estado:</p>
-                                                <Badge variant={doctor.subscriptionStatus === 'active' ? 'default' : 'destructive'} className={cn({'bg-green-600 text-white': doctor.subscriptionStatus === 'active', 'bg-red-600 text-white': doctor.subscriptionStatus === 'inactive'  })}>
-                                                    {doctor.subscriptionStatus === 'active' ? 'Activa (por vencer)' : 'Inactiva'}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">
-                                        No hay médicos con pagos por vencer para este mes.
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                      </Card>
-                      
-                       <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <CardTitle>Gastos Operativos de SUMA</CardTitle>
-                                <CardDescription>Registro de todos los egresos de la empresa ({timeRangeLabels[timeRange]}).</CardDescription>
-                            </div>
-                            <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}>
-                                <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="hidden md:block">
-                                <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Descripción</TableHead>
-                                        <TableHead>Categoría</TableHead>
-                                        <TableHead className="text-right">Monto</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedCompanyExpenses.map((expense) => (
-                                        <TableRow key={expense.id}>
-                                            <TableCell>{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
-                                            <TableCell className="font-medium">{expense.description}</TableCell>
-                                            <TableCell className="capitalize">{expense.category}</TableCell>
-                                            <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
-                                            <TableCell className="text-right flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {paginatedCompanyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>}
-                                </TableBody>
-                                </Table>
-                            </div>
-                            <div className="space-y-4 md:hidden">
-                                {paginatedCompanyExpenses.map((expense) => (
-                                    <div key={expense.id} className="p-4 border rounded-lg space-y-3">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold">{expense.description}</p>
-                                                <p className="text-xs text-muted-foreground">{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
-                                            </div>
-                                            <Badge variant="secondary" className="capitalize">{expense.category}</Badge>
-                                        </div>
-                                        <p className="text-right font-mono text-lg">${expense.amount.toFixed(2)}</p>
-                                        <Separator />
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                            <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {paginatedCompanyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>}
-                            </div>
-                        </CardContent>
-                          <CardFooter className="flex items-center justify-between">
-                            <div className="text-sm text-muted-foreground">
-                                Página {expenseCurrentPage} de {totalExpensePages}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Select
-                                value={String(expenseItemsPerPage)}
-                                onValueChange={(value) => {
-                                    setExpenseItemsPerPage(Number(value));
-                                    setExpenseCurrentPage(1);
-                                }}
-                                >
-                                <SelectTrigger className="w-28">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="10">10 por página</SelectItem>
-                                    <SelectItem value="20">20 por página</SelectItem>
-                                    <SelectItem value="50">50 por página</SelectItem>
-                                    <SelectItem value="-1">Mostrar todos</SelectItem>
-                                </SelectContent>
-                                </Select>
-                                <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setExpenseCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={expenseCurrentPage === 1}
-                                >
-                                <ChevronLeft className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setExpenseCurrentPage(p => Math.min(totalExpensePages, p + 1))}
-                                disabled={expenseCurrentPage === totalExpensePages}
-                                >
-                                <ChevronRight className="h-4 w-4" />
-                                </Button>
-                            </div>
-                          </CardFooter>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                            <CardTitle>Historial de Ingresos por Suscripción</CardTitle>
-                            <CardDescription>Pagos de mensualidades de los médicos, agrupados por mes.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {Object.keys(paymentsByMonth).length > 0 ? (
-                                <Accordion type="single" collapsible className="w-full" defaultValue={Object.keys(paymentsByMonth)[0]}>
-                                    {Object.entries(paymentsByMonth).map(([month, payments]) => (
-                                        <AccordionItem value={month} key={month}>
-                                            <AccordionTrigger className="text-lg font-medium capitalize">{month}</AccordionTrigger>
-                                            <AccordionContent>
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Fecha</TableHead>
-                                                            <TableHead>Médico</TableHead>
-                                                            <TableHead>Monto</TableHead>
-                                                            <TableHead>Estado</TableHead>
-                                                            <TableHead className="text-right">Detalles</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {payments.map((payment) => (
-                                                            <TableRow key={payment.id}>
-                                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL", { locale: es })}</TableCell>
-                                                                <TableCell>{payment.doctorName}</TableCell>
-                                                                <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
-                                                                <TableCell>
-                                                                    <Badge className={cn({
-                                                                        'bg-green-600 text-white': payment.status === 'Paid',
-                                                                        'bg-amber-500 text-white': payment.status === 'Pending',
-                                                                        'bg-red-600 text-white': payment.status === 'Rejected',
-                                                                    })}>
-                                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="text-right">
-                                                                    <Button 
-                                                                    variant="outline" 
-                                                                    size="icon" 
-                                                                    onClick={() => handleViewProof(payment.paymentProofUrl)}
-                                                                    disabled={!payment.paymentProofUrl}
-                                                                    >
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>
-                            )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                </div>
-                )}
-                
-                {currentTab === 'marketing' && (
-                <div className="mt-6">
-                    <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <CardTitle className="flex items-center gap-2"><ShoppingBag/> Material de Marketing</CardTitle>
-                                <CardDescription>Gestiona los recursos que las vendedoras usan para promocionar SUMA.</CardDescription>
-                            </div>
-                            <Button onClick={() => { setEditingMaterial(null); setIsMarketingDialogOpen(true); }}>
-                                <PlusCircle className="mr-2"/> Añadir Material
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="hidden md:block">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Título</TableHead>
-                                            <TableHead>Tipo</TableHead>
-                                            <TableHead>Descripción</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {marketingMaterials.map((material) => (
-                                            <TableRow key={material.id}>
-                                                <TableCell className="font-medium">{material.title}</TableCell>
-                                                <TableCell className="capitalize">{material.type}</TableCell>
-                                                <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{material.description}</TableCell>
-                                                <TableCell className="text-right flex items-center justify-end gap-2">
-                                                    <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {marketingMaterials.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">No hay materiales de marketing cargados.</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div className="space-y-4 md:hidden">
-                                {marketingMaterials.map((material) => (
-                                    <div key={material.id} className="p-4 border rounded-lg space-y-3">
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div>
-                                                <p className="font-semibold">{material.title}</p>
-                                                <Badge variant="secondary" className="capitalize mt-1">{material.type}</Badge>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">{material.description}</p>
-                                    </div>
-                                ))}
-                                {marketingMaterials.length === 0 && (
-                                    <p className="text-center text-muted-foreground py-8">No hay materiales de marketing cargados.</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-                )}
-
-                {currentTab === 'support' && (
-                 <div className="mt-6">
-                    <Card>
-                      <CardHeader>
-                          <CardTitle>Tickets de Soporte</CardTitle>
-                          <CardDescription>Gestiona las solicitudes de soporte de médicos y vendedoras.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                         <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Usuario</TableHead>
-                                        <TableHead>Rol</TableHead>
-                                        <TableHead>Asunto</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {supportTickets.map((ticket) => (
-                                        <TableRow key={ticket.id}>
-                                            <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
-                                            <TableCell>{ticket.userName}</TableCell>
-                                            <TableCell className="capitalize">{ticket.userRole}</TableCell>
-                                            <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                            <TableCell>
-                                                <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                                    {ticket.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}>
-                                                    <Eye className="mr-2 h-4 w-4" /> Ver Ticket
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                     {supportTickets.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">No hay tickets de soporte.</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                         </div>
-                          <div className="space-y-4 md:hidden">
-                                {supportTickets.map((ticket) => (
-                                    <div key={ticket.id} className="p-4 border rounded-lg space-y-3">
-                                        <div>
-                                            <p className="font-semibold">{ticket.subject}</p>
-                                            <p className="text-sm text-muted-foreground">{ticket.userName} <span className="capitalize">({ticket.userRole})</span></p>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center text-sm">
-                                            <p className="text-xs text-muted-foreground">{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
-                                            <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
-                                                {ticket.status}
-                                            </Badge>
-                                        </div>
-
-                                        <Separator />
-                                        
-                                        <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewTicket(ticket)}>
-                                            <Eye className="mr-2 h-4 w-4" /> Ver Ticket
-                                        </Button>
-                                    </div>
-                                ))}
-                                {supportTickets.length === 0 && <p className="text-center text-muted-foreground py-8">No hay tickets de soporte.</p>}
-                            </div>
-                      </CardContent>
-                    </Card>
-                </div>
-                )}
-                {currentTab === 'settings' && (
-                    <div className="mt-6 space-y-6">
-                      <div className="grid md:grid-cols-2 gap-6 items-start">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
-                                <CardDescription>Ajusta los parámetros principales de la plataforma.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-                                <div className="space-y-4">
-                                    <Label className="text-base">Moneda Principal</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Wallet className="h-5 w-5 text-muted-foreground" />
-                                        <Select value={currency} onValueChange={(val) => updateSetting('currency', val)}>
-                                            <SelectTrigger><SelectValue/></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="USD">USD - Dólar Americano</SelectItem>
-                                                <SelectItem value="EUR">EUR - Euro</SelectItem>
-                                                <SelectItem value="VES">VES - Bolívar Soberano</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <Label className="text-base">Zona Horaria</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Globe className="h-5 w-5 text-muted-foreground" />
-                                        <Select value={timezone} onValueChange={(val) => updateSetting('timezone', val)}>
-                                            <SelectTrigger><SelectValue/></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="America/Caracas">GMT-4 (Caracas)</SelectItem>
-                                                <SelectItem value="America/New_York">GMT-5 (Nueva York)</SelectItem>
-                                                <SelectItem value="Europe/Madrid">GMT+1 (Madrid)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </CardContent>
                         </Card>
+                        
                          <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="flex items-center gap-2"><Landmark /> Cuentas Bancarias de SUMA</CardTitle>
-                                <Button size="sm" onClick={() => { setEditingCompanyBankDetail(null); setIsCompanyBankDetailDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                {companyBankDetails.map(bd => (
-                                    <div key={bd.id} className="flex justify-between items-center p-2 rounded-md border">
-                                        <div>
-                                            <p className="font-medium">{bd.bank} {bd.description && <span className="font-normal text-muted-foreground">({bd.description})</span>}</p>
-                                            <p className="text-xs text-muted-foreground">{bd.accountHolder} - Cta. ...{bd.accountNumber.slice(-4)}</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button size="icon" variant="outline" onClick={() => { setEditingCompanyBankDetail(bd); setIsCompanyBankDetailDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                            <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('bank', bd)}><Trash2 className="h-4 w-4"/></Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {companyBankDetails.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">No hay cuentas bancarias registradas.</p>}
-                                </div>
-                            </CardContent>
-                        </Card>
-                      </div>
-
-                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><CalendarDays /> Ciclo de Facturación</CardTitle>
-                            <CardDescription>Define el ciclo de pago mensual para las suscripciones de los médicos.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <Label htmlFor="billing-start">Día de Inicio del Ciclo</Label>
-                                <Input 
-                                    id="billing-start" 
-                                    type="number" 
-                                    value={tempBillingStartDay}
-                                    onChange={(e) => setTempBillingStartDay(Number(e.target.value))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="billing-end">Día de Fin (Periodo de Gracia)</Label>
-                                <Input 
-                                    id="billing-end" 
-                                    type="number" 
-                                    value={tempBillingEndDay}
-                                    onChange={(e) => setTempBillingEndDay(Number(e.target.value))}
-                                />
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button onClick={handleSaveBillingSettings}>Guardar Ciclo de Facturación</Button>
-                        </CardFooter>
-                    </Card>
-
-                      <Card>
-                          <CardHeader>
-                              <CardTitle className="flex items-center gap-2"><ImageIcon /> Gestión de Imágenes</CardTitle>
-                              <CardDescription>Cambia las imágenes principales de la plataforma.</CardDescription>
-                          </CardHeader>
-                          <CardContent className="grid md:grid-cols-2 gap-8">
-                              <div className="space-y-4">
-                                  <Label className="text-base font-semibold">Logo de SUMA</Label>
-                                  <div className="space-y-2">
-                                      <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
-                                      <div className="flex items-center gap-2">
-                                          <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                                          <Input id="logo-url" type="text" value={tempLogoUrl} onChange={(e) => setTempLogoUrl(e.target.value)} placeholder="https://ejemplo.com/logo.png" />
-                                      </div>
-                                  </div>
-                                  <p className="text-xs text-center text-muted-foreground">O</p>
-                                  <div className="space-y-2">
-                                      <Label htmlFor="logoFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
-                                      <div className="flex items-center gap-2">
-                                          <Upload className="h-5 w-5 text-muted-foreground"/>
-                                          <Input id="logoFile" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-                                      </div>
-                                      {logoFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {logoFile.name}</p>}
-                                  </div>
-                                  {logoUrl && !logoFile && (
-                                      <div className="mt-2">
-                                          <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
-                                          <Image src={logoUrl} alt="Logo de SUMA" width={128} height={40} className="rounded-md border p-2 bg-background object-contain mt-1" />
-                                      </div>
-                                  )}
+                          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div>
+                                  <CardTitle>Gastos Operativos de SUMA</CardTitle>
+                                  <CardDescription>Registro de todos los egresos de la empresa ({timeRangeLabels[timeRange]}).</CardDescription>
                               </div>
-                              <div className="space-y-4">
-                                  <Label className="text-base font-semibold">Imagen Principal (Homepage)</Label>
-                                  <div className="space-y-2">
-                                      <Label htmlFor="hero-url" className="text-xs font-normal text-muted-foreground">URL de la Imagen</Label>
-                                      <div className="flex items-center gap-2">
-                                          <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                                          <Input id="hero-url" type="text" value={tempHeroImageUrl} onChange={(e) => setTempHeroImageUrl(e.target.value)} placeholder="https://ejemplo.com/imagen.png" />
-                                      </div>
-                                  </div>
-                                  <p className="text-xs text-center text-muted-foreground">O</p>
-                                  <div className="space-y-2">
-                                      <Label htmlFor="heroImageFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
-                                      <div className="flex items-center gap-2">
-                                          <Upload className="h-5 w-5 text-muted-foreground"/>
-                                          <Input id="heroImageFile" type="file" accept="image/*" onChange={(e) => setHeroImageFile(e.target.files?.[0] || null)} />
-                                      </div>
-                                      {heroImageFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {heroImageFile.name}</p>}
-                                  </div>
-                                  {heroImageUrl && !heroImageFile && (
-                                      <div className="mt-2">
-                                          <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
-                                          <div className="relative aspect-video w-full">
-                                              <Image src={heroImageUrl} alt="Imagen principal" layout="fill" className="rounded-md border object-cover mt-1" />
+                              <Button onClick={() => { setEditingExpense(null); setIsExpenseDialogOpen(true); }}>
+                                  <PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto
+                              </Button>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="hidden md:block">
+                                  <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Fecha</TableHead>
+                                          <TableHead>Descripción</TableHead>
+                                          <TableHead>Categoría</TableHead>
+                                          <TableHead className="text-right">Monto</TableHead>
+                                          <TableHead className="text-right">Acciones</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {paginatedCompanyExpenses.map((expense) => (
+                                          <TableRow key={expense.id}>
+                                              <TableCell>{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</TableCell>
+                                              <TableCell className="font-medium">{expense.description}</TableCell>
+                                              <TableCell className="capitalize">{expense.category}</TableCell>
+                                              <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                              <TableCell className="text-right flex items-center justify-end gap-2">
+                                                  <Button variant="outline" size="icon" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="h-4 w-4" /></Button>
+                                              </TableCell>
+                                          </TableRow>
+                                      ))}
+                                      {paginatedCompanyExpenses.length === 0 && <TableRow><TableCell colSpan={5} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>}
+                                  </TableBody>
+                                  </Table>
+                              </div>
+                              <div className="space-y-4 md:hidden">
+                                  {paginatedCompanyExpenses.map((expense) => (
+                                      <div key={expense.id} className="p-4 border rounded-lg space-y-3">
+                                          <div className="flex justify-between items-start">
+                                              <div>
+                                                  <p className="font-semibold">{expense.description}</p>
+                                                  <p className="text-xs text-muted-foreground">{format(new Date(expense.date + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                                              </div>
+                                              <Badge variant="secondary" className="capitalize">{expense.category}</Badge>
+                                          </div>
+                                          <p className="text-right font-mono text-lg">${expense.amount.toFixed(2)}</p>
+                                          <Separator />
+                                          <div className="flex justify-end gap-2">
+                                              <Button variant="outline" size="sm" onClick={() => { setEditingExpense(expense); setIsExpenseDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                              <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('expense', expense)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                                           </div>
                                       </div>
+                                  ))}
+                                  {paginatedCompanyExpenses.length === 0 && <p className="text-center text-muted-foreground py-8">No hay gastos registrados en este período.</p>}
+                              </div>
+                          </CardContent>
+                            <CardFooter className="flex items-center justify-between">
+                              <div className="text-sm text-muted-foreground">
+                                  Página {expenseCurrentPage} de {totalExpensePages}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <Select
+                                  value={String(expenseItemsPerPage)}
+                                  onValueChange={(value) => {
+                                      setExpenseItemsPerPage(Number(value));
+                                      setExpenseCurrentPage(1);
+                                  }}
+                                  >
+                                  <SelectTrigger className="w-28">
+                                      <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      <SelectItem value="10">10 por página</SelectItem>
+                                      <SelectItem value="20">20 por página</SelectItem>
+                                      <SelectItem value="50">50 por página</SelectItem>
+                                      <SelectItem value="-1">Mostrar todos</SelectItem>
+                                  </SelectContent>
+                                  </Select>
+                                  <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => setExpenseCurrentPage(p => Math.max(1, p - 1))}
+                                  disabled={expenseCurrentPage === 1}
+                                  >
+                                  <ChevronLeft className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => setExpenseCurrentPage(p => Math.min(totalExpensePages, p + 1))}
+                                  disabled={expenseCurrentPage === totalExpensePages}
+                                  >
+                                  <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                              </div>
+                            </CardFooter>
+                        </Card>
+  
+                        <Card>
+                          <CardHeader>
+                              <CardTitle>Historial de Ingresos por Suscripción</CardTitle>
+                              <CardDescription>Pagos de mensualidades de los médicos, agrupados por mes.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                              {Object.keys(paymentsByMonth).length > 0 ? (
+                                  <Accordion type="single" collapsible className="w-full" defaultValue={Object.keys(paymentsByMonth)[0]}>
+                                      {Object.entries(paymentsByMonth).map(([month, payments]) => (
+                                          <AccordionItem value={month} key={month}>
+                                              <AccordionTrigger className="text-lg font-medium capitalize">{month}</AccordionTrigger>
+                                              <AccordionContent>
+                                                  <Table>
+                                                      <TableHeader>
+                                                          <TableRow>
+                                                              <TableHead>Fecha</TableHead>
+                                                              <TableHead>Médico</TableHead>
+                                                              <TableHead>Monto</TableHead>
+                                                              <TableHead>Estado</TableHead>
+                                                              <TableHead className="text-right">Detalles</TableHead>
+                                                          </TableRow>
+                                                      </TableHeader>
+                                                      <TableBody>
+                                                          {payments.map((payment) => (
+                                                              <TableRow key={payment.id}>
+                                                                  <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d 'de' LLLL", { locale: es })}</TableCell>
+                                                                  <TableCell>{payment.doctorName}</TableCell>
+                                                                  <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
+                                                                  <TableCell>
+                                                                      <Badge className={cn({
+                                                                          'bg-green-600 text-white': payment.status === 'Paid',
+                                                                          'bg-amber-500 text-white': payment.status === 'Pending',
+                                                                          'bg-red-600 text-white': payment.status === 'Rejected',
+                                                                      })}>
+                                                                          {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'En Revisión' : 'Rechazado'}
+                                                                      </Badge>
+                                                                  </TableCell>
+                                                                  <TableCell className="text-right">
+                                                                      <Button 
+                                                                      variant="outline" 
+                                                                      size="icon" 
+                                                                      onClick={() => handleViewProof(payment.paymentProofUrl)}
+                                                                      disabled={!payment.paymentProofUrl}
+                                                                      >
+                                                                          <Eye className="h-4 w-4" />
+                                                                      </Button>
+                                                                  </TableCell>
+                                                              </TableRow>
+                                                          ))}
+                                                      </TableBody>
+                                                  </Table>
+                                              </AccordionContent>
+                                          </AccordionItem>
+                                      ))}
+                                  </Accordion>
+                              ) : (
+                                  <p className="text-center text-muted-foreground py-8">No hay pagos registrados.</p>
+                              )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                  </div>
+                  )}
+                  
+                  {currentTab === 'marketing' && (
+                  <div className="mt-6">
+                      <Card>
+                          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div>
+                                  <CardTitle className="flex items-center gap-2"><ShoppingBag/> Material de Marketing</CardTitle>
+                                  <CardDescription>Gestiona los recursos que las vendedoras usan para promocionar SUMA.</CardDescription>
+                              </div>
+                              <Button onClick={() => { setEditingMaterial(null); setIsMarketingDialogOpen(true); }}>
+                                  <PlusCircle className="mr-2"/> Añadir Material
+                              </Button>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="hidden md:block">
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Título</TableHead>
+                                              <TableHead>Tipo</TableHead>
+                                              <TableHead>Descripción</TableHead>
+                                              <TableHead className="text-right">Acciones</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {marketingMaterials.map((material) => (
+                                              <TableRow key={material.id}>
+                                                  <TableCell className="font-medium">{material.title}</TableCell>
+                                                  <TableCell className="capitalize">{material.type}</TableCell>
+                                                  <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{material.description}</TableCell>
+                                                  <TableCell className="text-right flex items-center justify-end gap-2">
+                                                      <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                      <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
+                                                  </TableCell>
+                                              </TableRow>
+                                          ))}
+                                          {marketingMaterials.length === 0 && (
+                                              <TableRow>
+                                                  <TableCell colSpan={4} className="h-24 text-center">No hay materiales de marketing cargados.</TableCell>
+                                              </TableRow>
+                                          )}
+                                      </TableBody>
+                                  </Table>
+                              </div>
+                              <div className="space-y-4 md:hidden">
+                                  {marketingMaterials.map((material) => (
+                                      <div key={material.id} className="p-4 border rounded-lg space-y-3">
+                                          <div className="flex justify-between items-start gap-2">
+                                              <div>
+                                                  <p className="font-semibold">{material.title}</p>
+                                                  <Badge variant="secondary" className="capitalize mt-1">{material.type}</Badge>
+                                              </div>
+                                              <div className="flex gap-2">
+                                                  <Button variant="outline" size="icon" onClick={() => { setEditingMaterial(material); setIsMarketingDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                                  <Button variant="destructive" size="icon" onClick={() => handleOpenDeleteDialog('marketing', material)}><Trash2 className="h-4 w-4" /></Button>
+                                              </div>
+                                          </div>
+                                          <p className="text-sm text-muted-foreground">{material.description}</p>
+                                      </div>
+                                  ))}
+                                  {marketingMaterials.length === 0 && (
+                                      <p className="text-center text-muted-foreground py-8">No hay materiales de marketing cargados.</p>
                                   )}
                               </div>
                           </CardContent>
-                          <CardFooter>
-                              <Button onClick={handleSaveImages}>Guardar Imágenes</Button>
-                          </CardFooter>
                       </Card>
-
-                       <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Sparkles /> Especialidades de Belleza</CardTitle>
-                                <CardDescription>Selecciona qué especialidades aparecerán en la sección destacada de "Belleza y Bienestar" en la página de búsqueda.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-2 max-h-60 overflow-y-auto">
-                                {specialties.map(spec => (
-                                    <div key={spec} className="flex items-center space-x-3">
-                                        <Checkbox
-                                            id={`beauty-${spec}`}
-                                            checked={(beautySpecialties || []).includes(spec)}
-                                            onCheckedChange={(checked) => handleBeautySpecialtyChange(spec, !!checked)}
-                                        />
-                                        <label
-                                            htmlFor={`beauty-${spec}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                           {spec}
-                                        </label>
-                                    </div>
-                                ))}
-                                {specialties.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">Primero debes agregar especialidades.</p>}
-                            </CardContent>
-                        </Card>
-
+                  </div>
+                  )}
+  
+                  {currentTab === 'support' && (
+                   <div className="mt-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Database /> Mantenimiento de la Base de Datos
-                          </CardTitle>
-                          <CardDescription>
-                            Realiza tareas de mantenimiento como poblar, respaldar y restaurar los datos de la aplicación.
-                          </CardDescription>
+                            <CardTitle>Tickets de Soporte</CardTitle>
+                            <CardDescription>Gestiona las solicitudes de soporte de médicos y vendedoras.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
-                                <h4 className="font-semibold">Poblar con Datos de Prueba</h4>
-                                <p className="text-sm text-muted-foreground">
-                                Este proceso borrará los datos existentes y los reemplazará con los datos de prueba del sistema.
-                                <br />
-                                <strong className="text-destructive">Advertencia:</strong> Esta acción es irreversible.
-                                </p>
-                                <Button
-                                variant="secondary"
-                                onClick={handleSeedDatabase}
-                                disabled={isSeeding}
-                                >
-                                {isSeeding ? (
-                                    <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Poblando Base de Datos...
-                                    </>
-                                ) : (
-                                    "Poblar Base de Datos"
-                                )}
-                                </Button>
-                            </div>
-
-                             <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
-                                <h4 className="font-semibold">Respaldo y Restauración</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Exporta todos los datos de la aplicación a un archivo JSON, o importa un archivo para restaurar un estado anterior.
-                                    <br />
-                                    <strong className="text-destructive">Advertencia:</strong> La importación borrará todos los datos actuales.
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button onClick={handleExportDatabase} disabled={isExporting}>
-                                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4"/>}
-                                        Exportar Datos
-                                    </Button>
-                                    <Button variant="outline" onClick={() => importFileInputRef.current?.click()} disabled={isImporting}>
-                                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4"/>}
-                                        Importar Datos
-                                    </Button>
-                                    <input
-                                        ref={importFileInputRef}
-                                        type="file"
-                                        id="import-file-input"
-                                        accept=".json"
-                                        className="hidden"
-                                        onChange={handleFileSelect}
-                                    />
-                                </div>
-                            </div>
+                        <CardContent>
+                           <div className="hidden md:block">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Fecha</TableHead>
+                                          <TableHead>Usuario</TableHead>
+                                          <TableHead>Rol</TableHead>
+                                          <TableHead>Asunto</TableHead>
+                                          <TableHead>Estado</TableHead>
+                                          <TableHead className="text-right">Acciones</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {supportTickets.map((ticket) => (
+                                          <TableRow key={ticket.id}>
+                                              <TableCell>{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                              <TableCell>{ticket.userName}</TableCell>
+                                              <TableCell className="capitalize">{ticket.userRole}</TableCell>
+                                              <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                              <TableCell>
+                                                  <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                      {ticket.status}
+                                                  </Badge>
+                                              </TableCell>
+                                              <TableCell className="text-right">
+                                                  <Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}>
+                                                      <Eye className="mr-2 h-4 w-4" /> Ver Ticket
+                                                  </Button>
+                                              </TableCell>
+                                          </TableRow>
+                                      ))}
+                                       {supportTickets.length === 0 && (
+                                          <TableRow>
+                                              <TableCell colSpan={6} className="h-24 text-center">No hay tickets de soporte.</TableCell>
+                                          </TableRow>
+                                      )}
+                                  </TableBody>
+                              </Table>
+                           </div>
+                            <div className="space-y-4 md:hidden">
+                                  {supportTickets.map((ticket) => (
+                                      <div key={ticket.id} className="p-4 border rounded-lg space-y-3">
+                                          <div>
+                                              <p className="font-semibold">{ticket.subject}</p>
+                                              <p className="text-sm text-muted-foreground">{ticket.userName} <span className="capitalize">({ticket.userRole})</span></p>
+                                          </div>
+                                          
+                                          <div className="flex justify-between items-center text-sm">
+                                              <p className="text-xs text-muted-foreground">{format(new Date(ticket.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</p>
+                                              <Badge className={cn(ticket.status === 'abierto' ? 'bg-blue-600' : 'bg-gray-500', 'text-white capitalize')}>
+                                                  {ticket.status}
+                                              </Badge>
+                                          </div>
+  
+                                          <Separator />
+                                          
+                                          <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewTicket(ticket)}>
+                                              <Eye className="mr-2 h-4 w-4" /> Ver Ticket
+                                          </Button>
+                                      </div>
+                                  ))}
+                                  {supportTickets.length === 0 && <p className="text-center text-muted-foreground py-8">No hay tickets de soporte.</p>}
+                              </div>
                         </CardContent>
                       </Card>
-
+                  </div>
+                  )}
+                  {currentTab === 'settings' && (
+                      <div className="mt-6 space-y-6">
                         <div className="grid md:grid-cols-2 gap-6 items-start">
-                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2"><MapPin /> Gestión de Ubicaciones</CardTitle>
-                                    <Button size="sm" onClick={() => { setEditingCity({ originalName: '', name: '', subscriptionFee: 0 }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="hidden md:block">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Ciudad</TableHead>
-                                                    <TableHead>Tarifa de Suscripción</TableHead>
-                                                    <TableHead className="text-right">Acciones</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                            {cities.map((city, index) => (
-                                                <TableRow key={`${city.name}-${index}`}>
-                                                    <TableCell className="font-medium">{city.name}</TableCell>
-                                                    <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
-                                                    <TableCell className="flex justify-end gap-2">
-                                                        <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                        <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                    <div className="space-y-4 md:hidden">
-                                        {cities.map((city, index) => (
-                                            <div key={`${city.name}-${index}-mobile`} className="p-4 border rounded-lg space-y-3">
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-semibold">{city.name}</p>
-                                                        <p className="text-sm font-mono text-muted-foreground">${(city.subscriptionFee || 0).toFixed(2)}</p>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                        <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {cities.length === 0 && (
-                                            <p className="text-center text-muted-foreground py-8">No hay ciudades registradas.</p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2"><BrainCircuit /> Gestión de Especialidades</CardTitle>
-                                    <Button size="sm" onClick={() => { setEditingSpecialty({ originalName: '', newName: '' }); setIsSpecialtyDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                    {specialties.map(spec => (
-                                        <div key={spec} className="flex justify-between items-center p-2 rounded-md border">
-                                            <span className="font-medium">{spec}</span>
-                                            <div className="flex gap-2">
-                                                <Button size="icon" variant="outline" onClick={() => { setEditingSpecialty({ originalName: spec, newName: spec }); setIsSpecialtyDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('specialty', spec)}><Trash2 className="h-4 w-4"/></Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                          <Card>
+                              <CardHeader>
+                                  <CardTitle className="flex items-center gap-2"><Settings /> Configuración General</CardTitle>
+                                  <CardDescription>Ajusta los parámetros principales de la plataforma.</CardDescription>
+                              </CardHeader>
+                              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+                                  <div className="space-y-4">
+                                      <Label className="text-base">Moneda Principal</Label>
+                                      <div className="flex items-center gap-2">
+                                          <Wallet className="h-5 w-5 text-muted-foreground" />
+                                          <Select value={currency} onValueChange={(val) => updateSetting('currency', val)}>
+                                              <SelectTrigger><SelectValue/></SelectTrigger>
+                                              <SelectContent>
+                                                  <SelectItem value="USD">USD - Dólar Americano</SelectItem>
+                                                  <SelectItem value="EUR">EUR - Euro</SelectItem>
+                                                  <SelectItem value="VES">VES - Bolívar Soberano</SelectItem>
+                                              </SelectContent>
+                                          </Select>
+                                      </div>
+                                  </div>
+                                  <div className="space-y-4">
+                                      <Label className="text-base">Zona Horaria</Label>
+                                      <div className="flex items-center gap-2">
+                                          <Globe className="h-5 w-5 text-muted-foreground" />
+                                          <Select value={timezone} onValueChange={(val) => updateSetting('timezone', val)}>
+                                              <SelectTrigger><SelectValue/></SelectTrigger>
+                                              <SelectContent>
+                                                  <SelectItem value="America/Caracas">GMT-4 (Caracas)</SelectItem>
+                                                  <SelectItem value="America/New_York">GMT-5 (Nueva York)</SelectItem>
+                                                  <SelectItem value="Europe/Madrid">GMT+1 (Madrid)</SelectItem>
+                                              </SelectContent>
+                                          </Select>
+                                      </div>
+                                  </div>
+                              </CardContent>
+                          </Card>
+                           <Card>
+                              <CardHeader className="flex flex-row items-center justify-between">
+                                  <CardTitle className="flex items-center gap-2"><Landmark /> Cuentas Bancarias de SUMA</CardTitle>
+                                  <Button size="sm" onClick={() => { setEditingCompanyBankDetail(null); setIsCompanyBankDetailDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="space-y-2">
+                                  {companyBankDetails.map(bd => (
+                                      <div key={bd.id} className="flex justify-between items-center p-2 rounded-md border">
+                                          <div>
+                                              <p className="font-medium">{bd.bank} {bd.description && <span className="font-normal text-muted-foreground">({bd.description})</span>}</p>
+                                              <p className="text-xs text-muted-foreground">{bd.accountHolder} - Cta. ...{bd.accountNumber.slice(-4)}</p>
+                                          </div>
+                                          <div className="flex gap-2">
+                                              <Button size="icon" variant="outline" onClick={() => { setEditingCompanyBankDetail(bd); setIsCompanyBankDetailDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                              <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('bank', bd)}><Trash2 className="h-4 w-4"/></Button>
+                                          </div>
+                                      </div>
+                                  ))}
+                                  {companyBankDetails.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">No hay cuentas bancarias registradas.</p>}
+                                  </div>
+                              </CardContent>
+                          </Card>
                         </div>
-                        
+  
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="flex items-center gap-2"><Tag /> Gestión de Cupones</CardTitle>
-                                <Button size="sm" onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}><PlusCircle className="mr-2"/> Cupón</Button>
+                          <CardHeader>
+                              <CardTitle className="flex items-center gap-2"><CalendarDays /> Ciclo de Facturación</CardTitle>
+                              <CardDescription>Define el ciclo de pago mensual para las suscripciones de los médicos.</CardDescription>
+                          </CardHeader>
+                          <CardContent className="grid md:grid-cols-2 gap-8">
+                              <div className="space-y-2">
+                                  <Label htmlFor="billing-start">Día de Inicio del Ciclo</Label>
+                                  <Input 
+                                      id="billing-start" 
+                                      type="number" 
+                                      value={tempBillingStartDay}
+                                      onChange={(e) => setTempBillingStartDay(Number(e.target.value))}
+                                  />
+                              </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="billing-end">Día de Fin (Periodo de Gracia)</Label>
+                                  <Input 
+                                      id="billing-end" 
+                                      type="number" 
+                                      value={tempBillingEndDay}
+                                      onChange={(e) => setTempBillingEndDay(Number(e.target.value))}
+                                  />
+                              </div>
+                          </CardContent>
+                          <CardFooter>
+                              <Button onClick={handleSaveBillingSettings}>Guardar Ciclo de Facturación</Button>
+                          </CardFooter>
+                      </Card>
+  
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><ImageIcon /> Gestión de Imágenes</CardTitle>
+                                <CardDescription>Cambia las imágenes principales de la plataforma.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="hidden md:block">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Código</TableHead>
-                                                <TableHead>Tipo</TableHead>
-                                                <TableHead>Valor</TableHead>
-                                                <TableHead>Alcance</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                        {coupons.map(coupon => (
-                                            <TableRow key={coupon.id}>
-                                                <TableCell className="font-mono">{coupon.code}</TableCell>
-                                                <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
-                                                <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
-                                                <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
-                                                <TableCell className="text-right flex items-center justify-end gap-2">
-                                                    <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
-                                                    <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="h-4 w-4"/></Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
+                            <CardContent className="grid md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <Label className="text-base font-semibold">Logo de SUMA</Label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="logo-url" className="text-xs font-normal text-muted-foreground">URL del Logo</Label>
+                                        <div className="flex items-center gap-2">
+                                            <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                            <Input id="logo-url" type="text" value={tempLogoUrl} onChange={(e) => setTempLogoUrl(e.target.value)} placeholder="https://ejemplo.com/logo.png" />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-center text-muted-foreground">O</p>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="logoFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Upload className="h-5 w-5 text-muted-foreground"/>
+                                            <Input id="logoFile" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                                        </div>
+                                        {logoFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {logoFile.name}</p>}
+                                    </div>
+                                    {logoUrl && !logoFile && (
+                                        <div className="mt-2">
+                                            <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
+                                            <Image src={logoUrl} alt="Logo de SUMA" width={128} height={40} className="rounded-md border p-2 bg-background object-contain mt-1" />
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="space-y-4 md:hidden">
-                                    {coupons.map(coupon => (
-                                        <div key={coupon.id} className="p-4 border rounded-lg space-y-3">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold font-mono">{coupon.code}</p>
-                                                    <p className="text-xs text-muted-foreground">{coupon.scope === 'general' ? 'General' : `Dr. ${doctors.find(d => d.id === coupon.scope)?.name}`}</p>
-                                                </div>
-                                                <Badge variant="secondary">{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</Badge>
-                                            </div>
-                                            <Separator />
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                                                <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                <div className="space-y-4">
+                                    <Label className="text-base font-semibold">Imagen Principal (Homepage)</Label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="hero-url" className="text-xs font-normal text-muted-foreground">URL de la Imagen</Label>
+                                        <div className="flex items-center gap-2">
+                                            <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                                            <Input id="hero-url" type="text" value={tempHeroImageUrl} onChange={(e) => setTempHeroImageUrl(e.target.value)} placeholder="https://ejemplo.com/imagen.png" />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-center text-muted-foreground">O</p>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="heroImageFile" className="text-xs font-normal text-muted-foreground">Subir desde la computadora</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Upload className="h-5 w-5 text-muted-foreground"/>
+                                            <Input id="heroImageFile" type="file" accept="image/*" onChange={(e) => setHeroImageFile(e.target.files?.[0] || null)} />
+                                        </div>
+                                        {heroImageFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {heroImageFile.name}</p>}
+                                    </div>
+                                    {heroImageUrl && !heroImageFile && (
+                                        <div className="mt-2">
+                                            <p className="text-xs font-medium text-muted-foreground">Vista Previa Actual:</p>
+                                            <div className="relative aspect-video w-full">
+                                                <Image src={heroImageUrl} alt="Imagen principal" layout="fill" className="rounded-md border object-cover mt-1" />
                                             </div>
                                         </div>
-                                    ))}
-                                    {coupons.length === 0 && <p className="text-center text-muted-foreground py-8">No hay cupones creados.</p>}
+                                    )}
                                 </div>
                             </CardContent>
+                            <CardFooter>
+                                <Button onClick={handleSaveImages}>Guardar Imágenes</Button>
+                            </CardFooter>
                         </Card>
-                    </div>
-                )}
-           </>
-        </div>
-      </main>
+  
+                         <Card>
+                              <CardHeader>
+                                  <CardTitle className="flex items-center gap-2"><Sparkles /> Especialidades de Belleza</CardTitle>
+                                  <CardDescription>Selecciona qué especialidades aparecerán en la sección destacada de "Belleza y Bienestar" en la página de búsqueda.</CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-2 max-h-60 overflow-y-auto">
+                                  {specialties.map(spec => (
+                                      <div key={spec} className="flex items-center space-x-3">
+                                          <Checkbox
+                                              id={`beauty-${spec}`}
+                                              checked={(beautySpecialties || []).includes(spec)}
+                                              onCheckedChange={(checked) => handleBeautySpecialtyChange(spec, !!checked)}
+                                          />
+                                          <label
+                                              htmlFor={`beauty-${spec}`}
+                                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                          >
+                                             {spec}
+                                          </label>
+                                      </div>
+                                  ))}
+                                  {specialties.length === 0 && <p className="text-muted-foreground text-sm py-4 text-center">Primero debes agregar especialidades.</p>}
+                              </CardContent>
+                          </Card>
+  
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Database /> Mantenimiento de la Base de Datos
+                            </CardTitle>
+                            <CardDescription>
+                              Realiza tareas de mantenimiento como poblar, respaldar y restaurar los datos de la aplicación.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                              <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
+                                  <h4 className="font-semibold">Poblar con Datos de Prueba</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                  Este proceso borrará los datos existentes y los reemplazará con los datos de prueba del sistema.
+                                  <br />
+                                  <strong className="text-destructive">Advertencia:</strong> Esta acción es irreversible.
+                                  </p>
+                                  <Button
+                                  variant="secondary"
+                                  onClick={handleSeedDatabase}
+                                  disabled={isSeeding}
+                                  >
+                                  {isSeeding ? (
+                                      <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Poblando Base de Datos...
+                                      </>
+                                  ) : (
+                                      "Poblar Base de Datos"
+                                  )}
+                                  </Button>
+                              </div>
+  
+                               <div className="flex flex-col items-start gap-4 rounded-lg border p-4">
+                                  <h4 className="font-semibold">Respaldo y Restauración</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                      Exporta todos los datos de la aplicación a un archivo JSON, o importa un archivo para restaurar un estado anterior.
+                                      <br />
+                                      <strong className="text-destructive">Advertencia:</strong> La importación borrará todos los datos actuales.
+                                  </p>
+                                  <div className="flex gap-2">
+                                      <Button onClick={handleExportDatabase} disabled={isExporting}>
+                                          {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4"/>}
+                                          Exportar Datos
+                                      </Button>
+                                      <Button variant="outline" onClick={() => importFileInputRef.current?.click()} disabled={isImporting}>
+                                          {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4"/>}
+                                          Importar Datos
+                                      </Button>
+                                      <input
+                                          ref={importFileInputRef}
+                                          type="file"
+                                          id="import-file-input"
+                                          accept=".json"
+                                          className="hidden"
+                                          onChange={handleFileSelect}
+                                      />
+                                  </div>
+                              </div>
+                          </CardContent>
+                        </Card>
+  
+                          <div className="grid md:grid-cols-2 gap-6 items-start">
+                               <Card>
+                                  <CardHeader className="flex flex-row items-center justify-between">
+                                      <CardTitle className="flex items-center gap-2"><MapPin /> Gestión de Ubicaciones</CardTitle>
+                                      <Button size="sm" onClick={() => { setEditingCity({ originalName: '', name: '', subscriptionFee: 0 }); setIsCityDialogOpen(true); }}><PlusCircle className="mr-2"/> Ciudad</Button>
+                                  </CardHeader>
+                                  <CardContent>
+                                      <div className="hidden md:block">
+                                          <Table>
+                                              <TableHeader>
+                                                  <TableRow>
+                                                      <TableHead>Ciudad</TableHead>
+                                                      <TableHead>Tarifa de Suscripción</TableHead>
+                                                      <TableHead className="text-right">Acciones</TableHead>
+                                                  </TableRow>
+                                              </TableHeader>
+                                              <TableBody>
+                                              {cities.map((city, index) => (
+                                                  <TableRow key={`${city.name}-${index}`}>
+                                                      <TableCell className="font-medium">{city.name}</TableCell>
+                                                      <TableCell className="font-mono">${(city.subscriptionFee || 0).toFixed(2)}</TableCell>
+                                                      <TableCell className="flex justify-end gap-2">
+                                                          <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                          <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))}
+                                              </TableBody>
+                                          </Table>
+                                      </div>
+                                      <div className="space-y-4 md:hidden">
+                                          {cities.map((city, index) => (
+                                              <div key={`${city.name}-${index}-mobile`} className="p-4 border rounded-lg space-y-3">
+                                                  <div className="flex justify-between items-center">
+                                                      <div>
+                                                          <p className="font-semibold">{city.name}</p>
+                                                          <p className="text-sm font-mono text-muted-foreground">${(city.subscriptionFee || 0).toFixed(2)}</p>
+                                                      </div>
+                                                      <div className="flex gap-2">
+                                                          <Button size="icon" variant="outline" onClick={() => { setEditingCity({ originalName: city.name, ...city }); setIsCityDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                          <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('city', city.name)}><Trash2 className="h-4 w-4"/></Button>
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                          {cities.length === 0 && (
+                                              <p className="text-center text-muted-foreground py-8">No hay ciudades registradas.</p>
+                                          )}
+                                      </div>
+                                  </CardContent>
+                              </Card>
+  
+                               <Card>
+                                  <CardHeader className="flex flex-row items-center justify-between">
+                                      <CardTitle className="flex items-center gap-2"><BrainCircuit /> Gestión de Especialidades</CardTitle>
+                                      <Button size="sm" onClick={() => { setEditingSpecialty({ originalName: '', newName: '' }); setIsSpecialtyDialogOpen(true); }}><PlusCircle className="mr-2"/> Nueva</Button>
+                                  </CardHeader>
+                                  <CardContent>
+                                      <div className="space-y-2">
+                                      {specialties.map(spec => (
+                                          <div key={spec} className="flex justify-between items-center p-2 rounded-md border">
+                                              <span className="font-medium">{spec}</span>
+                                              <div className="flex gap-2">
+                                                  <Button size="icon" variant="outline" onClick={() => { setEditingSpecialty({ originalName: spec, newName: spec }); setIsSpecialtyDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                  <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('specialty', spec)}><Trash2 className="h-4 w-4"/></Button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                          </div>
+                          
+                          <Card>
+                              <CardHeader className="flex flex-row items-center justify-between">
+                                  <CardTitle className="flex items-center gap-2"><Tag /> Gestión de Cupones</CardTitle>
+                                  <Button size="sm" onClick={() => { setEditingCoupon(null); setIsCouponDialogOpen(true); }}><PlusCircle className="mr-2"/> Cupón</Button>
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="hidden md:block">
+                                      <Table>
+                                          <TableHeader>
+                                              <TableRow>
+                                                  <TableHead>Código</TableHead>
+                                                  <TableHead>Tipo</TableHead>
+                                                  <TableHead>Valor</TableHead>
+                                                  <TableHead>Alcance</TableHead>
+                                                  <TableHead className="text-right">Acciones</TableHead>
+                                              </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                          {coupons.map(coupon => (
+                                              <TableRow key={coupon.id}>
+                                                  <TableCell className="font-mono">{coupon.code}</TableCell>
+                                                  <TableCell className="capitalize">{coupon.discountType === 'fixed' ? 'Fijo' : 'Porcentaje'}</TableCell>
+                                                  <TableCell>{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</TableCell>
+                                                  <TableCell>{coupon.scope === 'general' ? 'General (Todos)' : doctors.find(d => d.id === coupon.scope)?.name || 'Médico Eliminado'}</TableCell>
+                                                  <TableCell className="text-right flex items-center justify-end gap-2">
+                                                      <Button size="icon" variant="outline" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="h-4 w-4"/></Button>
+                                                      <Button size="icon" variant="destructive" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="h-4 w-4"/></Button>
+                                                  </TableCell>
+                                              </TableRow>
+                                          ))}
+                                          </TableBody>
+                                      </Table>
+                                  </div>
+                                  <div className="space-y-4 md:hidden">
+                                      {coupons.map(coupon => (
+                                          <div key={coupon.id} className="p-4 border rounded-lg space-y-3">
+                                              <div className="flex justify-between items-start">
+                                                  <div>
+                                                      <p className="font-semibold font-mono">{coupon.code}</p>
+                                                      <p className="text-xs text-muted-foreground">{coupon.scope === 'general' ? 'General' : `Dr. ${doctors.find(d => d.id === coupon.scope)?.name}`}</p>
+                                                  </div>
+                                                  <Badge variant="secondary">{coupon.discountType === 'fixed' ? `$${coupon.value}` : `${coupon.value}%`}</Badge>
+                                              </div>
+                                              <Separator />
+                                              <div className="flex justify-end gap-2">
+                                                  <Button variant="outline" size="sm" onClick={() => { setEditingCoupon(coupon); setIsCouponDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                                                  <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog('coupon', coupon)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                      {coupons.length === 0 && <p className="text-center text-muted-foreground py-8">No hay cupones creados.</p>}
+                                  </div>
+                              </CardContent>
+                          </Card>
+                      </div>
+                  )}
+             </>
+          </div>
+        </main>
+      </div>
 
       {/* Marketing Dialog */}
       <Dialog open={isMarketingDialogOpen} onOpenChange={(isOpen) => {
@@ -3134,7 +3136,7 @@ export default function AdminDashboardPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Historial de Citas</CardHeader>
+                            <CardTitle className="text-lg">Historial de Citas</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {(() => {
@@ -3431,8 +3433,6 @@ export default function AdminDashboardPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
-
-    
