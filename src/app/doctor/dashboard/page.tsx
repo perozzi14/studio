@@ -1,4 +1,7 @@
 
+
+"use client";
+
 import { Suspense } from 'react';
 import { DoctorDashboardClient } from '@/components/doctor/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,3 +34,4 @@ export default function DoctorDashboardPage() {
     </Suspense>
   );
 }
+

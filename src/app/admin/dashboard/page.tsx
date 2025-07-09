@@ -1,4 +1,7 @@
 
+
+"use client";
+
 import { Suspense } from 'react';
 import { AdminDashboardClient } from '@/components/admin/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,3 +35,4 @@ export default function AdminDashboardPage() {
     </Suspense>
   );
 }
+
