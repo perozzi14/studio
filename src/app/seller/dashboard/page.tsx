@@ -20,6 +20,8 @@ function DashboardLoading() {
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
         </div>
         <Skeleton className="h-96 w-full" />
       </main>
@@ -27,7 +29,7 @@ function DashboardLoading() {
   );
 }
 
-function SellerDashboardContent() {
+function SellerDashboardPageContent() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'referrals';
 
@@ -37,7 +39,7 @@ function SellerDashboardContent() {
 export default function SellerDashboardPage() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <SellerDashboardContent />
+      <SellerDashboardPageContent />
     </Suspense>
   );
 }

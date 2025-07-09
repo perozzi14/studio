@@ -20,6 +20,9 @@ function DashboardLoading() {
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
         </div>
         <Skeleton className="h-96 w-full" />
       </main>
@@ -27,7 +30,7 @@ function DashboardLoading() {
   );
 }
 
-function DoctorDashboardContent() {
+function DoctorDashboardPageContent() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'appointments';
 
@@ -37,7 +40,7 @@ function DoctorDashboardContent() {
 export default function DoctorDashboardPage() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <DoctorDashboardContent />
+      <DoctorDashboardPageContent />
     </Suspense>
   );
 }

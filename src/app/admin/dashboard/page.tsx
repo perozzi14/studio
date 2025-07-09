@@ -21,6 +21,10 @@ function DashboardLoading() {
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
         </div>
         <Skeleton className="h-96 w-full" />
       </main>
@@ -28,18 +32,17 @@ function DashboardLoading() {
   );
 }
 
-function AdminDashboardContent() {
+function AdminDashboardPageContent() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'overview';
     
     return <AdminDashboardClient currentTab={currentTab} />;
 }
 
-
 export default function AdminDashboardPage() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <AdminDashboardContent />
+        <AdminDashboardPageContent />
     </Suspense>
   );
 }
