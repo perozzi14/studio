@@ -4,10 +4,11 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import type { Doctor, DoctorPayment, Seller, SellerPayment, CompanyExpense } from "@/lib/types";
 import { useSettings } from "@/lib/settings";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ const timeRangeLabels: Record<string, string> = {
 };
 
 export function FinancesTab() {
-  const { deleteListItem, addListItem, updateListItem, settings } = useSettings();
+  const { deleteListItem, addListItem, updateListItem, settings, cities } = useSettings();
   const { toast } = useToast();
   
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -62,7 +63,7 @@ export function FinancesTab() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{type: 'expense', data: any} | null>(null);
 
-  const { cityFeesMap } = useSettings();
+  const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -460,6 +461,20 @@ export function FinancesTab() {
           </form>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>Esta acción es permanente y no se puede deshacer.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className={buttonVariants({ variant: 'destructive' })}>
+                    Sí, eliminar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
