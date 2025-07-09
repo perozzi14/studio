@@ -16,7 +16,6 @@ import {
   Timestamp,
   arrayUnion,
 } from 'firebase/firestore';
-import * as mockData from './data';
 import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial, ChatMessage } from './types';
 
 
@@ -72,107 +71,6 @@ async function getDocumentData<T>(collectionName: string, id: string): Promise<T
         return null;
     }
 }
-
-
-// Seeding function
-export const seedDatabase = async () => {
-    const batch = writeBatch(db);
-
-    const collectionsToClear = ["doctors", "sellers", "patients", "appointments", "settings", "doctorPayments", "sellerPayments", "marketingMaterials", "supportTickets"];
-    
-    // Clear existing collections
-    for (const col of collectionsToClear) {
-        const snapshot = await getDocs(collection(db, col));
-        snapshot.docs.forEach(doc => batch.delete(doc.ref));
-    }
-    
-    const prepareData = <T extends { id: any }>(dataWithId: T): Omit<T, 'id'> => {
-        const { id, ...data } = dataWithId;
-        return data;
-    };
-
-    // Seed each collection
-    mockData.doctors.forEach(item => batch.set(doc(db, "doctors", String(item.id)), prepareData(item)));
-    mockData.sellers.forEach(item => batch.set(doc(db, "sellers", String(item.id)), prepareData(item)));
-    mockData.mockPatients.forEach(item => batch.set(doc(db, "patients", String(item.id)), prepareData(item)));
-    mockData.appointments.forEach(item => batch.set(doc(db, "appointments", String(item.id)), prepareData(item)));
-    mockData.mockDoctorPayments.forEach(item => batch.set(doc(db, "doctorPayments", String(item.id)), prepareData(item)));
-    mockData.mockSellerPayments.forEach(item => batch.set(doc(db, "sellerPayments", String(item.id)), prepareData(item)));
-    mockData.marketingMaterials.forEach(item => batch.set(doc(db, "marketingMaterials", String(item.id)), prepareData(item)));
-    mockData.mockAdminSupportTickets.forEach(item => batch.set(doc(db, "supportTickets", String(item.id)), prepareData(item)));
-    
-    // Seed settings (special case, monolithic document)
-    const settingsRef = doc(db, "settings", "main");
-    batch.set(settingsRef, mockData.mockSettings);
-
-    await batch.commit();
-    console.log("Database seeded successfully!");
-};
-
-// --- Database Maintenance Functions ---
-export const exportDatabase = async (): Promise<any> => {
-    const backup: Record<string, any> = {};
-    const collectionsToExport = [
-        'doctors', 'sellers', 'patients', 'appointments', 
-        'doctorPayments', 'sellerPayments', 'marketingMaterials', 'supportTickets'
-    ];
-
-    for (const colName of collectionsToExport) {
-        backup[colName] = await getCollectionData<any>(colName);
-    }
-    
-    // Settings is a single doc, not a collection
-    backup['settings'] = await getDocumentData<any>('settings', 'main');
-
-    return backup;
-}
-
-export const importDatabase = async (backupData: any): Promise<void> => {
-    const collectionsToClear = [
-        "doctors", "sellers", "patients", "appointments", 
-        "doctorPayments", "sellerPayments", "marketingMaterials", "supportTickets", "settings"
-    ];
-
-    // Clear existing collections in a separate batch
-    const deleteBatch = writeBatch(db);
-    for (const col of collectionsToClear) {
-        const snapshot = await getDocs(collection(db, col));
-        snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
-    }
-    await deleteBatch.commit();
-
-    // Start a new batch for writes
-    const importBatch = writeBatch(db);
-
-    const prepareData = <T extends { id?: any }>(dataWithId?: T): Omit<T, 'id'> => {
-        if (!dataWithId) return {} as Omit<T, 'id'>;
-        const { id, ...data } = dataWithId;
-        return data;
-    };
-
-    // Import each collection from backup
-    for (const colName in backupData) {
-        if (Object.prototype.hasOwnProperty.call(backupData, colName)) {
-            const items = backupData[colName];
-            if (Array.isArray(items)) {
-                items.forEach((item: any) => {
-                    if (item && item.id) {
-                        const docRef = doc(db, colName, String(item.id));
-                        importBatch.set(docRef, prepareData(item));
-                    }
-                });
-            } else if (colName === 'settings' && items) {
-                // Handle settings object which is not an array and has a fixed doc ID
-                const settingsRef = doc(db, "settings", "main");
-                // The settings object from backup does not have an ID to strip
-                importBatch.set(settingsRef, items);
-            }
-        }
-    }
-
-    await importBatch.commit();
-}
-
 
 // --- Data Fetching Functions ---
 export const getDoctors = () => getCollectionData<Doctor>('doctors');
