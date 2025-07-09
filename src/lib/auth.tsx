@@ -28,6 +28,7 @@ interface DoctorRegistrationData {
 
 interface AuthContextType {
   user: User | null | undefined; // undefined means still loading
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   registerDoctor: (doctorData: DoctorRegistrationData) => Promise<void>;
@@ -120,10 +121,12 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
   
   const fetchUserFromStorage = useCallback(async () => {
+    setLoading(true);
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -142,6 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       setUser(null);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -367,6 +372,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
+    loading,
     login,
     register,
     registerDoctor,

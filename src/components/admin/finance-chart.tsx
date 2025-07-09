@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -28,7 +29,7 @@ interface FinanceChartProps {
     timeRange: 'today' | 'week' | 'month' | 'year' | 'all';
 }
 
-export default function FinanceChart({ timeRangedStats, timeRange }: FinanceChartProps) {
+export function FinanceChart({ timeRangedStats, timeRange }: FinanceChartProps) {
     const chartData = useMemo(() => ([
         {
           label: timeRangeLabels[timeRange],
