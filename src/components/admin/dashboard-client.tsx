@@ -23,7 +23,7 @@ export function AdminDashboardClient() {
   const searchParams = useSearchParams();
   
   useEffect(() => {
-    if (!loading && (user === null || user.role !== 'admin')) {
+    if (!loading && (!user || user.role !== 'admin')) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
