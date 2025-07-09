@@ -1,4 +1,5 @@
 
+
 export default function NotFound() {
   return (
     <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#F0F8FF' }}>
@@ -12,3 +13,5 @@ export default function NotFound() {
     </div>
   )
 }
+
+    

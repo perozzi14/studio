@@ -1,8 +1,6 @@
 
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -3136,7 +3134,7 @@ export default function AdminDashboardPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Historial de Citas</CardTitle>
+                            <CardTitle className="text-lg">Historial de Citas</CardHeader>
                         </CardHeader>
                         <CardContent>
                             {(() => {
@@ -3436,3 +3434,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
