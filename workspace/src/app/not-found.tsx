@@ -1,16 +1,24 @@
+"use client";
 
-export const dynamic = 'force-dynamic';
+import Link from 'next/link';
+import { Stethoscope } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-    <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#F0F8FF' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem', color: '#333' }}>404 - Página No Encontrada</h1>
-        <p style={{ maxWidth: '450px', marginBottom: '2rem', color: '#666' }}>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-center p-4">
+        <div className="mb-8">
+            <Stethoscope className="h-24 w-24 text-primary mx-auto" />
+        </div>
+        <h1 className="text-4xl md:text-6xl font-bold font-headline mb-4">404 - Página No Encontrada</h1>
+        <p className="max-w-md text-lg text-muted-foreground mb-8">
             Lo sentimos, la página que estás buscando no existe o ha sido movida.
         </p>
-        <a href="/" style={{ textDecoration: 'none', color: 'white', backgroundColor: '#7EC4CF', padding: '0.75rem 1.5rem', borderRadius: '0.5rem' }}>
-            Volver a la Página de Inicio
-        </a>
+        <Button asChild size="lg">
+            <Link href="/">
+                Volver a la Página de Inicio
+            </Link>
+        </Button>
     </div>
   )
 }

@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import dynamicImport from 'next/dynamic';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -52,7 +51,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const FinanceChart = dynamicImport(
+const FinanceChart = dynamic(
   () => import('@/components/admin/finance-chart'),
   { 
     ssr: false,
@@ -2696,6 +2695,709 @@ export default function AdminDashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Marketing Dialog */}
+      <Dialog open={isMarketingDialogOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+            setEditingMaterial(null);
+            setMaterialFile(null);
+            setThumbnailFile(null);
+            setIsSavingMaterial(false);
+        }
+        setIsMarketingDialogOpen(isOpen);
+      }}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>{editingMaterial ? "Editar Material" : "Añadir Nuevo Material"}</DialogTitle>
+            <DialogDescription>Completa la información del recurso de marketing.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveMaterial}>
+            <div className="grid gap-4 py-4">
+              <div><Label htmlFor="title">Título</Label><Input id="title" name="title" defaultValue={editingMaterial?.title} /></div>
+              <div><Label htmlFor="description">Descripción Detallada</Label><Textarea id="description" name="description" defaultValue={editingMaterial?.description} rows={4} /></div>
+              <div><Label htmlFor="type">Tipo de Material</Label>
+                <Select name="type" defaultValue={editingMaterial?.type || 'image'}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="image"><div className="flex items-center gap-2"><ImageIcon/> Imagen</div></SelectItem>
+                    <SelectItem value="video"><div className="flex items-center gap-2"><Video/> Video</div></SelectItem>
+                    <SelectItem value="file"><div className="flex items-center gap-2"><FileText/> Archivo (PDF, etc.)</div></SelectItem>
+                    <SelectItem value="url"><div className="flex items-center gap-2"><LinkIcon/> Enlace</div></SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="url">URL del Recurso</Label>
+                <Input id="url" name="url" defaultValue={editingMaterial?.url} placeholder="https://..."/>
+                <p className="text-xs text-center text-muted-foreground">O</p>
+                <Label htmlFor="materialFile" className="text-sm">Subir Archivo de Recurso</Label>
+                <Input id="materialFile" type="file" onChange={(e) => setMaterialFile(e.target.files?.[0] || null)}/>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="thumbnailUrl">URL de la Miniatura</Label>
+                <Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={editingMaterial?.thumbnailUrl} placeholder="https://..."/>
+                 <p className="text-xs text-center text-muted-foreground">O</p>
+                <Label htmlFor="thumbnailFile" className="text-sm">Subir Archivo de Miniatura</Label>
+                <Input id="thumbnailFile" type="file" onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}/>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit" disabled={isSavingMaterial}>
+                {isSavingMaterial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Support Ticket Detail Dialog */}
+        <Dialog open={isSupportDetailDialogOpen} onOpenChange={setIsSupportDetailDialogOpen}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Ticket de Soporte: {selectedTicket?.subject}</DialogTitle>
+                    <DialogDescription>
+                        Conversación con {selectedTicket?.userName} ({selectedTicket?.userRole}).
+                    </DialogDescription>
+                </DialogHeader>
+                {selectedTicket && (
+                    <>
+                        <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-4">
+                            {(selectedTicket.messages || []).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg) => (
+                                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'admin' && 'justify-end')}>
+                                    {msg.sender === 'user' && <Avatar className="h-8 w-8"><AvatarFallback>{selectedTicket.userName.charAt(0)}</AvatarFallback></Avatar>}
+                                    <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'admin' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                                        <p className="text-sm">{msg.text}</p>
+                                        <p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}</p>
+                                    </div>
+                                    {msg.sender === 'admin' && <Avatar className="h-8 w-8"><AvatarFallback>A</AvatarFallback></Avatar>}
+                                </div>
+                            ))}
+                        </div>
+
+                        {selectedTicket.status === 'abierto' && (
+                            <div className="flex items-center gap-2 border-t pt-4">
+                                <Textarea 
+                                    placeholder="Escribe tu respuesta..." 
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    rows={2}
+                                />
+                                <Button onClick={handleSendReply} disabled={!replyMessage.trim()} size="icon">
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button variant="outline">Cerrar Ventana</Button></DialogClose>
+                            {selectedTicket.status === 'abierto' && (
+                                <Button onClick={() => handleUpdateTicketStatus(selectedTicket!.id, 'cerrado')}>
+                                    <CheckCircle className="mr-2 h-4 w-4"/> Marcar como Resuelto
+                                </Button>
+                            )}
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
+
+
+      {/* Seller Dialogs */}
+      <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{editingSeller ? 'Editar Vendedora' : 'Registrar Nueva Vendedora'}</DialogTitle>
+                <DialogDescription>
+                    {editingSeller ? 'Actualiza la información de la vendedora.' : 'Completa el formulario para agregar una nueva vendedora.'}
+                </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSaveSeller}>
+                <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="name">Nombre Completo</Label>
+                            <Input id="name" name="name" defaultValue={editingSeller?.name || ''} required />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email">Correo Electrónico</Label>
+                            <Input id="email" name="email" type="email" defaultValue={editingSeller?.email || ''} required />
+                        </div>
+                    </div>
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-1.5">
+                            <Label htmlFor="password">Contraseña</Label>
+                            <Input id="password" name="password" type="password" placeholder={editingSeller ? "Dejar en blanco para no cambiar" : ""} />
+                        </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                            <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Repite la contraseña" />
+                        </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                    <Separator/>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="commission">Comisión (%)</Label>
+                        <Input id="commission" name="commission" type="number" defaultValue={(editingSeller?.commissionRate || 0.20) * 100} required />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isRegisterPaymentDialogOpen} onOpenChange={handleRegisterPaymentDialogChange}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Registrar Pago para {managingSeller?.name}</DialogTitle>
+                  <DialogDescription>Completa el formulario para registrar el pago de la comisión.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleRegisterPayment}>
+                <div className="space-y-4 py-4">
+                    <div>
+                        <Label>Período de Comisión</Label>
+                        <Input value={paymentPeriod} disabled />
+                    </div>
+                    <div>
+                        <Label>Monto a Pagar ($)</Label>
+                        <Input type="number" value={paymentAmount.toFixed(2)} disabled />
+                    </div>
+                    <div>
+                        <Label htmlFor="transactionId">ID de Transacción</Label>
+                        <Input id="transactionId" name="transactionId" placeholder="ID de la transferencia" required />
+                    </div>
+                    <div>
+                        <Label htmlFor="paymentProofFile">Comprobante de Pago</Label>
+                        <Input id="paymentProofFile" type="file" required onChange={(e) => setPaymentProofFile(e.target.files ? e.target.files[0] : null)} />
+                        {paymentProofFile && <p className="text-sm text-green-600 mt-2">Archivo seleccionado: {paymentProofFile.name}</p>}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Confirmar y Registrar</Button>
+                </DialogFooter>
+              </form>
+          </DialogContent>
+      </Dialog>
+      
+      {/* Doctor Create/Edit Dialog */}
+       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+                <DialogTitle>Registrar Nuevo Médico</DialogTitle>
+                <DialogDescription>
+                    Completa la información del perfil del médico.
+                </DialogDescription>
+            </DialogHeader>
+             <form onSubmit={handleSaveDoctor}>
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-name">Nombre Completo</Label>
+                            <Input id="doc-name" name="doc-name" defaultValue={editingDoctor?.name || ''} required />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-email">Correo Electrónico</Label>
+                            <Input id="doc-email" name="doc-email" type="email" defaultValue={editingDoctor?.email || ''} required />
+                        </div>
+                    </div>
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-password">Contraseña</Label>
+                            <Input id="doc-password" name="doc-password" type="password" placeholder={editingDoctor ? "Dejar en blanco para no cambiar" : ""} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-confirm-password">Confirmar Contraseña</Label>
+                            <Input id="doc-confirm-password" name="doc-confirm-password" type="password" placeholder="Repite la contraseña" />
+                        </div>
+                    </div>
+                     <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+                     <Separator/>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-1.5">
+                            <Label htmlFor="doc-specialty">Especialidad</Label>
+                            <Select name="doc-specialty" defaultValue={editingDoctor?.specialty}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="doc-city">Ciudad</Label>
+                             <Select name="doc-city" defaultValue={editingDoctor?.city}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                     </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="doc-address">Dirección del Consultorio</Label>
+                        <Input id="doc-address" name="doc-address" defaultValue={editingDoctor?.address || ''} required />
+                    </div>
+                    <Separator/>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1.5 md:col-span-1">
+                            <Label htmlFor="doc-seller">Referido por</Label>
+                            <Select name="doc-seller" defaultValue={editingDoctor?.sellerId?.toString() || 'null'}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona una vendedora" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="null">SUMA (Sin Vendedora)</SelectItem>
+                                    {sellers.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-slot-duration">Duración Cita (min)</Label>
+                            <Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue={editingDoctor?.slotDuration || 30} required min="5"/>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doc-consultation-fee">Tarifa Consulta ($)</Label>
+                            <Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={editingDoctor?.consultationFee ?? 20} required min="0"/>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Guardar Cambios</Button>
+                </DialogFooter>
+             </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Doctor View Details Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Detalles del Médico</DialogTitle>
+                <DialogDescription>
+                    Información completa del perfil, servicios y su historial de pagos.
+                </DialogDescription>
+            </DialogHeader>
+            {selectedDoctor && (
+                <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+                     <div>
+                        <h4 className="font-semibold mb-2 text-lg">Información del Perfil</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <p><strong>Nombre:</strong> {selectedDoctor.name}</p>
+                            <p><strong>Especialidad:</strong> {selectedDoctor.specialty}</p>
+                            <p><strong>Email:</strong> {selectedDoctor.email}</p>
+                            <p><strong>WhatsApp:</strong> {selectedDoctor.whatsapp}</p>
+                            <p className="col-span-full"><strong>Ubicación:</strong> {`${selectedDoctor.address}, ${selectedDoctor.sector}, ${selectedDoctor.city}`}</p>
+                            <p><strong>Miembro desde:</strong> {format(new Date(selectedDoctor.joinDate + 'T00:00:00'), "d 'de' LLLL, yyyy", { locale: es })}</p>
+                            <p><strong>Duración de Cita:</strong> {selectedDoctor.slotDuration} min</p>
+                            <p><strong>Tarifa de Consulta:</strong> ${(selectedDoctor.consultationFee ?? 0).toFixed(2)}</p>
+                            <p><strong>Referido por:</strong> {sellers.find(s => s.id === selectedDoctor.sellerId)?.name || 'SUMA'}</p>
+                            <div className="flex items-center gap-2">
+                                <strong>Estado:</strong>
+                                <Badge variant={selectedDoctor.status === 'active' ? 'default' : 'destructive'} className={cn(selectedDoctor.status === 'active' ? 'bg-green-600' : 'bg-destructive', 'text-white')}>
+                                    {selectedDoctor.status === 'active' ? 'Activo' : 'Inactivo'}
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Separator />
+                    
+                    <div>
+                        <h4 className="font-semibold mb-2 text-lg">Descripción Pública</h4>
+                        <p className="text-sm text-muted-foreground">{selectedDoctor.description || "No se ha proporcionado una descripción."}</p>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                        <h4 className="font-semibold mb-2 text-lg">Servicios Ofrecidos</h4>
+                        {selectedDoctor.services.length > 0 ? (
+                           <ul className="list-disc list-inside text-sm space-y-1">
+                                {selectedDoctor.services.map(service => (
+                                    <li key={service.id} className="flex justify-between">
+                                        <span>{service.name}</span>
+                                        <span className="font-mono font-semibold">${service.price.toFixed(2)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">No hay servicios registrados.</p>
+                        )}
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                        <h4 className="font-semibold mb-2 text-lg">Historial de Pagos de Suscripción</h4>
+                         {doctorPayments.filter(p => p.doctorId === selectedDoctor.id).length > 0 ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Monto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {doctorPayments
+                                        .filter(p => p.doctorId === selectedDoctor.id)
+                                        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map(payment => (
+                                            <TableRow key={payment.id}>
+                                                <TableCell>{format(new Date(payment.date + 'T00:00:00'), "d MMM yyyy", { locale: es })}</TableCell>
+                                                <TableCell className="font-mono">${(payment.amount || 0).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge className={cn({
+                                                        'bg-green-600 text-white': payment.status === 'Paid',
+                                                        'bg-amber-500 text-white': payment.status === 'Pending',
+                                                        'bg-red-600 text-white': payment.status === 'Rejected',
+                                                    })}>
+                                                        {payment.status === 'Paid' ? 'Pagado' : payment.status === 'Pending' ? 'Pendiente' : 'Rechazado'}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No hay pagos registrados para este médico.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Patient Dialogs */}
+      <Dialog open={isPatientDetailDialogOpen} onOpenChange={setIsPatientDetailDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+                <DialogTitle>Historial del Paciente: {selectedPatientForDetail?.name}</DialogTitle>
+                <DialogDescription>
+                    Consulta el historial completo de citas y pagos del paciente.
+                </DialogDescription>
+            </DialogHeader>
+            {selectedPatientForDetail && (
+                <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Información del Paciente</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                            <p><strong>Nombre:</strong> {selectedPatientForDetail.name}</p>
+                            <p><strong>Email:</strong> {selectedPatientForDetail.email}</p>
+                            <p><strong>Cédula:</strong> {selectedPatientForDetail.cedula || 'N/A'}</p>
+                            <p><strong>Teléfono:</strong> {selectedPatientForDetail.phone || 'N/A'}</p>
+                            <p className="col-span-2"><strong>Contraseña:</strong> {selectedPatientForDetail.password}</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Historial de Citas</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {(() => {
+                                const patientAppointments = appointments.filter(a => a.patientId === selectedPatientForDetail.id);
+                                if (patientAppointments.length === 0) {
+                                    return <p className="text-center text-muted-foreground py-8">Este paciente no tiene citas registradas.</p>;
+                                }
+                                return (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Doctor</TableHead>
+                                                <TableHead>Fecha</TableHead>
+                                                <TableHead>Servicios</TableHead>
+                                                <TableHead>Monto</TableHead>
+                                                <TableHead>Pago</TableHead>
+                                                <TableHead>Asistencia</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {patientAppointments
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map(appt => (
+                                                <TableRow key={appt.id}>
+                                                    <TableCell className="font-medium">{appt.doctorName}</TableCell>
+                                                    <TableCell>{new Date(appt.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                                    <TableCell className="text-xs">{appt.services.map(s => s.name).join(', ')}</TableCell>
+                                                    <TableCell className="font-mono">${appt.totalPrice.toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={appt.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn(appt.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : '')}>
+                                                            {appt.paymentStatus}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={appt.attendance === 'Atendido' ? 'default' : appt.attendance === 'No Asistió' ? 'destructive' : 'secondary'}>
+                                                            {appt.attendance}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                );
+                            })()}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Cerrar</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isPatientEditDialogOpen} onOpenChange={setIsPatientEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Paciente</DialogTitle>
+            <DialogDescription>Actualiza la información del paciente {editingPatient?.name}.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSavePatient}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="patient-name">Nombre Completo</Label>
+                <Input id="patient-name" name="name" defaultValue={editingPatient?.name} required />
+              </div>
+              <div>
+                <Label htmlFor="patient-email">Correo Electrónico</Label>
+                <Input id="patient-email" name="email" type="email" defaultValue={editingPatient?.email} required />
+              </div>
+              <div>
+                <Label htmlFor="patient-cedula">Cédula</Label>
+                <Input id="patient-cedula" name="cedula" defaultValue={editingPatient?.cedula || ''} />
+              </div>
+              <div>
+                <Label htmlFor="patient-phone">Teléfono</Label>
+                <Input id="patient-phone" name="phone" defaultValue={editingPatient?.phone || ''} />
+              </div>
+              <div>
+                <Label htmlFor="patient-password">Nueva Contraseña</Label>
+                <Input id="patient-password" name="password" type="password" placeholder="Dejar en blanco para no cambiar" />
+              </div>
+              <div>
+                <Label htmlFor="patient-confirm-password">Confirmar Contraseña</Label>
+                <Input id="patient-confirm-password" name="confirmPassword" type="password" placeholder="Repite la contraseña" />
+              </div>
+               <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar Cambios</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de eliminar este elemento?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se eliminará permanentemente de la base de datos del sistema.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteItem} className={buttonVariants({variant: 'destructive'})}>
+                Sí, eliminar
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Payment Proof Dialog */}
+      <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Comprobante de Pago</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 relative aspect-video">
+            {viewingProofUrl ? (
+              <Image src={viewingProofUrl} alt="Comprobante" layout="fill" className="rounded-md object-contain" />
+            ) : <p>No se pudo cargar el comprobante.</p>}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Settings Dialogs */}
+      <Dialog open={isCityDialogOpen} onOpenChange={setIsCityDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCity?.originalName ? "Editar Ciudad" : "Agregar Ciudad"}</DialogTitle>
+            <DialogDescription>
+              Gestiona las ciudades donde la plataforma opera y su tarifa de suscripción.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveCity}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="city-name">Nombre de la Ciudad</Label>
+                <Input id="city-name" name="city-name" defaultValue={editingCity?.name || ''} required />
+              </div>
+              <div>
+                <Label htmlFor="city-fee">Tarifa de Suscripción ($)</Label>
+                <Input id="city-fee" name="city-fee" type="number" step="0.01" defaultValue={editingCity?.subscriptionFee || 0} required />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSpecialtyDialogOpen} onOpenChange={setIsSpecialtyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSpecialty?.originalName ? "Editar Especialidad" : "Agregar Especialidad"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSpecialty}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="specialty-name">Nombre de la Especialidad</Label>
+                <Input id="specialty-name" name="specialty-name" defaultValue={editingSpecialty?.newName || ''} required />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCoupon ? "Editar Cupón" : "Crear Nuevo Cupón"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCoupon}>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="code">Código</Label>
+                <Input id="code" name="code" defaultValue={editingCoupon?.code || ''} className="uppercase" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="discountType">Tipo de Descuento</Label>
+                  <Select name="discountType" defaultValue={editingCoupon?.discountType || 'fixed'}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Monto Fijo ($)</SelectItem>
+                      <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="value">Valor</Label>
+                  <Input id="value" name="value" type="number" step="0.01" defaultValue={editingCoupon?.value || ''} required />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="scope">Alcance del Cupón</Label>
+                <Select name="scope" defaultValue={editingCoupon?.scope || 'general'}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona el alcance..."/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="general">General (Todos los Médicos)</SelectItem>
+                        {doctors.map(doc => (
+                            <SelectItem key={doc.id} value={doc.id}>Dr. {doc.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar Cupón</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isCompanyBankDetailDialogOpen} onOpenChange={setIsCompanyBankDetailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCompanyBankDetail ? "Editar Cuenta" : "Agregar Cuenta de SUMA"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveBankDetail}>
+            <div className="space-y-4 py-4">
+              <div><Label htmlFor="bankName">Nombre del Banco</Label><Input id="bankName" name="bankName" defaultValue={editingCompanyBankDetail?.bank || ''} /></div>
+              <div><Label htmlFor="accountHolder">Titular de la Cuenta</Label><Input id="accountHolder" name="accountHolder" defaultValue={editingCompanyBankDetail?.accountHolder || ''} /></div>
+              <div><Label htmlFor="idNumber">C.I. / R.I.F.</Label><Input id="idNumber" name="idNumber" defaultValue={editingCompanyBankDetail?.idNumber || ''} /></div>
+              <div><Label htmlFor="accountNumber">Número de Cuenta (20 dígitos)</Label><Input id="accountNumber" name="accountNumber" defaultValue={editingCompanyBankDetail?.accountNumber || ''} maxLength={20} /></div>
+              <div><Label htmlFor="description">Descripción (Opcional)</Label><Input id="description" name="description" defaultValue={editingCompanyBankDetail?.description || ''} placeholder="Ej: PagoMóvil" /></div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? "Editar Gasto" : "Registrar Gasto de SUMA"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveExpense}>
+            <div className="space-y-4 py-4">
+              <div><Label htmlFor="date">Fecha</Label><Input id="date" name="date" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} /></div>
+              <div><Label htmlFor="description">Descripción</Label><Input id="description" name="description" defaultValue={editingExpense?.description || ''} /></div>
+              <div><Label htmlFor="amount">Monto ($)</Label><Input id="amount" name="amount" type="number" step="0.01" defaultValue={editingExpense?.amount || ''} /></div>
+              <div><Label htmlFor="category">Categoría</Label>
+                <Select name="category" defaultValue={editingExpense?.category || 'operativo'}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="operativo">Operativo</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="personal">Personal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* DB Import Confirmation Dialog */}
+      <AlertDialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de importar estos datos?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Esta acción <span className="font-bold text-destructive">BORRARÁ TODOS LOS DATOS ACTUALES</span> de la base de datos y los reemplazará con el contenido del archivo seleccionado. Esta acción es irreversible.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setImportFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportDatabase} className={buttonVariants({variant: 'destructive'})}>
+                Sí, borrar todo e importar
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -1,11 +1,9 @@
-
 "use client";
-
-export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -17,15 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Users, Stethoscope, UserCheck, BarChart as BarChartIcon, Settings, CheckCircle, XCircle, Pencil, Eye, Trash2, PlusCircle, Ticket, DollarSign, Wallet, MapPin, Tag, BrainCircuit, Globe, Image as ImageIcon, FileUp, Landmark, Mail, ThumbsUp, ThumbsDown, TrendingUp, TrendingDown, FileDown, Database, Loader2, ShoppingBag, Video, FileText, Link as LinkIcon, AlertCircle, Send, Upload, Sparkles, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -61,6 +50,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const FinanceChart = dynamic(
+  () => import('@/components/admin/finance-chart'),
+  { 
+    ssr: false,
+    loading: () => <div className="h-72 w-full flex items-center justify-center bg-muted/50 rounded-lg"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>
+  }
+);
 
 const passwordSchema = z.string()
     .min(8, "La contraseña debe tener al menos 8 caracteres.")
@@ -1257,21 +1254,6 @@ export default function AdminDashboardPage() {
     }
   }, [filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
 
-  const chartData = useMemo(() => ([
-    {
-      label: timeRangeLabels[timeRange],
-      Ingresos: timeRangedStats.totalRevenue,
-      Comisiones: timeRangedStats.commissionsPaid,
-      Gastos: timeRangedStats.totalExpenses,
-    }
-  ]), [timeRange, timeRangedStats]);
-
-  const chartConfig = {
-    Ingresos: { label: "Ingresos", color: "hsl(var(--chart-2))" },
-    Comisiones: { label: "Comisiones", color: "hsl(var(--chart-4))" },
-    Gastos: { label: "Gastos", color: "hsl(var(--destructive))" },
-  } satisfies ChartConfig;
-
   const paginatedCompanyExpenses = useMemo(() => {
     if (expenseItemsPerPage === -1) return filteredCompanyExpenses;
     const startIndex = (expenseCurrentPage - 1) * expenseItemsPerPage;
@@ -1874,26 +1856,7 @@ export default function AdminDashboardPage() {
                               </Button>
                           </CardHeader>
                           <CardContent>
-                            <ChartContainer config={chartConfig} className="h-72 w-full">
-                              <BarChart data={chartData} accessibilityLayer>
-                                  <CartesianGrid vertical={false} />
-                                  <XAxis
-                                  dataKey="label"
-                                  tickLine={false}
-                                  tickMargin={10}
-                                  axisLine={false}
-                                  />
-                                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                  <ChartTooltip
-                                  cursor={false}
-                                  content={<ChartTooltipContent indicator="dot" />}
-                                  />
-                                  <ChartLegend content={<ChartLegendContent />} />
-                                  <Bar dataKey="Ingresos" fill="var(--color-Ingresos)" radius={4} />
-                                  <Bar dataKey="Comisiones" fill="var(--color-Comisiones)" radius={4} />
-                                  <Bar dataKey="Gastos" fill="var(--color-Gastos)" radius={4} />
-                              </BarChart>
-                             </ChartContainer>
+                             <FinanceChart timeRangedStats={timeRangedStats} timeRange={timeRange} />
                           </CardContent>
                         </Card>
   
