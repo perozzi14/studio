@@ -125,13 +125,14 @@ export const findUserByEmail = async (email: string): Promise<(Doctor | Seller |
 // --- Data Mutation Functions ---
 
 // Doctor
-export const addDoctor = async (doctorData: Omit<Doctor, 'id'>) => {
+export const addDoctor = async (doctorData: Omit<Doctor, 'id'>): Promise<string> => {
     const dataWithDefaults = { 
         ...doctorData, 
         readByAdmin: false,
         readBySeller: false,
     };
-    return addDoc(collection(db, 'doctors'), dataWithDefaults);
+    const docRef = await addDoc(collection(db, 'doctors'), dataWithDefaults);
+    return docRef.id;
 };
 export const updateDoctor = async (id: string, data: Partial<Doctor>) => updateDoc(doc(db, 'doctors', id), data);
 export const deleteDoctor = async (id: string) => deleteDoc(doc(db, 'doctors', id));

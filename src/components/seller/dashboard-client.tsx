@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Doctor, SellerPayment, MarketingMaterial, AdminSupportTicket, Seller, BankDetail, ChatMessage, Expense, DoctorPayment } from '@/lib/types';
+import type { Doctor, SellerPayment, MarketingMaterial, AdminSupportTicket, Seller } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +26,6 @@ export function SellerDashboardClient() {
   const [sellerData, setSellerData] = useState<Seller | null>(null);
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
-  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
 
@@ -40,23 +39,20 @@ export function SellerDashboardClient() {
     if (!user || user.role !== 'seller' || !user.id) return;
     setIsLoading(true);
     try {
-        const [materials, seller, allDocs, allPayments, allTickets, allDoctorPayments] = await Promise.all([
+        const [materials, seller, allDocs, allPayments, allTickets] = await Promise.all([
             firestoreService.getMarketingMaterials(),
             firestoreService.getSeller(user.id),
             firestoreService.getDoctors(),
             firestoreService.getSellerPayments(),
             firestoreService.getSupportTickets(),
-            firestoreService.getDoctorPayments(),
         ]);
         
         setMarketingMaterials(materials);
         
         if (seller) {
-            const referredDoctorIds = allDocs.filter(d => d.sellerId === seller.id).map(d => d.id);
             setSellerData(seller);
             setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
             setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
-            setDoctorPayments(allDoctorPayments.filter(p => referredDoctorIds.includes(p.doctorId)));
             setSupportTickets(allTickets.filter(t => t.userId === user.email));
         }
     } catch (error) {
@@ -74,7 +70,7 @@ export function SellerDashboardClient() {
   }, [user, fetchData]);
 
   useEffect(() => {
-    if (!loading && (user === null || user.role !== 'seller')) {
+    if (!loading && (!user || user.role !== 'seller')) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
@@ -118,13 +114,11 @@ export function SellerDashboardClient() {
                             referredDoctors={referredDoctors} 
                             referralCode={sellerData.referralCode}
                             onUpdate={fetchData}
-                            doctorPayments={doctorPayments}
                         />
                     </TabsContent>
                     <TabsContent value="finances">
                         <FinancesTab
                             sellerData={sellerData}
-                            referredDoctors={referredDoctors}
                             sellerPayments={sellerPayments}
                         />
                     </TabsContent>

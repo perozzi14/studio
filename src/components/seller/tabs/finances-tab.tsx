@@ -6,12 +6,12 @@ import type { Seller, Doctor, SellerPayment, Expense } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
 import { DollarSign, Wallet, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Eye, Landmark, PlusCircle, Pencil, Trash2 } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfYear, endOfYear, getMonth, getYear } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, getMonth, getYear, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
 import { z } from 'zod';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Todos'
@@ -33,11 +34,10 @@ const ExpenseFormSchema = z.object({
 
 interface FinancesTabProps {
   sellerData: Seller;
-  referredDoctors: Doctor[];
   sellerPayments: SellerPayment[];
 }
 
-export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: FinancesTabProps) {
+export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
   const { cities } = useSettings();
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
@@ -50,6 +50,25 @@ export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: Fin
 
   const [expensePage, setExpensePage] = useState(1);
   const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
+  
+  const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const fetchReferredDoctors = async () => {
+      if (!sellerData.id) return;
+      setIsLoadingDoctors(true);
+      const allDocs = await firestoreService.getDoctors();
+      setReferredDoctors(allDocs.filter(d => d.sellerId === sellerData.id));
+      setIsLoadingDoctors(false);
+    }
+    fetchReferredDoctors();
+  }, [sellerData.id]);
+
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
@@ -97,7 +116,7 @@ export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: Fin
     const netProfit = totalEarned - totalExpenses;
     
     const nextPaymentMonth = getMonth(now) === 11 ? 0 : getMonth(now) + 1;
-    const nextPaymentYear = getYear(now) === 11 ? getYear(now) + 1 : getYear(now);
+    const nextPaymentYear = getMonth(now) === 11 ? getYear(now) + 1 : getYear(now);
     const nextPaymentDate = `16 de ${format(new Date(nextPaymentYear, nextPaymentMonth), 'LLLL', { locale: es })}`;
     
     return { 
@@ -153,16 +172,16 @@ export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: Fin
     }
 
     await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
-    // This will trigger a re-fetch in the parent component
     setIsExpenseDialogOpen(false);
     toast({ title: "Gasto Guardado" });
   };
 
-  const handleDeleteExpense = async (expenseId: string) => {
-    if (!sellerData) return;
-    const updatedExpenses = (sellerData.expenses || []).filter(exp => exp.id !== expenseId);
+  const handleDeleteExpense = async () => {
+    if (!sellerData || !itemToDelete) return;
+    const updatedExpenses = (sellerData.expenses || []).filter(exp => exp.id !== itemToDelete);
     await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
-    // This will trigger a re-fetch in the parent component
+    setIsDeleteDialogOpen(false);
+    setItemToDelete(null);
     toast({ title: "Gasto Eliminado" });
   };
   
@@ -263,7 +282,7 @@ export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: Fin
                                 <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
                                 <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
                                         <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => handleDeleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button variant="destructive" size="icon" onClick={() => {setItemToDelete(expense.id); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
                                 </div></TableCell>
                             </TableRow>
                         )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
@@ -327,6 +346,20 @@ export function FinancesTab({ sellerData, referredDoctors, sellerPayments }: Fin
           </form>
         </DialogContent>
       </Dialog>
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción es permanente y no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExpense} className={cn('bg-destructive', 'text-destructive-foreground', 'hover:bg-destructive/90')}>
+              Sí, Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

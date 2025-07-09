@@ -268,8 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expenses: [],
     };
     
-    const newDoctorRef = await firestoreService.addDoctor(newDoctorData);
-    const newDoctorId = newDoctorRef.id;
+    const newDoctorId = await firestoreService.addDoctor(newDoctorData);
     
     const loggedInUser = buildUserFromData({ ...newDoctorData, id: newDoctorId, role: 'doctor' });
     setUser(loggedInUser);

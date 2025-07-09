@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Doctor, DoctorPayment } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,13 +58,14 @@ interface ReferralsTabProps {
   referredDoctors: Doctor[];
   referralCode: string;
   onUpdate: () => void;
-  doctorPayments: DoctorPayment[];
 }
 
-export function ReferralsTab({ referredDoctors, referralCode, onUpdate, doctorPayments }: ReferralsTabProps) {
+export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: ReferralsTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { cities, specialties } = useSettings();
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
 
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +75,16 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate, doctorPa
   const [selectedDoctorForPayments, setSelectedDoctorForPayments] = useState<Doctor | null>(null);
 
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register?ref=${referralCode}`;
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      setIsLoadingPayments(true);
+      const allPayments = await firestoreService.getDoctorPayments();
+      setDoctorPayments(allPayments);
+      setIsLoadingPayments(false);
+    }
+    fetchPayments();
+  }, [])
 
   const filteredAndSortedDoctors = useMemo(() => {
     let doctors = [...referredDoctors]
