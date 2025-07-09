@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -83,7 +82,7 @@ export function SellerDashboardClient() {
     { value: "support", label: "Soporte" },
   ], []);
 
-  if (loading || isLoading || !sellerData) {
+  if (loading || isLoading || !user || !sellerData) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />

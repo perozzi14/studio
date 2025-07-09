@@ -270,6 +270,7 @@ export function FinancesTab() {
       if (doc.subscriptionStatus === 'pending_payment' || doc.status === 'inactive') {
         return false;
       }
+      if (!doc.nextPaymentDate) return false;
       const nextPayment = new Date(doc.nextPaymentDate + 'T00:00:00');
       return nextPayment <= endOfThisMonth;
     }).sort((a,b) => new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime());

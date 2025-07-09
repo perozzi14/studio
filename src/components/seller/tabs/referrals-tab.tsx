@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -36,8 +35,8 @@ const DoctorFormSchema = z.object({
   specialty: z.string().min(1, "Debes seleccionar una especialidad."),
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
-  slotDuration: z.number().int().min(5, "La duración debe ser al menos 5 min.").positive(),
-  consultationFee: z.number().min(0, "La tarifa de consulta no puede ser negativa."),
+  slotDuration: z.preprocess((val) => Number(val), z.number().int().min(5, "La duración debe ser al menos 5 min.").positive()),
+  consultationFee: z.preprocess((val) => Number(val), z.number().min(0, "La tarifa de consulta no puede ser negativa.")),
 }).superRefine(({ password, confirmPassword }, ctx) => {
     if (password) {
         const passResult = passwordSchema.safeParse(password);
@@ -124,7 +123,7 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
       city: formData.get('doc-city') as string,
       address: formData.get('doc-address') as string,
       slotDuration: parseInt(formData.get('doc-slot-duration') as string, 10),
-      consultationFee: parseInt(formData.get('doc-consultation-fee') as string, 10),
+      consultationFee: parseFloat(formData.get('doc-consultation-fee') as string),
     };
 
     const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -268,7 +267,7 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
                   <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-address" className="text-right">Dirección</Label><Input id="doc-address" name="doc-address" className="col-span-3" required /></div>
                   <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-city" className="text-right">Ciudad</Label><Select name="doc-city"><SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger><SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                   <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label><Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue="30" className="col-span-3" required min="5"/></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label><Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue={20} className="col-span-3" required min="0"/></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label><Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue="20" className="col-span-3" required min="0"/></div>
               </div>
               <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Médico</Button></DialogFooter>
           </form>

@@ -41,9 +41,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setNotifications([]);
         setUnreadCount(0);
       }
-    } else {
-      setNotifications([]);
-      setUnreadCount(0);
+    } else if (!user) {
+        // Clear notifications on logout
+        setNotifications([]);
+        setUnreadCount(0);
     }
   }, [user]);
 

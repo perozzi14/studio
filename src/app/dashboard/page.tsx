@@ -117,7 +117,7 @@ function AppointmentCard({
 
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { appointments, updateAppointmentConfirmation, refreshAppointments } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
   const router = useRouter();
@@ -155,17 +155,18 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (user === undefined) return; 
-    if (user === null) {
-      router.push('/auth/login');
-    } else if (user?.role === 'doctor') {
-      router.push('/doctor/dashboard');
-    } else if (user?.role === 'seller') {
-      router.push('/seller/dashboard');
-    } else if (user?.role === 'admin') {
-      router.push('/admin/dashboard');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/auth/login');
+      } else if (user.role === 'doctor') {
+        router.push('/doctor/dashboard');
+      } else if (user.role === 'seller') {
+        router.push('/seller/dashboard');
+      } else if (user.role === 'admin') {
+        router.push('/admin/dashboard');
+      }
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
     if (!user?.email) return { upcomingAppointments: [], pastAppointments: [] };
@@ -240,7 +241,7 @@ export default function DashboardPage() {
   };
 
 
-  if (!user || user.role !== 'patient' || isDoctorsLoading) {
+  if (authLoading || isDoctorsLoading || !user || user.role !== 'patient') {
     return (
        <div className="flex flex-col min-h-screen">
         <Header />
