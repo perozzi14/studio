@@ -21,13 +21,14 @@ export function AdminDashboardClient() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get('view') || 'overview';
   
   useEffect(() => {
     if (!loading && (user === null || user.role !== 'admin')) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+  
+  const currentTab = searchParams.get('view') || 'overview';
   
   const handleTabChange = (value: string) => {
     router.push(`/admin/dashboard?view=${value}`);
