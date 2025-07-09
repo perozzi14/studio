@@ -1282,7 +1282,7 @@ export default function AdminDashboardPage() {
   const totalExpensePages = useMemo(() => {
     if (expenseItemsPerPage === -1) return 1;
     return Math.ceil(filteredCompanyExpenses.length / expenseItemsPerPage);
-  }, [filteredCompanyExpenses, expenseCurrentPage, expenseItemsPerPage]);
+  }, [filteredCompanyExpenses, expenseItemsPerPage]);
 
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
@@ -3436,5 +3436,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
