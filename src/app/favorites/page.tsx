@@ -1,5 +1,6 @@
 
 "use client";
+export const dynamic = 'force-dynamic';
 
 import React, { useMemo, useEffect, useState } from "react";
 import { Header, BottomNav } from "@/components/header";
