@@ -1,10 +1,13 @@
 
 "use client";
 
-import { useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from '@/lib/auth';
+import { Loader2 } from 'lucide-react';
+
 import { OverviewTab } from './tabs/overview-tab';
 import { DoctorsTab } from './tabs/doctors-tab';
 import { SellersTab } from './tabs/sellers-tab';
@@ -13,10 +16,6 @@ import { FinancesTab } from './tabs/finances-tab';
 import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
-import { useAuth } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
 
 export function AdminDashboardClient() {
   const { user, loading } = useAuth();
@@ -35,14 +34,14 @@ export function AdminDashboardClient() {
   };
 
   const tabs = useMemo(() => [
-    { value: "overview", label: "General" },
-    { value: "doctors", label: "Médicos" },
-    { value: "sellers", label: "Vendedoras" },
-    { value: "patients", label: "Pacientes" },
-    { value: "finances", label: "Finanzas" },
-    { value: "marketing", label: "Marketing" },
-    { value: "support", label: "Soporte" },
-    { value: "settings", label: "Configuración" },
+    { value: "overview", label: "General", component: <OverviewTab /> },
+    { value: "doctors", label: "Médicos", component: <DoctorsTab /> },
+    { value: "sellers", label: "Vendedoras", component: <SellersTab /> },
+    { value: "patients", label: "Pacientes", component: <PatientsTab /> },
+    { value: "finances", label: "Finanzas", component: <FinancesTab /> },
+    { value: "marketing", label: "Marketing", component: <MarketingTab /> },
+    { value: "support", label: "Soporte", component: <SupportTab /> },
+    { value: "settings", label: "Configuración", component: <SettingsTab /> },
   ], []);
 
   if (loading || !user) {
@@ -73,14 +72,11 @@ export function AdminDashboardClient() {
               ))}
             </TabsList>
             <div className="mt-6">
-              <TabsContent value="overview"><OverviewTab /></TabsContent>
-              <TabsContent value="doctors"><DoctorsTab /></TabsContent>
-              <TabsContent value="sellers"><SellersTab /></TabsContent>
-              <TabsContent value="patients"><PatientsTab /></TabsContent>
-              <TabsContent value="finances"><FinancesTab /></TabsContent>
-              <TabsContent value="marketing"><MarketingTab /></TabsContent>
-              <TabsContent value="support"><SupportTab /></TabsContent>
-              <TabsContent value="settings"><SettingsTab /></TabsContent>
+              {tabs.map(tab => (
+                <TabsContent key={tab.value} value={tab.value} forceMount={currentTab === tab.value}>
+                  {currentTab === tab.value ? tab.component : null}
+                </TabsContent>
+              ))}
             </div>
           </Tabs>
         </div>

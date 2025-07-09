@@ -1,37 +1,63 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import type { Doctor, Seller, Patient, DoctorPayment, SellerPayment, CompanyExpense } from "@/lib/types";
+import * as firestoreService from '@/lib/firestoreService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Stethoscope, UserCheck, BarChart as BarChartIcon } from 'lucide-react';
+import { Users, Stethoscope, UserCheck, BarChart as BarChartIcon, Loader2 } from 'lucide-react';
 
-interface OverviewTabProps {
-  doctors: Doctor[];
-  sellers: Seller[];
-  patients: Patient[];
-  doctorPayments: DoctorPayment[];
-  sellerPayments: SellerPayment[];
-  companyExpenses: CompanyExpense[];
-}
+export function OverviewTab() {
+  const [stats, setStats] = useState({
+    totalDoctors: 0,
+    activeDoctors: 0,
+    totalSellers: 0,
+    totalPatients: 0,
+    netProfit: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-export function OverviewTab({ doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses }: OverviewTabProps) {
+  const fetchStats = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [doctors, sellers, patients, doctorPayments, sellerPayments, settings] = await Promise.all([
+        firestoreService.getDoctors(),
+        firestoreService.getSellers(),
+        firestoreService.getPatients(),
+        firestoreService.getDoctorPayments(),
+        firestoreService.getSellerPayments(),
+        firestoreService.getSettings(),
+      ]);
 
-  const globalStats = useMemo(() => {
-    const totalDoctors = doctors.length;
-    const activeDoctors = doctors.filter(d => d.status === 'active').length;
-    const totalSellers = sellers.length;
-    const totalPatients = patients.length;
-    
-    const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
-    const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalExpensesValue = companyExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const companyExpenses = settings?.companyExpenses || [];
 
-    return {
-        totalDoctors, activeDoctors, totalSellers, totalPatients,
-        netProfit: totalRevenue - commissionsPaid - totalExpensesValue,
+      const totalDoctors = doctors.length;
+      const activeDoctors = doctors.filter(d => d.status === 'active').length;
+      const totalSellers = sellers.length;
+      const totalPatients = patients.length;
+      
+      const totalRevenue = doctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+      const commissionsPaid = sellerPayments.reduce((sum, p) => sum + p.amount, 0);
+      const totalExpensesValue = companyExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+      setStats({
+          totalDoctors, activeDoctors, totalSellers, totalPatients,
+          netProfit: totalRevenue - commissionsPaid - totalExpensesValue,
+      });
+    } catch (error) {
+      console.error("Failed to fetch overview stats:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [doctors, sellers, patients, doctorPayments, sellerPayments, companyExpenses]);
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -42,8 +68,8 @@ export function OverviewTab({ doctors, sellers, patients, doctorPayments, seller
                 <Stethoscope className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{globalStats.totalDoctors}</div>
-                <p className="text-xs text-muted-foreground">{globalStats.activeDoctors} activos</p>
+                <div className="text-2xl font-bold">{stats.totalDoctors}</div>
+                <p className="text-xs text-muted-foreground">{stats.activeDoctors} activos</p>
             </CardContent>
         </Card>
          <Card>
@@ -52,7 +78,7 @@ export function OverviewTab({ doctors, sellers, patients, doctorPayments, seller
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{globalStats.totalSellers}</div>
+                <div className="text-2xl font-bold">{stats.totalSellers}</div>
                 <p className="text-xs text-muted-foreground">Gestionando referidos</p>
             </CardContent>
         </Card>
@@ -62,7 +88,7 @@ export function OverviewTab({ doctors, sellers, patients, doctorPayments, seller
                 <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{globalStats.totalPatients}</div>
+                <div className="text-2xl font-bold">{stats.totalPatients}</div>
                 <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
             </CardContent>
         </Card>
@@ -72,7 +98,7 @@ export function OverviewTab({ doctors, sellers, patients, doctorPayments, seller
                 <BarChartIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${globalStats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${globalStats.netProfit.toFixed(2)}</div>
+                <div className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${stats.netProfit.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Ingresos - Egresos (Global)</p>
             </CardContent>
         </Card>

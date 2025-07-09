@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Patient, Appointment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
 
@@ -26,18 +26,40 @@ const PatientFormSchema = z.object({
 });
 
 interface PatientsTabProps {
-  patients: Patient[];
-  appointments: Appointment[];
-  onUpdate: () => void;
   onDeleteItem: (type: 'patient', item: Patient) => void;
 }
 
-export function PatientsTab({ patients, appointments, onUpdate, onDeleteItem }: PatientsTabProps) {
+export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
   const { toast } = useToast();
+
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
   const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
   const [isPatientEditDialogOpen, setIsPatientEditDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [pats, apps] = await Promise.all([
+        firestoreService.getPatients(),
+        firestoreService.getAppointments(),
+      ]);
+      setPatients(pats);
+      setAppointments(apps);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos de los pacientes.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleViewPatientDetails = (patient: Patient) => {
     setSelectedPatientForDetail(patient);
@@ -84,10 +106,14 @@ export function PatientsTab({ patients, appointments, onUpdate, onDeleteItem }: 
     
     await firestoreService.updatePatient(editingPatient.id, updatedPatientData);
     toast({ title: "Paciente Actualizado", description: `La información de ${updatedPatientData.name} ha sido guardada.` });
-    onUpdate();
+    fetchData();
     setIsPatientEditDialogOpen(false);
     setEditingPatient(null);
   };
+  
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
   
   return (
     <>

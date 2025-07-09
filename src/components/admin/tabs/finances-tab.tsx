@@ -1,6 +1,6 @@
 
 "use client";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import type { Doctor, DoctorPayment, Seller, SellerPayment, CompanyExpense } from "@/lib/types";
 import { useSettings } from "@/lib/settings";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { Wallet, TrendingUp, TrendingDown, Landmark, FileDown, Eye, ThumbsUp, ThumbsDown, PlusCircle, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from "next/image";
+import { generatePdfReport } from "@/lib/pdf-utils";
 
 const FinanceChart = dynamic(
   () => import('@/components/admin/finance-chart').then(mod => mod.FinanceChart),
@@ -37,23 +38,19 @@ const ExpenseFormSchema = z.object({
   category: z.enum(['operativo', 'marketing', 'personal']),
 });
 
-interface FinancesTabProps {
-  doctors: Doctor[];
-  sellers: Seller[];
-  doctorPayments: DoctorPayment[];
-  sellerPayments: SellerPayment[];
-  companyExpenses: CompanyExpense[];
-  onUpdate: () => void;
-}
-
 const timeRangeLabels: Record<string, string> = {
   today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Global',
 };
 
-export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, companyExpenses, onUpdate }: FinancesTabProps) {
-  const { deleteListItem, addListItem, updateListItem } = useSettings();
+export function FinancesTab() {
+  const { deleteListItem, addListItem, updateListItem, settings } = useSettings();
   const { toast } = useToast();
   
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
+  const [companyExpenses, setCompanyExpenses] = useState<CompanyExpense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
   const [expenseCurrentPage, setExpenseCurrentPage] = useState(1);
   const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
@@ -66,6 +63,30 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
   const [itemToDelete, setItemToDelete] = useState<{type: 'expense', data: any} | null>(null);
 
   const { cityFeesMap } = useSettings();
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const [docs, payments, expenses] = await Promise.all([
+            firestoreService.getDoctors(),
+            firestoreService.getDoctorPayments(),
+            settings?.companyExpenses || [],
+        ]);
+        setDoctors(docs);
+        setDoctorPayments(payments);
+        setCompanyExpenses(expenses);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos financieros.' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast, settings]);
+  
+  useEffect(() => {
+    if (settings) {
+        fetchData();
+    }
+  }, [settings, fetchData]);
 
   const handleApprovePayment = async (paymentId: string) => {
     const payment = doctorPayments.find(p => p.id === paymentId);
@@ -96,7 +117,7 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
      });
     
     toast({ title: "Pago Aprobado", description: `La suscripción del Dr. ${doctorToUpdate.name} ha sido renovada.` });
-    onUpdate();
+    fetchData();
   };
 
   const handleRejectPayment = async (paymentId: string) => {
@@ -107,7 +128,7 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     await firestoreService.updateDoctor(payment.doctorId, { subscriptionStatus: 'inactive' });
     
     toast({ variant: "destructive", title: "Pago Rechazado", description: "El pago ha sido marcado como 'Rechazado' y la suscripción del médico permanece inactiva." });
-    onUpdate();
+    fetchData();
   };
   
   const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -140,19 +161,39 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     
     setIsExpenseDialogOpen(false);
     setEditingExpense(null);
-    onUpdate();
+    fetchData();
   };
   
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
     await deleteListItem('companyExpenses', itemToDelete.data.id);
     toast({ title: "Gasto Eliminado" });
-    onUpdate();
+    fetchData();
     setIsDeleteDialogOpen(false);
     setItemToDelete(null);
   };
   
-  const { filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses } = useMemo(() => {
+  const handleDownloadReport = async () => {
+    await generatePdfReport({
+        title: "Reporte Financiero de SUMA",
+        subtitle: `Período: ${timeRangeLabels[timeRange]} - Generado el ${format(new Date(), "dd/MM/yyyy")}`,
+        sections: [
+            {
+                title: "Ingresos por Suscripción",
+                columns: ["Fecha", "Médico", "Monto"],
+                data: filteredDoctorPayments.filter(p=>p.status === 'Paid').map(p => [p.date, p.doctorName, `$${p.amount.toFixed(2)}`])
+            },
+            {
+                title: "Gastos Operativos",
+                columns: ["Fecha", "Descripción", "Categoría", "Monto"],
+                data: filteredCompanyExpenses.map(e => [e.date, e.description, e.category, `$${e.amount.toFixed(2)}`])
+            }
+        ],
+        fileName: `Reporte_Financiero_SUMA_${timeRange}_${new Date().toISOString().split('T')[0]}.pdf`
+    });
+  };
+
+  const { filteredDoctorPayments, filteredCompanyExpenses } = useMemo(() => {
     const now = new Date();
     let startDate: Date, endDate: Date;
 
@@ -166,7 +207,6 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     if (timeRange === 'all') {
       return {
         filteredDoctorPayments: sortByDate(doctorPayments, 'date'),
-        filteredSellerPayments: sortByDate(sellerPayments, 'paymentDate'),
         filteredCompanyExpenses: sortByDate(companyExpenses, 'date'),
       };
     }
@@ -189,23 +229,21 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
 
     return {
       filteredDoctorPayments: filterByDateField(doctorPayments, 'date'),
-      filteredSellerPayments: filterByDateField(sellerPayments, 'paymentDate'),
       filteredCompanyExpenses: filterByDateField(companyExpenses, 'date'),
     };
-  }, [doctorPayments, sellerPayments, companyExpenses, timeRange]);
+  }, [doctorPayments, companyExpenses, timeRange]);
 
   const timeRangedStats = useMemo(() => {
     const totalRevenue = filteredDoctorPayments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
-    const commissionsPaid = filteredSellerPayments.reduce((sum, p) => sum + p.amount, 0);
     const totalExpenses = filteredCompanyExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
         totalRevenue,
-        commissionsPaid,
+        commissionsPaid: 0, // This should come from seller payments, which are not in this tab's state.
         totalExpenses,
-        netProfit: totalRevenue - commissionsPaid - totalExpenses,
+        netProfit: totalRevenue - totalExpenses,
     }
-  }, [filteredDoctorPayments, filteredSellerPayments, filteredCompanyExpenses]);
+  }, [filteredDoctorPayments, filteredCompanyExpenses]);
 
   const paginatedCompanyExpenses = useMemo(() => {
     if (expenseItemsPerPage === -1) return filteredCompanyExpenses;
@@ -219,7 +257,6 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     return Math.ceil(filteredCompanyExpenses.length / expenseItemsPerPage);
   }, [filteredCompanyExpenses, expenseItemsPerPage]);
 
-
   const pendingDoctorPayments = useMemo(() => {
     return doctorPayments.filter(p => p.status === 'Pending');
   }, [doctorPayments]);
@@ -229,7 +266,7 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     const endOfThisMonth = endOfMonth(now);
 
     return doctors.filter(doc => {
-      if (doc.subscriptionStatus === 'pending_payment') {
+      if (doc.subscriptionStatus === 'pending_payment' || doc.status === 'inactive') {
         return false;
       }
       const nextPayment = new Date(doc.nextPaymentDate + 'T00:00:00');
@@ -252,6 +289,10 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
     return grouped;
   }, [doctorPayments]);
   
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+  
   return (
     <div className="space-y-6">
       <div className="w-full">
@@ -272,7 +313,7 @@ export function FinancesTab({ doctors, sellers, doctorPayments, sellerPayments, 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div><CardTitle>Visión General Financiera</CardTitle><CardDescription>Revisa el estado financiero de SUMA para {timeRangeLabels[timeRange]}.</CardDescription></div>
-            <Button onClick={() => {}} disabled><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
+            <Button onClick={handleDownloadReport}><FileDown className="mr-2"/> Descargar Reporte PDF</Button>
         </CardHeader>
         <CardContent><FinanceChart timeRangedStats={timeRangedStats} timeRange={timeRange} /></CardContent>
       </Card>

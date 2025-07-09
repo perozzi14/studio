@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { MarketingMaterial as MarketingMaterialType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,18 +33,36 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 interface MarketingTabProps {
-  marketingMaterials: MarketingMaterialType[];
-  onUpdate: () => void;
   onDeleteItem: (type: 'marketing', item: MarketingMaterialType) => void;
 }
 
-export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: MarketingTabProps) {
+export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
   const { toast } = useToast();
+  
+  const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterialType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [isMarketingDialogOpen, setIsMarketingDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MarketingMaterialType | null>(null);
   const [materialFile, setMaterialFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isSavingMaterial, setIsSavingMaterial] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const materials = await firestoreService.getMarketingMaterials();
+        setMarketingMaterials(materials);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los materiales de marketing.' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+  
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSaveMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -69,6 +87,7 @@ export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: Mar
           const result = MarketingMaterialSchema.safeParse(dataToValidate);
           if (!result.success) {
               toast({ variant: 'destructive', title: 'Errores de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+              setIsSavingMaterial(false);
               return;
           }
           
@@ -80,7 +99,7 @@ export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: Mar
               toast({ title: "Material Agregado" });
           }
           
-          onUpdate();
+          fetchData();
           setIsMarketingDialogOpen(false);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error al procesar archivo', description: 'No se pudo leer el archivo seleccionado.' });
@@ -95,6 +114,10 @@ export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: Mar
     setThumbnailFile(null);
     setIsMarketingDialogOpen(true);
   };
+  
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <>
