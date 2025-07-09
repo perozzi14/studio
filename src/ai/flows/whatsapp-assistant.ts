@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { doctors } from '@/lib/data';
+import * as firestoreService from '@/lib/firestoreService';
 
 // Tool to find doctors
 const findDoctorsTool = ai.defineTool(
@@ -30,7 +30,9 @@ const findDoctorsTool = ai.defineTool(
     })),
   },
   async ({ specialty, location }) => {
-    let filteredDoctors = doctors;
+    let doctors = await firestoreService.getDoctors();
+    let filteredDoctors = doctors.filter(doc => doc.status === 'active');
+    
     if (specialty) {
       filteredDoctors = filteredDoctors.filter(
         (doc) => doc.specialty.toLowerCase() === specialty.toLowerCase()
