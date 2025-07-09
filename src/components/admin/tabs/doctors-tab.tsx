@@ -17,6 +17,8 @@ import * as firestoreService from '@/lib/firestoreService';
 import { Eye, Pencil, Trash2, CheckCircle, XCircle, UserPlus, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
+
 
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -27,10 +29,13 @@ const DoctorFormSchema = z.object({
   city: z.string().min(1, "Debes seleccionar una ciudad."),
   address: z.string().min(5, "La dirección es requerida."),
   sellerId: z.string().nullable(),
+  slotDuration: z.preprocess((val) => Number(val), z.number().int().min(5, "La duración debe ser al menos 5 min.").positive()),
+  consultationFee: z.preprocess((val) => Number(val), z.number().min(0, "La tarifa de consulta no puede ser negativa.")),
 });
 
 export function DoctorsTab() {
   const { toast } = useToast();
+  const { specialties, cities } = useSettings();
   
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -100,6 +105,8 @@ export function DoctorsTab() {
       city: formData.get('city') as string,
       address: formData.get('address') as string,
       sellerId: (formData.get('sellerId') as string) || null,
+      slotDuration: formData.get('slotDuration') as string,
+      consultationFee: formData.get('consultationFee') as string,
     };
 
     const result = DoctorFormSchema.safeParse(dataToValidate);
@@ -111,18 +118,22 @@ export function DoctorsTab() {
     
     if (editingDoctor) {
       // Logic for updating a doctor
-      await firestoreService.updateDoctor(editingDoctor.id, {
+      const updateData: Partial<Doctor> = {
         name: result.data.name,
         email: result.data.email,
         specialty: result.data.specialty,
         city: result.data.city,
         address: result.data.address,
         sellerId: result.data.sellerId,
-      });
-      // Handle password change if provided
-      if(result.data.password) {
-        // Here you would call a function to update the doctor's password
+        slotDuration: result.data.slotDuration,
+        consultationFee: result.data.consultationFee,
+      };
+
+      if (result.data.password) {
+        updateData.password = result.data.password;
       }
+      
+      await firestoreService.updateDoctor(editingDoctor.id, updateData);
       toast({ title: "Médico Actualizado", description: "Los datos del médico han sido guardados." });
     } else {
       // Logic for adding a new doctor
@@ -137,8 +148,11 @@ export function DoctorsTab() {
             return;
        }
        
+        const { password, ...restOfData } = result.data;
+
         const newDoctorData: Omit<Doctor, 'id'> = {
-            ...result.data,
+            ...restOfData,
+            password: password,
             cedula: '',
             sector: '',
             rating: 0,
@@ -149,8 +163,6 @@ export function DoctorsTab() {
             description: 'Especialista comprometido con la salud y el bienestar de mis pacientes.',
             services: [],
             bankDetails: [],
-            slotDuration: 30,
-            consultationFee: 20,
             schedule: {
                 monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
                 tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -171,7 +183,7 @@ export function DoctorsTab() {
             coupons: [],
             expenses: []
         };
-        await firestoreService.addDoctor(newDoctorData as any); // Cast as any to bypass password issue on type
+        await firestoreService.addDoctor(newDoctorData);
         toast({ title: 'Médico Registrado', description: `El Dr. ${result.data.name} ha sido añadido.` });
     }
 
@@ -256,14 +268,45 @@ export function DoctorsTab() {
               <div><Label htmlFor="email">Correo Electrónico</Label><Input id="email" name="email" type="email" defaultValue={editingDoctor?.email} required/></div>
               <div><Label htmlFor="password">Nueva Contraseña</Label><Input id="password" name="password" type="password" placeholder={editingDoctor ? 'Dejar en blanco para no cambiar' : 'Requerido'} /></div>
               <div><Label htmlFor="confirmPassword">Confirmar Contraseña</Label><Input id="confirmPassword" name="confirmPassword" type="password"/></div>
-              <div><Label htmlFor="specialty">Especialidad</Label><Input id="specialty" name="specialty" defaultValue={editingDoctor?.specialty} required/></div>
-              <div><Label htmlFor="city">Ciudad</Label><Input id="city" name="city" defaultValue={editingDoctor?.city} required/></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="specialty">Especialidad</Label>
+                  <Select name="specialty" defaultValue={editingDoctor?.specialty}>
+                      <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                      <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                    <Label htmlFor="city">Ciudad</Label>
+                    <Select name="city" defaultValue={editingDoctor?.city}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                        <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+              </div>
+
               <div><Label htmlFor="address">Dirección del Consultorio</Label><Input id="address" name="address" defaultValue={editingDoctor?.address} required/></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="consultationFee">Tarifa de Consulta ($)</Label>
+                  <Input id="consultationFee" name="consultationFee" type="number" defaultValue={editingDoctor?.consultationFee || 20} required />
+                </div>
+                <div>
+                  <Label htmlFor="slotDuration">Duración por Cita (min)</Label>
+                  <Input id="slotDuration" name="slotDuration" type="number" defaultValue={editingDoctor?.slotDuration || 30} required />
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="sellerId">Vendedora Asignada</Label>
                 <Select name="sellerId" defaultValue={editingDoctor?.sellerId || ''}>
                   <SelectTrigger><SelectValue placeholder="Ninguna"/></SelectTrigger>
-                  <SelectContent><SelectItem value="">Ninguna</SelectItem>{sellers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="">Ninguna</SelectItem>
+                    {sellers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
