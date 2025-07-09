@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Patient, Appointment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -25,11 +26,7 @@ const PatientFormSchema = z.object({
   confirmPassword: z.string().optional().or(z.literal('')),
 });
 
-interface PatientsTabProps {
-  onDeleteItem: (type: 'patient', item: Patient) => void;
-}
-
-export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
+export function PatientsTab() {
   const { toast } = useToast();
 
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -40,6 +37,9 @@ export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
   const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
   const [isPatientEditDialogOpen, setIsPatientEditDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Patient | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +60,26 @@ export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const openDeleteDialog = (patient: Patient) => {
+    setItemToDelete(patient);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      await firestoreService.deletePatient(itemToDelete.id);
+      toast({ title: "Paciente Eliminado" });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
 
   const handleViewPatientDetails = (patient: Patient) => {
     setSelectedPatientForDetail(patient);
@@ -140,7 +160,7 @@ export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
                               <TableCell className="text-right flex items-center justify-end gap-2">
                                   <Button variant="outline" size="icon" onClick={() => handleViewPatientDetails(patient)}><Eye className="h-4 w-4" /></Button>
                                   <Button variant="outline" size="icon" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="h-4 w-4" /></Button>
-                                  <Button variant="destructive" size="icon" onClick={() => onDeleteItem('patient', patient)}><Trash2 className="h-4 w-4" /></Button>
+                                  <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(patient)}><Trash2 className="h-4 w-4" /></Button>
                               </TableCell>
                           </TableRow>
                       ))}
@@ -159,7 +179,7 @@ export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
                           <div className="flex justify-end gap-2">
                               <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewPatientDetails(patient)}><Eye className="mr-2 h-4 w-4" /> Ver</Button>
                               <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenPatientEditDialog(patient)}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                              <Button variant="destructive" size="sm" className="flex-1" onClick={() => onDeleteItem('patient', patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                              <Button variant="destructive" size="sm" className="flex-1" onClick={() => openDeleteDialog(patient)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                           </div>
                       </div>
                   ))}
@@ -227,6 +247,22 @@ export function PatientsTab({ onDeleteItem }: PatientsTabProps) {
           </form>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro que deseas eliminar?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción es permanente y no se puede deshacer. Se eliminará a {itemToDelete?.name} del sistema.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                    Sí, Eliminar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

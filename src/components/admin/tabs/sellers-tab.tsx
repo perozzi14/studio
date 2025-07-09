@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Seller, Doctor } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
 import { UserPlus, Pencil, Trash2, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { cn } from "@/lib/utils";
 
 const SellerFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -23,11 +25,7 @@ const SellerFormSchema = z.object({
   confirmPassword: z.string().optional().or(z.literal('')),
 });
 
-interface SellersTabProps {
-  onDeleteItem: (type: 'seller', item: Seller) => void;
-}
-
-export function SellersTab({ onDeleteItem }: SellersTabProps) {
+export function SellersTab() {
   const { toast } = useToast();
 
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -36,6 +34,9 @@ export function SellersTab({ onDeleteItem }: SellersTabProps) {
 
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Seller | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -56,6 +57,26 @@ export function SellersTab({ onDeleteItem }: SellersTabProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const openDeleteDialog = (seller: Seller) => {
+    setItemToDelete(seller);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      await firestoreService.deleteSeller(itemToDelete.id);
+      toast({ title: "Vendedora Eliminada" });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
 
   const handleSaveSeller = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -145,7 +166,7 @@ export function SellersTab({ onDeleteItem }: SellersTabProps) {
                     <TableCell className="text-right font-mono">{(seller.commissionRate * 100).toFixed(0)}%</TableCell>
                     <TableCell className="text-right flex items-center justify-end gap-2">
                       <Button variant="outline" size="icon" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" onClick={() => onDeleteItem('seller', seller)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(seller)}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -164,7 +185,7 @@ export function SellersTab({ onDeleteItem }: SellersTabProps) {
                 <Separator />
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingSeller(seller); setIsSellerDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
-                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => onDeleteItem('seller', seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => openDeleteDialog(seller)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                 </div>
               </div>
             ))}
@@ -188,6 +209,23 @@ export function SellersTab({ onDeleteItem }: SellersTabProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro que deseas eliminar?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción es permanente y no se puede deshacer. Se eliminará a {itemToDelete?.name} del sistema.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                    Sí, Eliminar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

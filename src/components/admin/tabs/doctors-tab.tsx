@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Doctor, Seller } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,8 +17,6 @@ import * as firestoreService from '@/lib/firestoreService';
 import { Eye, Pencil, Trash2, CheckCircle, XCircle, UserPlus, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 const DoctorFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -30,10 +29,6 @@ const DoctorFormSchema = z.object({
   sellerId: z.string().nullable(),
 });
 
-interface DoctorsTabProps {
-  onDeleteItem: (type: 'doctor', item: Doctor) => void;
-}
-
 export function DoctorsTab() {
   const { toast } = useToast();
   
@@ -43,6 +38,9 @@ export function DoctorsTab() {
 
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Doctor | null>(null);
   
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -64,10 +62,29 @@ export function DoctorsTab() {
     fetchData();
   }, [fetchData]);
 
+  const openDeleteDialog = (doctor: Doctor) => {
+    setItemToDelete(doctor);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      await firestoreService.deleteDoctor(itemToDelete.id);
+      toast({ title: "Médico Eliminado" });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
   const handleToggleDoctorStatus = async (doctor: Doctor) => {
     const newStatus = doctor.status === 'active' ? 'inactive' : 'active';
     await firestoreService.updateDoctorStatus(doctor.id, newStatus);
-    toast({ title: "Estado Actualizado", description: `El Dr. ${doctor.name} ahora está ${newStatus}.` });
+    toast({ title: "Estado Actualizado", description: `El Dr. ${doctor.name} ahora está ${newStatus === 'active' ? 'activo' : 'inactivo'}.` });
     fetchData();
   };
 
@@ -197,6 +214,7 @@ export function DoctorsTab() {
                       </TableCell>
                       <TableCell className="text-right flex items-center justify-end gap-2">
                         <Button variant="outline" size="icon" onClick={() => { setEditingDoctor(doctor); setIsDoctorDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -216,8 +234,9 @@ export function DoctorsTab() {
                     </Badge>
                   </div>
                   <Separator />
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm" onClick={() => { setEditingDoctor(doctor); setIsDoctorDialogOpen(true); }}><Pencil className="mr-2 h-4 w-4" /> Editar</Button>
+                    <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(doctor)}><Trash2 className="mr-2 h-4 w-4" /> Eliminar</Button>
                   </div>
                 </div>
               ))}
@@ -252,6 +271,23 @@ export function DoctorsTab() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro que deseas eliminar?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción es permanente y no se puede deshacer. Se eliminará a {itemToDelete?.name} del sistema.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                    Sí, Eliminar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

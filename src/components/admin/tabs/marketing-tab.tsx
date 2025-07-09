@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { MarketingMaterial as MarketingMaterialType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import * as firestoreService from '@/lib/firestoreService';
 import { PlusCircle, ShoppingBag, ImageIcon, Video, FileText, Link as LinkIcon, Pencil, Trash2, Upload, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { MarketingMaterialCard } from './marketing-card';
+import { cn } from '@/lib/utils';
 
 const MarketingMaterialSchema = z.object({
   title: z.string().min(3, "El título es requerido."),
@@ -32,11 +34,7 @@ const fileToDataUri = (file: File): Promise<string> => {
   });
 };
 
-interface MarketingTabProps {
-  onDeleteItem: (type: 'marketing', item: MarketingMaterialType) => void;
-}
-
-export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
+export function MarketingTab() {
   const { toast } = useToast();
   
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterialType[]>([]);
@@ -47,6 +45,9 @@ export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
   const [materialFile, setMaterialFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isSavingMaterial, setIsSavingMaterial] = useState(false);
+  
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<MarketingMaterialType | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -63,6 +64,26 @@ export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const openDeleteDialog = (material: MarketingMaterialType) => {
+    setItemToDelete(material);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      await firestoreService.deleteMarketingMaterial(itemToDelete.id);
+      toast({ title: "Material Eliminado" });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
 
   const handleSaveMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -101,6 +122,7 @@ export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
           
           fetchData();
           setIsMarketingDialogOpen(false);
+          setEditingMaterial(null);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error al procesar archivo', description: 'No se pudo leer el archivo seleccionado.' });
       } finally {
@@ -139,7 +161,7 @@ export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
                             key={material.id} 
                             material={material} 
                             onEdit={() => openDialog(material)}
-                            onDelete={() => onDeleteItem('marketing', material)}
+                            onDelete={() => openDeleteDialog(material)}
                         />
                     ))}
                 </div>
@@ -193,6 +215,23 @@ export function MarketingTab({ onDeleteItem }: MarketingTabProps) {
           </form>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro que deseas eliminar?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Esta acción es permanente y no se puede deshacer. Se eliminará "{itemToDelete?.title}" del sistema.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                      Sí, Eliminar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
