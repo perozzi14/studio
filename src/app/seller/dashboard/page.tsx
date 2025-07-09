@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Suspense } from 'react';
 import { SellerDashboardClient } from '@/components/seller/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
