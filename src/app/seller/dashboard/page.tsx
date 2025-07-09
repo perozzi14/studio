@@ -1050,7 +1050,7 @@ export default function SellerDashboardPage() {
                                       <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => handleViewTicket(ticket)}><Eye className="mr-2 h-4 w-4" /> Ver</Button></TableCell>
                                   </TableRow>
                               ))}
-                               {(supportTickets || []).length === 0 && (<TableRow><TableCell colSpan={4} className="h-24 text-center">No tienes tickets de soporte.</TableCell></TableRow>)}
+                               {(supportTickets || []).length === 0 && (<TableRow><TableCell colSpan={4} className="text-center h-24">No tienes tickets de soporte.</TableCell></TableRow>)}
                               </TableBody>
                           </Table>
                         </CardContent>
