@@ -1,8 +1,8 @@
 
-
 "use client";
 
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DoctorDashboardClient } from '@/components/doctor/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
@@ -27,11 +27,17 @@ function DashboardLoading() {
   );
 }
 
+function DoctorDashboardContent() {
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('view') || 'appointments';
+
+    return <DoctorDashboardClient currentTab={currentTab} />;
+}
+
 export default function DoctorDashboardPage() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <DoctorDashboardClient />
+      <DoctorDashboardContent />
     </Suspense>
   );
 }
-

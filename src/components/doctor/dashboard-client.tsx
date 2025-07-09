@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -84,10 +85,13 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-export function DoctorDashboardClient() {
+interface DoctorDashboardClientProps {
+  currentTab: string;
+}
+
+export function DoctorDashboardClient({ currentTab }: DoctorDashboardClientProps) {
     const { user, loading, changePassword } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const { toast } = useToast();
     const { cities } = useSettings();
     const { checkAndSetDoctorNotifications } = useDoctorNotifications();
@@ -97,8 +101,6 @@ export function DoctorDashboardClient() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
     const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
-
-    const currentTab = searchParams.get('view') || 'appointments';
     
     // Dialog states
     const [isAppointmentDetailOpen, setIsAppointmentDetailOpen] = useState(false);

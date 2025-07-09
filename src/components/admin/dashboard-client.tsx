@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/lib/auth';
@@ -16,19 +16,19 @@ import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
 
+interface AdminDashboardClientProps {
+  currentTab: string;
+}
 
-export function AdminDashboardClient() {
+export function AdminDashboardClient({ currentTab }: AdminDashboardClientProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
-  
-  const currentTab = searchParams.get('view') || 'overview';
   
   const handleTabChange = (value: string) => {
     router.push(`/admin/dashboard?view=${value}`);

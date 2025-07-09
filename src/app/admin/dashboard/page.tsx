@@ -1,8 +1,8 @@
 
-
 "use client";
 
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AdminDashboardClient } from '@/components/admin/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
@@ -28,11 +28,18 @@ function DashboardLoading() {
   );
 }
 
+function AdminDashboardContent() {
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('view') || 'overview';
+    
+    return <AdminDashboardClient currentTab={currentTab} />;
+}
+
+
 export default function AdminDashboardPage() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <AdminDashboardClient />
+      <AdminDashboardContent />
     </Suspense>
   );
 }
-

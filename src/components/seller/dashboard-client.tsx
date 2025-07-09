@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -15,10 +16,13 @@ import { AccountsTab } from './tabs/accounts-tab';
 import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
 
-export function SellerDashboardClient() {
+interface SellerDashboardClientProps {
+  currentTab: string;
+}
+
+export function SellerDashboardClient({ currentTab }: SellerDashboardClientProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -27,8 +31,6 @@ export function SellerDashboardClient() {
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
-
-  const currentTab = searchParams.get('view') || 'referrals';
 
   const handleTabChange = (value: string) => {
     router.push(`/seller/dashboard?view=${value}`);
