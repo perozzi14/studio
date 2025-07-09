@@ -1,7 +1,7 @@
 
 "use client";
 import { useState } from 'react';
-import type { MarketingMaterial } from '@/lib/types';
+import type { MarketingMaterial as MarketingMaterialType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -33,15 +33,15 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 interface MarketingTabProps {
-  marketingMaterials: MarketingMaterial[];
+  marketingMaterials: MarketingMaterialType[];
   onUpdate: () => void;
-  onDeleteItem: (type: 'marketing', item: MarketingMaterial) => void;
+  onDeleteItem: (type: 'marketing', item: MarketingMaterialType) => void;
 }
 
 export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: MarketingTabProps) {
   const { toast } = useToast();
   const [isMarketingDialogOpen, setIsMarketingDialogOpen] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<MarketingMaterial | null>(null);
+  const [editingMaterial, setEditingMaterial] = useState<MarketingMaterialType | null>(null);
   const [materialFile, setMaterialFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isSavingMaterial, setIsSavingMaterial] = useState(false);
@@ -61,7 +61,7 @@ export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: Mar
           const dataToValidate = {
               title: formData.get('title') as string,
               description: formData.get('description') as string,
-              type: formData.get('type') as MarketingMaterial['type'],
+              type: formData.get('type') as MarketingMaterialType['type'],
               url: finalUrl,
               thumbnailUrl: finalThumbnailUrl || (finalUrl.startsWith('data:image') ? finalUrl : 'https://placehold.co/600x400.png'),
           };
@@ -89,7 +89,7 @@ export function MarketingTab({ marketingMaterials, onUpdate, onDeleteItem }: Mar
       }
   };
 
-  const openDialog = (material: MarketingMaterial | null) => {
+  const openDialog = (material: MarketingMaterialType | null) => {
     setEditingMaterial(material);
     setMaterialFile(null);
     setThumbnailFile(null);
