@@ -6,9 +6,9 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const SellerDashboardClient = dynamic(
+const SellerDashboardClient = nextDynamic(
     () => import('@/components/seller/dashboard-client').then(mod => mod.SellerDashboardClient),
     { 
         ssr: false,
