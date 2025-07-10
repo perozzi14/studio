@@ -1,20 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Header } from '@/components/header';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from '@/lib/auth';
-import { Loader2 } from 'lucide-react';
-import { OverviewTab } from '@/components/admin/tabs/overview-tab';
-import { DoctorsTab } from '@/components/admin/tabs/doctors-tab';
-import { SellersTab } from '@/components/admin/tabs/sellers-tab';
-import { PatientsTab } from '@/components/admin/tabs/patients-tab';
-import { FinancesTab } from '@/components/admin/tabs/finances-tab';
-import { MarketingTab } from '@/components/admin/tabs/marketing-tab';
-import { SupportTab } from '@/components/admin/tabs/support-tab';
-import { SettingsTab } from '@/components/admin/tabs/settings-tab';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { AdminDashboardClient } from '@/components/admin/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Header } from '@/components/header';
 
 function DashboardLoading() {
   return (
@@ -42,64 +32,10 @@ function DashboardLoading() {
 }
 
 function AdminDashboardContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'overview';
-  
-  useEffect(() => {
-    if (!loading && (!user || user.role !== 'admin')) {
-      router.push('/auth/login');
-    }
-  }, [user, loading, router]);
-  
-  const handleTabChange = (value: string) => {
-    router.push(`/admin/dashboard?view=${value}`);
-  };
-  
-  const tabs = useMemo(() => [
-    { value: "overview", label: "General", component: <OverviewTab /> },
-    { value: "doctors", label: "Médicos", component: <DoctorsTab /> },
-    { value: "sellers", label: "Vendedoras", component: <SellersTab /> },
-    { value: "patients", label: "Pacientes", component: <PatientsTab /> },
-    { value: "finances", label: "Finanzas", component: <FinancesTab /> },
-    { value: "marketing", label: "Marketing", component: <MarketingTab /> },
-    { value: "support", label: "Soporte", component: <SupportTab /> },
-    { value: "settings", label: "Configuración", component: <SettingsTab /> },
-  ], []);
 
-  if (loading || !user) {
-    return <DashboardLoading />;
-  }
-
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-1 bg-muted/40">
-        <div className="container py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold font-headline mb-2">Panel de Administrador</h1>
-            <p className="text-muted-foreground">Bienvenido, {user.name}. Gestiona todo el sistema SUMA desde aquí.</p>
-          </div>
-          
-          <Tabs value={currentTab} onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 h-auto">
-              {tabs.map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
-              ))}
-            </TabsList>
-            <div className="mt-6">
-              {tabs.map(tab => (
-                <TabsContent key={tab.value} value={tab.value}>
-                  {tab.component}
-                </TabsContent>
-              ))}
-            </div>
-          </Tabs>
-        </div>
-      </main>
-    </div>
-  );
+  return <AdminDashboardClient currentTab={currentTab} />;
 }
 
 

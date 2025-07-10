@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { SellerDashboardClient } from '@/components/seller/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/header';
@@ -25,12 +26,18 @@ function DashboardLoading() {
         </main>
       </>
     );
-  }
+}
+
+function SellerDashboardContent() {
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('view') || 'referrals';
+    return <SellerDashboardClient currentTab={currentTab} />;
+}
 
 export default function SellerDashboardPage() {
     return (
         <Suspense fallback={<DashboardLoading />}>
-            <SellerDashboardClient />
+            <SellerDashboardContent />
         </Suspense>
     );
 }

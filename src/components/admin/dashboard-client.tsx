@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/lib/auth';
@@ -16,11 +16,9 @@ import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
 import { Skeleton } from '../ui/skeleton';
 
-export function AdminDashboardClient() {
+export function AdminDashboardClient({ currentTab }: { currentTab: string }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentTab = searchParams.get('view') || 'overview';
   
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -85,7 +85,6 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-
 function DashboardLoading() {
   return (
     <>
@@ -109,11 +108,9 @@ function DashboardLoading() {
   );
 }
 
-function DoctorDashboardComponent() {
+export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
     const { user, loading, changePassword } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const currentTab = searchParams.get('view') || 'appointments';
 
     const { toast } = useToast();
     const { cities } = useSettings();
@@ -479,12 +476,4 @@ function DoctorDashboardComponent() {
             </AlertDialog>
         </div>
     );
-}
-
-export function DoctorDashboardClient() {
-  return (
-    <Suspense fallback={<DashboardLoading />}>
-      <DoctorDashboardComponent />
-    </Suspense>
-  )
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -38,11 +38,9 @@ function DashboardLoading() {
   );
 }
 
-function SellerDashboardComponent() {
+export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentTab = searchParams.get('view') || 'referrals';
 
   const { toast } = useToast();
   
@@ -159,13 +157,4 @@ function SellerDashboardComponent() {
       </main>
     </div>
   );
-}
-
-
-export function SellerDashboardClient() {
-  return (
-    <Suspense fallback={<DashboardLoading />}>
-        <SellerDashboardComponent />
-    </Suspense>
-  )
 }
