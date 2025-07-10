@@ -29,16 +29,16 @@ function DashboardLoading() {
     );
 }
 
-function DoctorDashboardContent() {
+function DoctorDashboardPage() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'appointments';
     return <DoctorDashboardClient currentTab={currentTab} />;
 }
 
-export default function DoctorDashboardPage() {
+export default function DoctorDashboardPageWrapper() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-        <DoctorDashboardContent />
+        <DoctorDashboardPage />
     </Suspense>
   );
 }

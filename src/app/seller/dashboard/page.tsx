@@ -28,16 +28,16 @@ function DashboardLoading() {
     );
 }
 
-function SellerDashboardContent() {
+function SellerDashboardPage() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'referrals';
     return <SellerDashboardClient currentTab={currentTab} />;
 }
 
-export default function SellerDashboardPage() {
+export default function SellerDashboardPageWrapper() {
     return (
         <Suspense fallback={<DashboardLoading />}>
-            <SellerDashboardContent />
+            <SellerDashboardPage />
         </Suspense>
     );
 }

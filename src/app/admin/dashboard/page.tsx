@@ -31,7 +31,7 @@ function DashboardLoading() {
   );
 }
 
-function AdminDashboardContent() {
+function AdminDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'overview';
 
@@ -39,10 +39,10 @@ function AdminDashboardContent() {
 }
 
 
-export default function AdminDashboardPage() {
+export default function AdminDashboardPageWrapper() {
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <AdminDashboardContent />
+      <AdminDashboardPage />
     </Suspense>
   );
 }
