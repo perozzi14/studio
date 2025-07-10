@@ -50,7 +50,7 @@ export async function getCollectionData<T>(collectionName: string): Promise<T[]>
 }
 
 // Generic Get Document Function
-async function getDocumentData<T>(collectionName: string, id: string): Promise<T | null> {
+export async function getDocumentData<T>(collectionName: string, id: string): Promise<T | null> {
     // The check for string ID is important.
     if (!id || typeof id !== 'string') {
         console.error(`Invalid ID provided to getDocumentData for collection ${collectionName}:`, id);
