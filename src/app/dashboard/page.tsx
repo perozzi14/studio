@@ -155,16 +155,14 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
+    if (!authLoading && (!user || user.role !== 'patient')) {
         router.push('/auth/login');
-      } else if (user.role === 'doctor') {
+    } else if (user?.role === 'doctor') {
         router.push('/doctor/dashboard');
-      } else if (user.role === 'seller') {
+    } else if (user?.role === 'seller') {
         router.push('/seller/dashboard');
-      } else if (user.role === 'admin') {
+    } else if (user?.role === 'admin') {
         router.push('/admin/dashboard');
-      }
     }
   }, [user, authLoading, router]);
 
