@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -108,9 +108,11 @@ function DashboardLoading() {
   );
 }
 
-export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
+export function DoctorDashboardClient() {
     const { user, loading, changePassword } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('view') || 'appointments';
 
     const { toast } = useToast();
     const { cities } = useSettings();

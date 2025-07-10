@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/lib/auth';
@@ -16,9 +16,11 @@ import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
 import { Skeleton } from '../ui/skeleton';
 
-export function AdminDashboardClient({ currentTab }: { currentTab: string }) {
+export function AdminDashboardClient() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('view') || 'overview';
   
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -37,7 +39,7 @@ export function AdminDashboardClient({ currentTab }: { currentTab: string }) {
     { value: "patients", label: "Pacientes", component: <PatientsTab /> },
     { value: "finances", label: "Finanzas", component: <FinancesTab /> },
     { value: "marketing", label: "Marketing", component: <MarketingTab /> },
-    { value: "support", label: "Soporte", component: <SupportTab /> },
+    { value: "support", label: "Soporte", component: <SettingsTab /> },
     { value: "settings", label: "Configuración", component: <SettingsTab /> },
   ], []);
 

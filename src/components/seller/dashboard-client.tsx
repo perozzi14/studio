@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -38,9 +38,11 @@ function DashboardLoading() {
   );
 }
 
-export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
+export function SellerDashboardClient() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('view') || 'referrals';
 
   const { toast } = useToast();
   

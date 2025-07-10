@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useCallback, useEffect } from "react";
 import type { AdminSupportTicket, ChatMessage } from "@/lib/types";
@@ -24,6 +23,7 @@ export function SupportTab() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -48,13 +48,21 @@ export function SupportTab() {
 
   const handleSendAdminReply = async () => {
     if (!selectedTicket || !replyMessage.trim()) return;
-    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = { sender: 'admin', text: replyMessage.trim() };
-    await firestoreService.addMessageToSupportTicket(selectedTicket.id, newMessage);
-    setReplyMessage("");
-    fetchData(); // Re-fetch to get the updated ticket
-    // Optimistically update dialog
-    const updatedTicket = { ...selectedTicket, messages: [...(selectedTicket.messages || []), { ...newMessage, id: `temp-${Date.now()}`, timestamp: new Date().toISOString() }]};
-    setSelectedTicket(updatedTicket);
+    setIsSendingMessage(true);
+    try {
+        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = { sender: 'admin', text: replyMessage.trim() };
+        await firestoreService.addMessageToSupportTicket(selectedTicket.id, newMessage);
+        setReplyMessage("");
+        const updatedTicketData = await firestoreService.getDocumentData<AdminSupportTicket>('supportTickets', selectedTicket.id);
+        if (updatedTicketData) {
+            setSelectedTicket(updatedTicketData);
+            setTickets(prevTickets => prevTickets.map(t => t.id === updatedTicketData.id ? updatedTicketData : t));
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar la respuesta.'});
+    } finally {
+        setIsSendingMessage(false);
+    }
   };
 
   const handleCloseTicket = async () => {
@@ -119,10 +127,12 @@ export function SupportTab() {
                 ))}
               </div>
               {selectedTicket.status === 'abierto' && (
-                <div className="flex items-center gap-2 border-t pt-4">
-                  <Input placeholder="Escribe tu respuesta..." value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} />
-                  <Button onClick={handleSendAdminReply} disabled={!replyMessage.trim()} size="icon"><Send className="h-4 w-4" /></Button>
-                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleSendAdminReply(); }} className="flex items-center gap-2 border-t pt-4">
+                  <Input placeholder="Escribe tu respuesta..." value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} disabled={isSendingMessage} />
+                  <Button type="submit" disabled={isSendingMessage || !replyMessage.trim()} size="icon">
+                    {isSendingMessage ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
+                  </Button>
+                </form>
               )}
             </>
           )}
