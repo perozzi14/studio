@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, Suspense } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,32 +16,7 @@ import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
 import { Skeleton } from '../ui/skeleton';
 
-function DashboardLoading() {
-  return (
-    <>
-      <Header />
-      <main className="flex-1 container py-12">
-        <div className="mb-8">
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2 mt-2" />
-        </div>
-        <div className="flex items-center gap-4 mb-8">
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-        </div>
-        <Skeleton className="h-96 w-full" />
-      </main>
-    </>
-  );
-}
-
-function AdminDashboardComponent() {
+export function AdminDashboardClient() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -69,7 +44,28 @@ function AdminDashboardComponent() {
   ], []);
 
   if (loading || !user) {
-    return <DashboardLoading />;
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <Header />
+            <main className="flex-1 container py-12">
+                <div className="mb-8">
+                    <Skeleton className="h-8 w-1/4" />
+                    <Skeleton className="h-4 w-1/2 mt-2" />
+                </div>
+                <div className="flex items-center gap-4 mb-8">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+                </div>
+                <Skeleton className="h-96 w-full" />
+            </main>
+        </div>
+    );
   }
 
   return (
@@ -100,12 +96,4 @@ function AdminDashboardComponent() {
       </main>
     </div>
   );
-}
-
-export function AdminDashboardClient() {
-  return (
-    <Suspense fallback={<DashboardLoading />}>
-      <AdminDashboardComponent />
-    </Suspense>
-  )
 }
