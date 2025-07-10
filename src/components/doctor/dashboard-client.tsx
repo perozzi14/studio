@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -13,7 +12,7 @@ import { useSettings } from '@/lib/settings';
 import { useDoctorNotifications } from '@/lib/doctor-notifications';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +35,7 @@ import { CouponsTab } from './dashboard/tabs/coupons-tab';
 import { ChatTab } from './dashboard/tabs/chat-tab';
 import { SupportTab } from './dashboard/tabs/support-tab';
 import { AppointmentDetailDialog } from '@/components/doctor/appointment-detail-dialog';
+import { Skeleton } from '../ui/skeleton';
 
 const BankDetailFormSchema = z.object({
   bank: z.string().min(3, "El nombre del banco es requerido."),
@@ -85,13 +85,36 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-interface DoctorDashboardClientProps {
-  currentTab: string;
+
+function DashboardLoading() {
+  return (
+    <>
+      <Header />
+      <main className="flex-1 container py-12">
+        <div className="mb-8">
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <div className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </main>
+    </>
+  );
 }
 
-export function DoctorDashboardClient({ currentTab }: DoctorDashboardClientProps) {
+function DoctorDashboardComponent() {
     const { user, loading, changePassword } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('view') || 'appointments';
+
     const { toast } = useToast();
     const { cities } = useSettings();
     const { checkAndSetDoctorNotifications } = useDoctorNotifications();
@@ -305,9 +328,7 @@ export function DoctorDashboardClient({ currentTab }: DoctorDashboardClientProps
     }
 
     if (loading || isLoadingData || !user || !doctorData) {
-        return (
-          <div className="flex flex-col min-h-screen"> <Header /> <main className="flex-1 container py-12 flex items-center justify-center"> <Loader2 className="h-8 w-8 animate-spin text-primary" /> </main> </div>
-        );
+        return <DashboardLoading />;
     }
     
     const subscriptionFee = cityFeesMap.get(doctorData.city) || 0;
@@ -458,4 +479,12 @@ export function DoctorDashboardClient({ currentTab }: DoctorDashboardClientProps
             </AlertDialog>
         </div>
     );
+}
+
+export function DoctorDashboardClient() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DoctorDashboardComponent />
+    </Suspense>
+  )
 }

@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
@@ -15,14 +14,36 @@ import { FinancesTab } from './tabs/finances-tab';
 import { AccountsTab } from './tabs/accounts-tab';
 import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
+import { Skeleton } from '../ui/skeleton';
 
-interface SellerDashboardClientProps {
-  currentTab: string;
+function DashboardLoading() {
+  return (
+    <>
+      <Header />
+      <main className="flex-1 container py-12">
+        <div className="mb-8">
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <div className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </main>
+    </>
+  );
 }
 
-export function SellerDashboardClient({ currentTab }: SellerDashboardClientProps) {
+function SellerDashboardComponent() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('view') || 'referrals';
+
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -85,14 +106,7 @@ export function SellerDashboardClient({ currentTab }: SellerDashboardClientProps
   ], []);
 
   if (loading || isLoading || !user || !sellerData) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 container py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </main>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (
@@ -145,4 +159,13 @@ export function SellerDashboardClient({ currentTab }: SellerDashboardClientProps
       </main>
     </div>
   );
+}
+
+
+export function SellerDashboardClient() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+        <SellerDashboardComponent />
+    </Suspense>
+  )
 }

@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/lib/auth';
@@ -15,14 +14,38 @@ import { FinancesTab } from './tabs/finances-tab';
 import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
+import { Skeleton } from '../ui/skeleton';
 
-interface AdminDashboardClientProps {
-  currentTab: string;
+function DashboardLoading() {
+  return (
+    <>
+      <Header />
+      <main className="flex-1 container py-12">
+        <div className="mb-8">
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <div className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </main>
+    </>
+  );
 }
 
-export function AdminDashboardClient({ currentTab }: AdminDashboardClientProps) {
+function AdminDashboardComponent() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('view') || 'overview';
   
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -46,14 +69,7 @@ export function AdminDashboardClient({ currentTab }: AdminDashboardClientProps) 
   ], []);
 
   if (loading || !user) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 container py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </main>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (
@@ -84,4 +100,12 @@ export function AdminDashboardClient({ currentTab }: AdminDashboardClientProps) 
       </main>
     </div>
   );
+}
+
+export function AdminDashboardClient() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <AdminDashboardComponent />
+    </Suspense>
+  )
 }
